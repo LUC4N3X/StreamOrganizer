@@ -235,143 +235,206 @@ a,
             }
         }
 
-        /* Layout a due colonne per schermi più grandi */
-        @media (min-width: 960px) { /* Aumentato leggermente il breakpoint */
-	        #app {
-		        position: relative;
-		        z-index: 10;
-		        isolation: isolate;
-		        will-change: transform, opacity, backdrop-filter;
-		        contain: layout paint style;
-		        transform: translateZ(0); /* Attiva accelerazione GPU */
+       /* ======================
+   Layout a due colonne
+   ====================== */
+#app {
+    position: relative;
+    z-index: 10;
+    isolation: isolate;
+    width: min(100% - 48px, 1300px);
+    margin: 48px auto;
+    padding: 2rem;
+    
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    grid-template-rows: auto 1fr;
+    gap: 1.5rem 2rem;
 
-		        width: calc(100% - 48px);
-		        max-width: 1100px;
-		        margin: 48px auto;
-		        padding: 2.2rem;
+    background: linear-gradient(135deg, rgba(18,13,25,0.72), rgba(22,15,30,0.5));
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
 
-		        display: grid;
-		        grid-template-columns: 1fr 300px; /* Colonna principale + Statistiche */
-		        grid-template-rows: auto 1fr; /* Header + Contenuto */
-		        gap: 1.5rem 2rem;
-		        overflow: visible;
+    box-shadow:
+        0 8px 32px rgba(0,0,0,0.55),
+        0 0 40px rgba(156, 39, 176, 0.15),
+        inset 0 0 0.5px rgba(255,255,255,0.25);
 
-		        background: linear-gradient(135deg, rgba(18,13,25,0.72), rgba(22,15,30,0.5));
-		        border: 1px solid rgba(255,255,255,0.06);
-		        border-radius: 16px;
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
 
-		        box-shadow:
-		            0 8px 32px rgba(0,0,0,0.55),
-		            0 0 40px rgba(156, 39, 176, 0.15),
-		            inset 0 0 0.5px rgba(255,255,255,0.25);
+    transform: translateZ(0);
+    will-change: transform, box-shadow, backdrop-filter;
+    transition: transform 0.25s ease, box-shadow 0.3s ease, backdrop-filter 0.4s ease;
 
-		        backdrop-filter: blur(10px) saturate(150%);
-		        -webkit-backdrop-filter: blur(10px) saturate(150%);
+    /* Ottimizzazione contenuti: evita repaint massivi */
+    contain: layout style paint;
+    content-visibility: auto;
+    contain-intrinsic-size: 800px;
+}
 
-		        transition: transform 0.25s ease, box-shadow 0.3s ease, backdrop-filter 0.4s ease;
-	        }
+#app:hover {
+    transform: scale(1.02) translateZ(0);
+    box-shadow:
+        0 12px 48px rgba(0,0,0,0.65),
+        0 0 60px rgba(156, 39, 176, 0.2),
+        inset 0 0 1px rgba(255,255,255,0.35);
+}
 
-	        #app:hover {
-	            transform: scale(1.01) translateZ(0);
-	            box-shadow:
-	                0 10px 40px rgba(0,0,0,0.65),
-	                0 0 50px rgba(156, 39, 176, 0.18),
-	                inset 0 0 1px rgba(255,255,255,0.35);
-	        }
+#app:focus-within {
+    outline: 2px solid rgba(156, 39, 176, 0.5);
+    outline-offset: 4px;
+}
 
-	        /* ======================
-	           Responsive ottimizzato
-	           ====================== */
-	        @media (max-width: 768px) {
-	            #app {
-	                margin: 24px auto;
-	                padding: 1.6rem;
-	            }
-	        }
+/* ======================
+   Main & Stats Panels
+   ====================== */
+.main-content, .stats-panel-container {
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    will-change: scroll-position, opacity;
+    transform: translateZ(0);
+    contain: layout paint;
+}
 
-	        @media (min-width: 1200px) {
-	            #app {
-	                max-width: 1300px;
-	            }
-	        }
 
-	        /* =============================================
-	           Layout dinamico a due colonne (desktop >960px)
-	           ============================================= */
-	        @media (min-width: 960px) {
-	            #app {
-	                grid-template-columns: minmax(0, 1fr) 300px; /* Colonna principale + Statistiche */
-	                grid-template-rows: auto 1fr; /* Header + Contenuto */
-	                gap: 1.5rem 2rem;
-	                overflow: visible;
-	            }
+.stats-panel-container {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;;
+    position: sticky;
+    top: 48px;
+    height: calc(100vh - 96px);
+}
 
-	            header {
-	                grid-column: 1 / 2;
-	                grid-row: 1 / 2;
-	            }
+/* ======================
+   Responsive
+   ====================== */
+@media (max-width: 1200px) {
+    #app { max-width: 1100px; }
+}
 
-	            .main-content {
-	                grid-column: 1 / 2;
-	                grid-row: 2 / 3;
-	                min-height: 0;
-	                overflow-y: auto;
-	                padding-right: 10px;
-	                scroll-behavior: smooth;
-	                scrollbar-width: thin;
-	                /* NUOVO: Ottimizzazione del rendering per lo scorrimento */
-                        content-visibility: auto; 
-                        contain-intrinsic-size: 800px; /* Stima per evitare salti di layout */
-	            }
+@media (max-width: 960px) {
+    #app {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr auto;
+        margin: 24px auto;
+        padding: 1.5rem;
+    }
+    .stats-panel-container {
+        position: relative;
+        height: auto;
+        top: 0;
+        grid-column: 1 / -1;
+        grid-row: 3 / 4;
+    }
+}
 
-	            .stats-panel-container {
-	                grid-column: 2 / 3;
-	                grid-row: 1 / span 2;
-	                position: sticky;
-	                top: 48px;
-	                height: calc(100vh - 96px);
-	                overflow-y: auto;
-	                scrollbar-width: thin;
-	                scroll-behavior: smooth;
-	            }
-	        }
+/* ======================
+   Accessibilità & Focus
+   ====================== */
+header { grid-column: 1 / -1; grid-row: 1 / 2; }
 
-	        /* ===========================
-	           Performance e rendering GPU
-	           =========================== */
-	        .stats-panel-container, .main-content {
-	            will-change: scroll-position, opacity;
-	            contain: layout paint;
-	            transform: translateZ(0);
-	        }
+/* ====== NUOVO TITOLO "StreamOrder" SOFT CYBERPUNK GLITCH ====== */
 
-	        /* =============================
-	           Effetti di focus e accessibilità
-	           ============================= */
-	        #app:focus-within {
-	            outline: 2px solid rgba(156, 39, 176, 0.5);
-	            outline-offset: 4px;
-	        }
-	    }
-
+/* 1. Animazione ingresso titolo */
+@keyframes titleSoftGlitch {
+    0% {
+        opacity: 0;
+        transform: translateY(-8px) skewX(-2deg) scale(0.95);
+    }
+    20% {
+        opacity: 1;
+        transform: translateY(0) skewX(2deg) scale(0.97);
+    }
+    40% {
+        transform: translateY(-2px) skewX(-1deg) scale(0.98);
+    }
+    60% {
+        transform: translateY(1px) skewX(1deg) scale(1);
+        opacity: 0.9;
+    }
+    80% {
+        transform: translateY(0) skewX(0deg) scale(1.01);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(0) skewX(0deg) scale(1);
+        opacity: 1;
+    }
+}
 
         /* ====== HEADER ====== */
-        header { display:flex; flex-direction: column; gap:6px; position: relative; }
-        h1 { font-family: 'Orbitron', sans-serif; color: #BB86FC; font-size: 1.9rem; margin: 0; letter-spacing: 0.6px; display: flex; align-items: center; gap: 12px; user-select: none; }
+       header {
+    display: flex;
+    flex-direction: column;       /* colonna */
+    align-items: center;          /* centra orizzontalmente */
+    justify-content: center;      /* centra verticalmente */
+    gap: 6px;                     /* spazio tra gli elementi */
+    position: relative;
+    min-height: 150px;            /* altezza minima header, modificabile */
+}
+
+       h1 {
+    font-family: 'Orbitron', sans-serif;
+    color: #BB86FC;           /* soft cyberpunk */
+    font-size: 1.9rem;
+    margin: 0;
+    letter-spacing: 0.6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    user-select: none;
+    text-align: center;
+
+    /* Animazione movimento soft */
+    animation: softMove 3s ease-in-out infinite;
+}
+
+/* Keyframes per movimento leggero e glitch minimale */
+@keyframes softMove {
+    0% {
+        transform: translate(0, 0) skewX(0deg);
+    }
+    20% {
+        transform: translate(-1px, 1px) skewX(0.5deg);
+    }
+    40% {
+        transform: translate(1px, -1px) skewX(-0.5deg);
+    }
+    60% {
+        transform: translate(-0.5px, 0.5px) skewX(0.3deg);
+    }
+    80% {
+        transform: translate(0.5px, -0.5px) skewX(-0.3deg);
+    }
+    100% {
+        transform: translate(0, 0) skewX(0deg);
+    }
+}
+
+
         h1::after { content: ""; height: 2px; flex: 1; background: linear-gradient(90deg, transparent, rgba(187,134,252,0.45), transparent); margin-left: 10px; border-radius: 2px; }
         .subtitle { font-size: 0.95rem; color: rgba(230,230,230,0.75); margin-top: 2px; }
         .instructions-btn { position: absolute; top: 0px; right: 0px; background: rgba(187,134,252,0.1); border: 1px solid rgba(187,134,252,0.2); color: #BB86FC; width: 36px; height: 36px; border-radius: 50%; font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 0 10px rgba(187,134,252,0.1); }
         .instructions-btn:hover { background: rgba(187,134,252,0.2); box-shadow: 0 0 15px rgba(187,134,252,0.3); transform: scale(1.05); }
         /* forms and panels */
         /* AGGIUNTO: Per permettere al pannello di login di adattarsi a 100% dell'altezza disponibile su mobile */
-        .main-content {
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-        }
+ /* AGGIUNTO: Per permettere al pannello di login di adattarsi a 100% dell'altezza disponibile su mobile */
+.main-content {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+
+    /* Proprietà della griglia aggiunte qui per il posizionamento */
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+    padding-right: 10px;
+}
         /* Correzione per il pannello non loggato */
         .main-content .panel:has(form:only-child) {
-            flex-grow: 1; 
+            flex-grow: 0; 
             min-height: 0;
             display: flex;
             flex-direction: column;
@@ -1455,13 +1518,224 @@ body.light-mode .lang-select {
         }
         /* ====== ▲▲▲ FINE NUOVI STILI PER IL PULSANTE DI ESCLUSIONE UPDATE ▲▲▲ ====== */
 
+/* ========================================================== */
+/* ▼▼▼ WELCOME PANEL SUPER WOW CYBERPUNK MINI+ HYPER ▼▼▼ */
+/* ========================================================== */
+
+.welcome-info-panel-container {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+    position: sticky;
+    top: 48px;
+    height: fit-content;
+    display: flex;
+    justify-content: center;
+    align-items: start;
+    z-index: 1;
+}
+
+/* ===== PANNELLO ===== */
+.welcome-panel.super-wow {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 280px; /* stessa larghezza */
+    padding: 1rem 1.6rem; /* leggermente più corto */
+    border-radius: 14px;
+    background: linear-gradient(145deg, rgba(40,0,80,0.74), rgba(0,0,0,0.6));
+    backdrop-filter: blur(14px) saturate(170%);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 0 28px rgba(187,134,252,0.5), 0 0 55px rgba(0,255,255,0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem; /* ancora più compatto */
+    animation: fadeInUp 0.8s ease forwards, panelFloat 6s ease-in-out infinite;
+    font-family: 'Orbitron', sans-serif;
+    transition: transform 0.3s ease;
+}
+.welcome-panel.super-wow:hover {
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* ===== BORDO NEON ===== */
+.welcome-panel.super-wow::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    padding: 1.5px;
+    background: linear-gradient(135deg, #00ffff, #bb86fc, #ff00ff, #00ffff);
+    background-size: 300% 300%;
+    animation: borderFlow 5s linear infinite, borderGlow 6s ease-in-out infinite alternate;
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    z-index: 0;
+    transition: all 0.3s ease;
+}
+.welcome-panel.super-wow:hover::before {
+    animation: borderFlow 3s linear infinite, borderGlowHover 1.5s ease-in-out infinite alternate;
+}
+
+/* ===== MICRO SCANLINES ===== */
+.welcome-panel.super-wow::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(255,255,255,0.03) 0px,
+        rgba(255,255,255,0.03) 1px,
+        transparent 1px,
+        transparent 2px
+    );
+    pointer-events: none;
+    animation: scanlines 3s linear infinite;
+    z-index: 2;
+}
+.welcome-panel.super-wow:hover::after {
+    animation: scanlines 1.5s linear infinite; /* accelera le scanlines */
+}
+
+/* ===== TITOLO ===== */
+.welcome-panel.super-wow h3 {
+    color: #BB86FC;
+    font-size: 1.4rem;
+    text-align: center;
+    text-shadow: 0 0 8px #BB86FC, 0 0 16px #BB86FC, 0 0 32px #8A2BE2;
+    animation: neonPulse 2s infinite alternate;
+    margin: 0;
+    z-index: 3;
+}
+
+/* ===== TESTO ===== */
+.subtitle {
+    font-size: 0.8rem;
+    color: rgba(230,230,230,0.82);
+    line-height: 1.4;
+    text-align: center;
+    z-index: 3;
+}
+.subtitle:hover {
+    color: #00ffff;
+}
+
+/* ===== ROCKET ===== */
+.rocket-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.65rem; /* leggermente più corto */
+}
+.rocket {
+    font-size: 2.8rem;
+    opacity: 0.85;
+    animation: rocketLift 2s ease-in-out infinite;
+}
+
+/* ===== PARTICELLE ===== */
+.particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1;
+}
+.particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #00ffff, #bb86fc);
+    opacity: 0.4;
+    top: calc(var(--i) * 18%);
+    left: calc(var(--i) * 14%);
+    animation: particleMove 8s linear infinite, particleGlow 3s ease-in-out infinite alternate, particleShift 6s ease-in-out infinite alternate;
+    transition: all 0.3s ease;
+}
+.welcome-panel.super-wow:hover .particle {
+    animation-duration: 4s, 1.5s, 3s; /* più veloce al hover */
+}
+
+/* ===== ANIMAZIONI ===== */
+@keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(16px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes panelFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-0.8px); } /* leggermente meno floating */
+}
+@keyframes borderFlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+@keyframes borderGlow {
+    0% { opacity: 0.7; }
+    50% { opacity: 0.88; }
+    100% { opacity: 0.7; }
+}
+@keyframes borderGlowHover {
+    0% { opacity: 0.85; }
+    50% { opacity: 1; }
+    100% { opacity: 0.85; }
+}
+@keyframes scanlines {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 4px; }
+}
+@keyframes neonPulse {
+    0% { text-shadow: 0 0 8px #BB86FC, 0 0 16px #BB86FC, 0 0 32px #8A2BE2; }
+    100% { text-shadow: 0 0 12px #00ffff, 0 0 24px #BB86FC, 0 0 48px #8A2BE2; }
+}
+@keyframes rocketLift {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px) rotate(-4deg); }
+}
+@keyframes particleMove {
+    0% { transform: translateY(0) translateX(0) scale(1); opacity: 0.5; }
+    25% { transform: translateY(-12px) translateX(12px) scale(1.05); opacity: 0.38; }
+    50% { transform: translateY(-35px) translateX(25px) scale(1.1); opacity: 0.3; }
+    75% { transform: translateY(-10px) translateX(38px) scale(1.05); opacity: 0.38; }
+    100% { transform: translateY(0) translateX(50px) scale(0.95); opacity: 0.5; }
+}
+@keyframes particleGlow {
+    0% { opacity: 0.35; }
+    50% { opacity: 0.55; }
+    100% { opacity: 0.35; }
+}
+@keyframes particleShift {
+    0% { transform: translateX(0) rotate(0deg); }
+    50% { transform: translateX(3px) rotate(2deg); }
+    100% { transform: translateX(0) rotate(0deg); }
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 960px) {
+    .welcome-info-panel-container { display: none; }
+}
+
+
+
+/*
+  SOLUZIONE PER LO SPAZIO VUOTO SUL LOGIN:
+  Quando non si è loggati (.not-logged-in), la griglia 
+  non deve forzare la seconda riga a riempire lo spazio (1fr),
+  ma deve adattarsi all'altezza del contenuto (auto).
+*/
+#app.not-logged-in {
+    grid-template-rows: auto auto;
+}
     </style>
 </head>
 <body :class="{'light-mode': isLightMode}">
     <canvas id="bgCanvas"></canvas>
     <div class="grain" aria-hidden="true"></div>
     <!-- Aggiunto :lang="lang" per accessibilità -->
-    <div id="app" :lang="lang">
+   <div id="app" :lang="lang" :class="{'not-logged-in': !isLoggedIn}">
         <!-- Loader Globale -->
         <div :class="['global-loader', { visible: isLoading }]">
             <div class="loader-spinner"></div>
@@ -1510,6 +1784,29 @@ body.light-mode .lang-select {
             
             <button @click="showInstructions = true" class="instructions-btn" :title="t('instructions.buttonTitle')">?</button>
         </header>
+
+<div v-if="!isLoggedIn" class="welcome-info-panel-container">
+    <div class="welcome-panel super-wow">
+        <h3>{{ t('welcome.title') }}</h3>
+        <p class="subtitle">{{ t('subtitle.login') }}</p>
+        <p class="subtitle">{{ t('subtitle.loggedIn') }}</p>
+
+        <div class="rocket-container">
+            <span class="rocket">🚀</span>
+        </div>
+
+        <!-- Particelle neon -->
+        <div class="particles">
+            <span class="particle" style="--i:0;"></span>
+            <span class="particle" style="--i:1;"></span>
+            <span class="particle" style="--i:2;"></span>
+            <span class="particle" style="--i:3;"></span>
+            <span class="particle" style="--i:4;"></span>
+            <span class="particle" style="--i:5;"></span>
+        </div>
+    </div>
+</div>
+
 
         <!-- Container per Pannello Statistiche (ora posizionato via Grid) -->
         <div v-if="isLoggedIn && !showWelcomeScreen && !showWelcomeTourModal" class="stats-panel-container" data-tour="step-2">
@@ -4561,7 +4858,8 @@ body.light-mode .lang-select {
                 }
             };
             const enableSelected = () => { 
-                if (isMonitoring.value) return; 
+                if (isMonitoring.value) return;const enabledAddons = addons.value.filter(a => a.isEnabled); 
+				const addonsToSave = enabledAddons.map(({ isEditing, newLocalName, status, isEnabled, selected, errorDetails, isExpanded, ...rest }) => rest);
                 let count = 0; 
                 selectedAddons.value.forEach(addon => { if (!addon.isEnabled) { addon.isEnabled = true; count++; } addon.selected = false; }); 
                 if (count > 0) { 
@@ -4599,20 +4897,23 @@ body.light-mode .lang-select {
             const toggleSearch = () => { showSearchInput.value = !showSearchInput.value; if (showSearchInput.value) nextTick(() => searchInputRef.value?.focus()); };
             const hideSearchOnBlur = (event) => { const searchContainer = event.currentTarget.closest('.list-controls-header'); if (!searchContainer || (!searchContainer.contains(event.relatedTarget) && event.relatedTarget?.closest('.search-icon-btn') !== event.currentTarget.parentElement.querySelector('.search-icon-btn'))) showSearchInput.value = false; };
             const saveOrder = async () => {
-                if (isMonitoring.value) return; const enabledAddons = addons.value.filter(a => a.isEnabled);
-                // NOTA: 'disableAutoUpdate' è incluso correttamente grazie a spread operatore in mapAddon
+                if (isMonitoring.value) return; 
+                
+                // 1. RIMETTI QUESTE DUE RIGHE COME ERANO IN ORIGINE
+                const enabledAddons = addons.value.filter(a => a.isEnabled);
                 const addonsToSave = enabledAddons.map(({ isEditing, newLocalName, status, isEnabled, selected, errorDetails, isExpanded, ...rest }) => rest);
+                
+                // 2. IL RESTO DEL CODICE CHE AVEVI INCOLLATO VA BENE
                 if (!isLoading.value) isLoading.value = true;
                 showToast(t.value('addon.saving'), 'info', 5000);
                 try {
                     const response = await fetch(`${apiBaseUrl}/api/set-addons`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ authKey: authKey.value, addons: addonsToSave, email: email.value }) });
                     const data = await response.json(); if (!response.ok || data.error) throw new Error(data.error || data.message || 'Save error.'); showToast(t.value('addon.saveSuccess'), 'success'); hasUnsavedChanges.value = false; 
                     
-                    // Reset cronologia e log dopo il salvataggio
                     history.value = []; redoStack.value = []; actionLog.value = []; redoActionLog.value = []; 
                     
                     addons.value.forEach(a => a.selected = false); sessionStorage.setItem('stremioAddonList', JSON.stringify(addons.value));
-                    // Aggiorna il profilo salvato con la nuova struttura della lista (opzionale, ma assicura dati freschi se ricaricati)
+                    
                     const profileIndex = savedProfiles.value.findIndex(p => p.id === authKey.value);
                     if (profileIndex !== -1) {
                          savedProfiles.value[profileIndex].addons = addonsToSave;
@@ -4630,9 +4931,49 @@ body.light-mode .lang-select {
                         body: JSON.stringify({ authKey: key, email: userEmail })
                     });
                     const data = await response.json();
+                    
+                    // --- INIZIO BLOCCO MODIFICATO ---
                     if (!response.ok || data.error) throw new Error(data.error || 'Refresh failed.');
-                    addons.value = data.addons.map(mapAddon);
+
+                    // 1. Mappa gli addon del server per un rapido accesso (URL -> addon)
+                    const serverAddonsMap = new Map();
+                    data.addons.forEach(serverAddon => {
+                        serverAddonsMap.set(serverAddon.transportUrl, serverAddon);
+                    });
+
+                    // 2. Combina le liste: usa la lista locale (addons.value) come base
+                    const newAddonsList = addons.value.map(localAddon => {
+                        const serverVersion = serverAddonsMap.get(localAddon.transportUrl);
+                        
+                        if (serverVersion) {
+                            // L'addon esiste ancora sul server.
+                            // Aggiorna il suo manifesto, ma mantieni le impostazioni locali.
+                            const updatedAddon = mapAddon(serverVersion); // Prende il nuovo manifesto
+                            updatedAddon.isEnabled = localAddon.isEnabled; // MANTIENE isEnabled locale
+                            updatedAddon.manifest.name = localAddon.manifest.name; // MANTIENE il nome locale
+                            updatedAddon.newLocalName = localAddon.newLocalName;
+                            updatedAddon.disableAutoUpdate = localAddon.disableAutoUpdate; // MANTIENE il blocco update
+                            
+                            serverAddonsMap.delete(localAddon.transportUrl); // Rimuovilo dalla mappa
+                            return updatedAddon;
+                            
+                        } else {
+                            // L'addon non è sul server (perché l'abbiamo disinstallato).
+                            // MANTIENI la versione locale, ma forzala come disabilitata.
+                            localAddon.isEnabled = false; 
+                            return localAddon;
+                        }
+                    });
+
+                    // 3. Aggiungi eventuali NUOVI addon 
+                    // (addon che erano sul server ma non ancora nella nostra lista locale)
+                    serverAddonsMap.forEach(newServerAddon => {
+                        newAddonsList.push(mapAddon(newServerAddon));
+                    });
+
+                    addons.value = newAddonsList;
                     sessionStorage.setItem('stremioAddonList', JSON.stringify(addons.value));
+                    // --- FINE BLOCCO MODIFICATO ---
                     
                     // Resetta log e stato
                     history.value = []; redoStack.value = []; actionLog.value = []; redoActionLog.value = [];
