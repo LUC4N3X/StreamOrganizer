@@ -72,8 +72,22 @@ npm install
 # 3️⃣ Avvia StreamOrder in modalità sviluppo
 npm start
 ```
-<div align="center"> <table role="presentation" cellpadding="14" cellspacing="0" style="background:linear-gradient(135deg,#0a0014,#130022);border:1px solid rgba(187,134,252,0.4);border-radius:14px;box-shadow:0 0 20px rgba(187,134,252,0.3);width:80%;max-width:700px;"> <tr> <td align="center" style="color:#e0d4ff;font-family:Segoe UI,Arial,sans-serif;"> <p style="margin:0;font-size:1.1em;"> 🟢 <strong>Dopo l’avvio</strong>, StreamOrder sarà accessibile su:<br><br> 👉 <a href="http://localhost:8080" style="color:#bb86fc;font-weight:bold;text-decoration:none;">http://localhost:8080</a> </p> </td> </tr> </table> </div>
-<div align="center"> <table role="presentation" cellpadding="14" cellspacing="0" style="background:linear-gradient(135deg,#0a0014,#130022);border:1px solid rgba(187,134,252,0.4);border-radius:14px;box-shadow:0 0 20px rgba(187,134,252,0.3);width:80%;max-width:700px;"> <tr> <td align="center" style="color:#e0d4ff;font-family:Segoe UI,Arial,sans-serif;"> <h3 style="margin-top:0;color:#bb86fc;">🌐 Oppure prova la versione online!</h3> <p style="margin:0;font-size:1.1em;"> 💻 <strong>Nessuna installazione necessaria!</strong><br> Accedi subito alla versione web:<br><br> 👉 <a href="https://luca12234345-stremorganizer.hf.space" style="color:#7ee787;font-weight:bold;text-decoration:none;">StreamOrder Online su HuggingFace 🚀</a> </p> </td> </tr> </table> </div> 
+<div align="center"> <table role="presentation" cellpadding="14" cellspacing="0" style="background:linear-gradient(135deg,#0a0014,#130022);border:1px solid rgba(187,134,252,0.4);border-radius:14px;box-shadow:0 0 20px rgba(187,134,252,0.3);width:80%;max-width:700px;"> <tr> <td align="center" style="color:#e0d4ff;font-family:Segoe UI,Arial,sans-serif;"> <p style="margin:0;font-size:1.1em;"> 🟢 <strong>Dopo l’avvio</strong>, StreamOrder sarà accessibile su:
+
+
+
+👉 <a href="http://localhost:8080" style="color:#bb86fc;font-weight:bold;text-decoration:none;">http://localhost:8080</a> </p> </td> </tr> </table> </div> <div align="center"> <table role="presentation" cellpadding="14" cellspacing="0" style="background:linear-gradient(135deg,#0a0014,#130022);border:1px solid rgba(187,134,252,0.4);border-radius:14px;box-shadow:0 0 20px rgba(187,134,252,0.3);width:80%;max-width:700px;"> <tr> <td align="center" style="color:#e0d4ff;font-family:Segoe UI,Arial,sans-serif;"> <h3 style="margin-top:0;color:#bb86fc;">🌐 Oppure prova la versione online!</h3> <p style="margin:0;font-size:1.1em;"> 💻 <strong>Nessuna installazione necessaria!</strong>
+
+
+Accedi subito alla versione web:
+
+
+
+👉 <a href="https://luca12234345-stremorganizer.hf.space" style="color:#7ee787;font-weight:bold;text-decoration:none;">StreamOrder Online su HuggingFace 🚀</a>
+
+
+
+👉 <a href="https://stream-organizer.vercel.app/" style="color:#7ee787;font-weight:bold;text-decoration:none;">StreamOrder Online su Vercel ⚡</a> </p> </td> </tr> </table> </div>
 
 ---
 ## 🌌 Screenshot
