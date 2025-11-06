@@ -332,9 +332,18 @@
                                             {{ addon.manifest.name }}
                                             <span v-if="!isMonitoring" @click.stop="startEdit(addon)" class="edit-icon" :title="t('addon.editTitle')" style="cursor:pointer; font-size:0.9rem; color:rgba(200,200,255,0.7);">🖊️</span>
                                         </h3>
-                                        <div v-else style="display:flex; align-items:center; margin-bottom:0.25rem;">
-                                            <input type="text" v-model="addon.newLocalName" class="edit-name-input" @keyup.enter="finishEdit(addon)" @blur="finishEdit(addon)">
-                                            <button @click.stop="finishEdit(addon)" class="save-edit-btn" style="margin-left:8px;">{{ t('addon.saveButton') }}</button>
+                                        <div v-else class="edit-mode-container" style="display: flex; flex-direction: column; gap: 8px;">
+                                            <div style="display:flex; align-items:center;">
+                                                <span style="font-size: 0.8rem; margin-right: 5px; opacity: 0.7;">Nome:</span>
+                                                <input type="text" v-model="addon.newLocalName" class="edit-name-input" @keyup.enter="finishEdit(addon)" style="flex: 1;">
+                                            </div>
+                                            <div style="display:flex; align-items:center;">
+                                                <span style="font-size: 0.8rem; margin-right: 12px; opacity: 0.7;">URL:</span>
+                                                <input type="text" v-model="addon.newTransportUrl" class="edit-name-input" @keyup.enter="finishEdit(addon)" style="flex: 1;">
+                                            </div>
+                                            <button @click.stop="finishEdit(addon)" class="save-edit-btn" style="width: 100%; margin-top: 5px;">
+                                                {{ t('addon.saveButton') }}
+                                            </button>
                                         </div>
                                         <p>{{ addon.manifest.description || t('addon.noDescription') }}</p>
                                     </div>
