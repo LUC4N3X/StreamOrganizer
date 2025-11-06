@@ -1,22 +1,16 @@
 {
   "version": 2,
   "builds": [
-    // 1. Definisce index.js come funzione serverless di Node.js (per /api)
     { "src": "index.js", "use": "@vercel/node" },
-    // 2. Definisce la cartella public come asset statici (per l'interfaccia utente)
     { "src": "public/**", "use": "@vercel/static" }
   ],
   "rewrites": [
-    // Mappa tutte le richieste /api/ a index.js (la tua API)
     { "source": "/api/(.*)", "destination": "/index.js" },
-    // Mappa le risorse CSS e JS alle rispettive cartelle statiche
     { "source": "/css/(.*)", "destination": "/public/css/$1" },
     { "source": "/js/(.*)", "destination": "/public/js/$1" },
-    // Mappa tutte le altre richieste (la root) a index.html
     { "source": "/(.*)", "destination": "/public/index.html" }
   ],
   "headers": [
-    // Intestazioni per il contenuto principale (HTML)
     {
       "source": "/(.*)",
       "headers": [
@@ -24,14 +18,12 @@
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]
     },
-    // Intestazioni specifiche per i file JavaScript
     {
       "source": "/js/(.*)",
       "headers": [
         { "key": "Content-Type", "value": "application/javascript; charset=utf-8" }
       ]
     },
-    // Intestazioni specifiche per i file CSS
     {
       "source": "/css/(.*)",
       "headers": [
