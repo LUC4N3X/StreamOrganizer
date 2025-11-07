@@ -323,7 +323,7 @@
              <div class="stats-panel">
                  <h3>{{ t('stats.title') }}</h3>
                  <div v-if="!isMonitoring" style="margin-bottom: 20px; text-align: center;">
-                    <button @click="saveProfile(email)" class="btn-special-purple" style="width: 100%;">
+                   <button @click="saveProfile(email)" class="btn-special-green" style="width: 100%;">
     👤 {{ t('profiles.saveButton') }}
 </button>
                  </div>
@@ -459,7 +459,7 @@
                         <span v-if="hasUnsavedChanges" class="unsaved-indicator"></span>
                         💾 {{ t('list.saveButton') }} <span v-if="isMonitoring">(Disabled in Monitor Mode)</span>
                     </button>
-                    <button @click="refreshAddonList" class="secondary-btn" :disabled="isLoading || isMonitoring" style="width:100%; margin-top: 10px;">
+                  <button @click="refreshAddonList" class="btn-neutral" :disabled="isLoading || isMonitoring" style="width:100%; margin-top: 10px;">
     🔄 {{ t('list.refreshButton') }}
 </button>
                 </div>
@@ -471,7 +471,7 @@
                     <h3 style="margin:0 0 10px 0; color:#B9A3FF; font-family:'Orbitron',sans-serif; font-size:1.05rem;">{{ t('backup.title') }}</h3>
                    <div style="display:flex; gap:10px;" class="backup-actions">
     <button @click="exportBackup" class="btn-special-green" style="flex:1;">{{ t('backup.exportButton') }}</button>
-    <button @click="triggerFileInput" class="secondary-btn" style="flex:1;" :disabled="isMonitoring">{{ t('backup.importButton') }}</button>
+   <button @click="triggerFileInput" class="btn-neutral" style="flex:1;" :disabled="isMonitoring">{{ t('backup.importButton') }}</button>
     <button @click="generateShareLink" class="btn-special-purple" style="flex:1;">{{ t('backup.shareButton') }}</button>
     <button @click="exportTxt" class="btn-neutral" style="flex:1;">{{ t('backup.exportTxtButton') }}</button>
 </div>
@@ -509,15 +509,24 @@
                             <button @click="activeFilter = 'errors'" :class="['secondary-btn', {active: activeFilter === 'errors'}]">{{ t('filters.errors') }}</button>
                         </div>
                     </div>
-                    <div class="panel" style="display:flex; justify-content:center; gap: 10px; padding:10px; margin-top:1rem; min-height: auto;">
-                        <button @click="undo" class="secondary-btn" :disabled="history.length === 0 || isMonitoring" :title="t('actions.undo')">↩️ {{ t('actions.undoLabel') }}</button>
-                        <button @click="redo" class="secondary-btn" :disabled="redoStack.length === 0 || isMonitoring" :title="t('actions.redo')">↪️ {{ t('actions.redoLabel') }}</button>
+                  <div class="panel" style="margin-top: 1rem; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: auto;">
+                
+                    <div style="display: flex; gap: 10px; width: 100%;">
+                        <button @click="undo" class="secondary-btn" :disabled="history.length === 0 || isMonitoring" :title="t('actions.undo')" style="flex: 1; width: 50%;">
+                            ↩️ {{ t('actions.undoLabel') }}
+                        </button>
+                        <button @click="redo" class="secondary-btn" :disabled="redoStack.length === 0 || isMonitoring" :title="t('actions.redo')" style="flex: 1; width: 50%;">
+                            ↪️ {{ t('actions.redoLabel') }}
+                        </button>
                     </div>
-                    <div class="check-status-button-container">
-                        <button @click="checkAllAddonsStatus" class="primary-btn" :disabled="isLoading" style="width:100%; background: linear-gradient(90deg,#555,#888); color:#fff;">
+
+                    <div class="check-status-button-container" style="margin-top: 0; margin-bottom: 0;">
+                        <button @click="checkAllAddonsStatus" class="primary-btn" :disabled="isLoading" style="width:100%;">
                             📡 {{ t('list.checkStatusButton') }}
                         </button>
                     </div>
+                
+                </div>
                     <div v-if="selectedAddons.length > 0" class="bulk-actions-panel">
                         <strong>{{ t('bulkActions.selected', { count: selectedAddons.length }) }}</strong>
                         <button @click="enableSelected" class="secondary-btn" :disabled="isMonitoring">{{ t('bulkActions.enable') }}</button>
