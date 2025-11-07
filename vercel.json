@@ -1,34 +1,21 @@
 {
   "version": 2,
   "builds": [
-    { "src": "index.js", "use": "@vercel/node" },
-    { "src": "public/**", "use": "@vercel/static" }
-  ],
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/index.js" },
-    { "source": "/css/(.*)", "destination": "/public/css/$1" },
-    { "source": "/js/(.*)", "destination": "/public/js/$1" },
-    { "source": "/(.*)", "destination": "/public/index.html" }
-  ],
-  "headers": [
     {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Content-Type", "value": "text/html; charset=utf-8" },
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
-      ]
-    },
-    {
-      "source": "/js/(.*)",
-      "headers": [
-        { "key": "Content-Type", "value": "application/javascript; charset=utf-8" }
-      ]
-    },
-    {
-      "source": "/css/(.*)",
-      "headers": [
-        { "key": "Content-Type", "value": "text/css; charset=utf-8" }
-      ]
+      "src": "public/**",
+      "use": "@vercel/static"
     }
-  ]
+  ],
+  "routes": [
+    {
+      "src": "^/(.*)\\.(js|mjs|css|map|json|xml|txt|png|jpg|jpeg|gif|svg|ico|webp)$",
+      "dest": "/public/$1"
+    },
+    {
+      "src": "^/(.*)$",
+      "dest": "/public/index.html"
+    }
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
 }
