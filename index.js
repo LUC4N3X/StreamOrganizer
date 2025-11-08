@@ -3,28 +3,33 @@ const fetch = require('node-fetch');
 const cors = require('cors');
 
 const app = express();
+const PORT = process.env.PORT || 7860;
 
 // --- Configurazione Chiave Segreta e Costanti ---
+
+// Chiave segreta caricata da Hugging Face Secrets
 const MONITOR_KEY_SECRET = process.env.MONITOR_KEY;
 
-// Costanti globali API (Centralizzate)
+// Costanti globali API (Miglioramento 1: Centralizzazione)
 const STREMIO_API_BASE = 'https://api.strem.io/api/';
 const LOGIN_API_URL = `${STREMIO_API_BASE}login`;
 const ADDONS_GET_URL = `${STREMIO_API_BASE}addonCollectionGet`;
 const ADDONS_SET_URL = `${STREMIO_API_BASE}addonCollectionSet`;
 
-// Timeout globale per le richieste di rete (Robustezza)
+// Timeout globale per le richieste di rete (Miglioramento 2: Robustezza)
 const FETCH_TIMEOUT = 10000; // 10 secondi
 
 // --- Configurazione Server ---
-// NOTA: app.use(express.static('public')) rimosso perché Vercel gestisce i file statici.
+app.use(express.static('public'));
 app.use(cors());
 app.use(express.json());
 
 // --- FUNZIONI HELPER ---
 
 /**
+ * (Miglioramento 2)
  * Esegue un fetch con un timeout.
+ * Lancia un AbortError se la richiesta impiega più del tempo limite.
  */
 async function fetchWithTimeout(url, options, timeout = FETCH_TIMEOUT) {
   const controller = new AbortController();
@@ -48,6 +53,7 @@ async function fetchWithTimeout(url, options, timeout = FETCH_TIMEOUT) {
 
 /**
  * Recupera gli addon di un utente usando il suo AuthKey.
+ * Centralizzato perché usato sia dal login con token che dal refresh.
  */
 async function getAddonsByAuthKey(authKey) {
   if (!authKey) {
@@ -55,7 +61,7 @@ async function getAddonsByAuthKey(authKey) {
   }
   
   try {
-    const addonsResponse = await fetchWithTimeout(ADDONS_GET_URL, {
+    const addonsResponse = await fetchWithTimeout(ADDONS_GET_URL, { // Usa Timeout
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -76,6 +82,7 @@ async function getAddonsByAuthKey(authKey) {
     return addonsData.result.addons || [];
 
   } catch (err) {
+    // Rilancia l'errore (incluso il timeout) per essere gestito dall'endpoint
     throw err;
   }
 }
@@ -90,7 +97,7 @@ async function getStremioData(email, password) {
   
   try {
     // 1. LOGIN
-    const loginResponse = await fetchWithTimeout(LOGIN_API_URL, {
+    const loginResponse = await fetchWithTimeout(LOGIN_API_URL, { // Usa Timeout
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -112,20 +119,20 @@ async function getStremioData(email, password) {
     return { addons: finalAddons, authKey: authKey };
 
   } catch (err) {
+    // Rilancia l'errore (incluso il timeout)
     throw err;
   }
 }
 
 // ------------------------------------------
 // ENDPOINT
-// NOTA: I percorsi NON hanno /api/ (es. /login)
-// Vercel.json mappa /api/login -> /login
 // ------------------------------------------
 
 /**
  * 1. ENDPOINT LOGIN (Email/Pass OPPURE Token)
+ * (Miglioramento 3: Gestione errori coerente)
  */
-app.post('/login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
   const { email, password, authKey: providedAuthKey } = req.body;
 
   try {
@@ -145,6 +152,7 @@ app.post('/login', async (req, res) => {
     return res.status(400).json({ error: { message: "Email/password o authKey sono obbligatori." } });
 
   } catch (err) {
+    // (Miglioramento 3) Gestione centralizzata errori
     const status = err.message.includes('timeout') ? 504 : 401;
     return res.status(status).json({ error: { message: err.message } });
   }
@@ -153,164 +161,8 @@ app.post('/login', async (req, res) => {
 
 /**
  * 2. ENDPOINT: RECUPERA ADDONS (per refresh)
+ * (Miglioramento 3: Gestione errori coerente)
  */
-app.post('/get-addons', async (req, res) => {
-  const { authKey, email } = req.body;
-
-  if (!authKey || !email) {
-    return res.status(400).json({ error: { message: "authKey e email sono obbligatori." } });
-  }
-
-  try {
-    const finalAddons = await getAddonsByAuthKey(authKey);
-    res.json({ addons: finalAddons });
-
-  } catch (err) {
-    const status = err.message.includes('timeout') ? 504 : 500;
-    res.status(status).json({ error: { message: "Errore durante il recupero degli addon: " + err.message } });
-  }
-});
-
-/**
- * 3. ENDPOINT ADMIN/MONITORAGGIO
- */
-app.post('/admin/monitor', async (req, res) => {
-  const { adminKey, targetEmail } = req.body;
-
-  if (!MONITOR_KEY_SECRET || adminKey !== MONITOR_KEY_SECRET) {
-    return res.status(401).json({ error: { message: "Chiave di monitoraggio non corretta." } });
-  }
-
-  if (!targetEmail) {
-    return res.status(400).json({ error: { message: "È necessaria l'email dell'utente da monitorare." } });
-  }
-
-  return res.status(403).json({ error: { message: `Impossibile accedere ai dati di ${targetEmail}. Per motivi di sicurezza Stremio richiede la password/AuthKey.` } });
-});
-
-/**
- * 4. ENDPOINT DI SALVATAGGIO
- */
-app.post('/set-addons', async (req, res) => {
-  try {
-    const { authKey, addons, email } = req.body;
-
-    if (!authKey || !addons) {
-      return res.status(400).json({ error: { message: "Chiave di autenticazione o lista addon mancante." } });
-    }
-
-    // Logica di pulizia
-    const addonsToSave = addons.map(addon => {
-        const cleanAddon = JSON.parse(JSON.stringify(addon));
-        if (cleanAddon.isEditing) delete cleanAddon.isEditing;
-        if (cleanAddon.newLocalName) delete cleanAddon.newLocalName;
-        if (cleanAddon.manifest) {
-            delete cleanAddon.manifest.newLocalName;
-            delete cleanAddon.manifest.isEditing;
-        }
-        cleanAddon.manifest.name = addon.manifest.name;
-        if (!cleanAddon.manifest.id) {
-            cleanAddon.manifest.id = `external-${Math.random().toString(36).substring(2, 9)}`;
-        }
-        return cleanAddon;
-    });
-
-    const setResponse = await fetchWithTimeout(ADDONS_SET_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        "authKey": authKey,
-        "addons": addonsToSave
-      })
-    });
-
-    const setData = await setResponse.json();
-
-    if (setData.error) {
-      throw new Error(setData.error.message || 'Errore Stremio durante il salvataggio degli addon.');
-    }
-
-    res.json({ success: true, message: "Addon salvati con successo." });
-
-  } catch (err) {
-    const status = err.message.includes('timeout') ? 504 : 500;
-    res.status(status).json({ error: { message: err.message } });
-  }
-});
-
-/**
- * 5. ENDPOINT: RECUPERA MANIFESTO
- */
-app.post('/fetch-manifest', async (req, res) => {
-  const { manifestUrl } = req.body;
-
-  if (!manifestUrl || !manifestUrl.startsWith('http')) {
-    return res.status(400).json({ error: { message: "URL manifesto non valido." } });
-  }
-
-  try {
-    const manifestResponse = await fetchWithTimeout(manifestUrl);
-
-    if (!manifestResponse.ok) {
-      const errorText = await manifestResponse.text();
-      if (errorText.trim().startsWith('<!DOCTYPE html>')) {
-        throw new Error("Blocco di sicurezza: Il server ha restituito una pagina HTML anziché JSON.");
-      }
-      throw new Error(`Impossibile raggiungere il manifesto: Status ${manifestResponse.status}.`);
-    }
-
-    const manifest = await manifestResponse.json();
-    if (!manifest.id || !manifest.version) {
-      throw new Error("Manifesto non valido: mancano ID o Versione.");
-    }
-
-    res.json(manifest);
-  } catch (err) {
-    const status = err.message.includes('timeout') ? 504 : 500;
-    res.status(status).json({ error: { message: "Errore nel recupero del manifesto: " + err.message } });
-  }
-});
-
-// --- ESPORTAZIONE PER VERCEL ---
-// Rimuove app.listen e aggiunge l'export
-export default app;  // Accetta email/password OPPURE authKey
-  const { email, password, authKey: providedAuthKey } = req.body;
-
-  // CASO 1: Login con Email/Password
-  if (email && password) {
-    try {
-      const data = await getStremioData(email, password); // Logga E recupera addon
-      res.json(data);
-    } catch (err) {
-      res.status(401).json({ error: { message: err.message } });
-    }
-    return; // Fine
-  }
-
-  // CASO 2: Login con AuthKey (Token)
-  if (providedAuthKey) {
-    try {
-      // Verifica l'authKey e recupera gli addon
-      const addons = await getAddonsByAuthKey(providedAuthKey); 
-      
-      // Se ha successo, restituisce lo stesso formato del login normale
-      // (l'email è usata solo dal frontend, qui restituiamo solo il necessario)
-      res.json({ addons: addons, authKey: providedAuthKey });
-    } catch (err) {
-      // L'errore (es. AuthKey scaduto) viene gestito qui
-      res.status(401).json({ error: { message: err.message } });
-    }
-    return; // Fine
-  }
-
-  // CASO 3: Dati mancanti (Questo è l'errore che ricevi ora)
-  return res.status(400).json({ error: { message: "Email/password o authKey sono obbligatori." } });
-});
-
-
-// ------------------------------------------
-// 2. ENDPOINT: RECUPERA ADDONS (AGGIORNATO con funzione helper)
-// ------------------------------------------
 app.post('/api/get-addons', async (req, res) => {
   const { authKey, email } = req.body;
 
@@ -319,19 +171,20 @@ app.post('/api/get-addons', async (req, res) => {
   }
 
   try {
-    // Usa la nuova funzione helper
     const finalAddons = await getAddonsByAuthKey(authKey);
     res.json({ addons: finalAddons });
 
   } catch (err) {
-    // La funzione helper lancia un errore, lo catturiamo
-    res.status(500).json({ error: { message: "Errore durante il recupero degli addon: " + err.message } });
+    // (Miglioramento 3)
+    const status = err.message.includes('timeout') ? 504 : 500;
+    res.status(status).json({ error: { message: "Errore durante il recupero degli addon: " + err.message } });
   }
 });
 
-// ------------------------------------------
-// 3. ENDPOINT ADMIN/MONITORAGGIO (INVARIATO)
-// ------------------------------------------
+/**
+ * 3. ENDPOINT ADMIN/MONITORAGGIO
+ * (Miglioramento 3: Gestione errori coerente)
+ */
 app.post('/api/admin/monitor', async (req, res) => {
   const { adminKey, targetEmail } = req.body;
 
@@ -343,31 +196,26 @@ app.post('/api/admin/monitor', async (req, res) => {
     return res.status(400).json({ error: { message: "È necessaria l'email dell'utente da monitorare." } });
   }
 
-  try {
-    return res.status(403).json({ error: { message: `Impossibile accedere ai dati di ${targetEmail}. Per motivi di sicurezza Stremio richiede la password/AuthKey.` } });
-  } catch (err) {
-    res.status(500).json({ error: { message: "Errore interno durante il monitoraggio." } });
-  }
+  // Errore logico (non tecnico)
+  return res.status(403).json({ error: { message: `Impossibile accedere ai dati di ${targetEmail}. Per motivi di sicurezza Stremio richiede la password/AuthKey.` } });
 });
 
-// ------------------------------------------
-// 4. ENDPOINT DI SALVATAGGIO (CORRETTO)
-// ------------------------------------------
+/**
+ * 4. ENDPOINT DI SALVATAGGIO
+ * (Miglioramento 3: Gestione errori coerente)
+ */
 app.post('/api/set-addons', async (req, res) => {
-  const STREMIO_API_BASE = 'https://api.strem.io/';
-  const ADDONS_SET_URL = `${STREMIO_API_BASE}api/addonCollectionSet`;
-
   try {
     const { authKey, addons, email } = req.body;
 
     if (!authKey || !addons) {
-      return res.status(400).json({ error: true, message: "Chiave di autenticazione o lista addon mancante." });
+      // (Miglioramento 3)
+      return res.status(400).json({ error: { message: "Chiave di autenticazione o lista addon mancante." } });
     }
 
-    // La tua logica di pulizia è corretta e la mantengo
+    // Logica di pulizia (invariata, era corretta)
     const addonsToSave = addons.map(addon => {
         const cleanAddon = JSON.parse(JSON.stringify(addon));
-        // ... (la tua logica di pulizia va qui ed è corretta) ...
         if (cleanAddon.isEditing) delete cleanAddon.isEditing;
         if (cleanAddon.newLocalName) delete cleanAddon.newLocalName;
         if (cleanAddon.manifest) {
@@ -380,9 +228,8 @@ app.post('/api/set-addons', async (req, res) => {
         }
         return cleanAddon;
     });
-    // --- FINE LOGICA PULIZIA ---
 
-    const setResponse = await fetch(ADDONS_SET_URL, {
+    const setResponse = await fetchWithTimeout(ADDONS_SET_URL, { // Usa Timeout
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -400,11 +247,16 @@ app.post('/api/set-addons', async (req, res) => {
     res.json({ success: true, message: "Addon salvati con successo." });
 
   } catch (err) {
-    res.status(500).json({ error: true, message: err.message });
+    // (Miglioramento 3)
+    const status = err.message.includes('timeout') ? 504 : 500;
+    res.status(status).json({ error: { message: err.message } });
   }
 });
 
-// --- ENDPOINT: RECUPERA MANIFESTO (INVARIATO, era corretto) ---
+/**
+ * 5. ENDPOINT: RECUPERA MANIFESTO
+ * (Miglioramento 3: Gestione errori coerente)
+ */
 app.post('/api/fetch-manifest', async (req, res) => {
   const { manifestUrl } = req.body;
 
@@ -413,7 +265,7 @@ app.post('/api/fetch-manifest', async (req, res) => {
   }
 
   try {
-    const manifestResponse = await fetch(manifestUrl);
+    const manifestResponse = await fetchWithTimeout(manifestUrl); // Usa Timeout
 
     if (!manifestResponse.ok) {
       const errorText = await manifestResponse.text();
@@ -430,14 +282,12 @@ app.post('/api/fetch-manifest', async (req, res) => {
 
     res.json(manifest);
   } catch (err) {
-    console.error('Errore nel recupero manifesto:', err.message);
-    res.status(500).json({ error: { message: "Errore nel recupero del manifesto: " + err.message } });
+    // (Miglioramento 3)
+    const status = err.message.includes('timeout') ? 504 : 500;
+    res.status(status).json({ error: { message: "Errore nel recupero del manifesto: " + err.message } });
   }
 });
 
-// ------------------------------------------
-// 5. ENDPOINT PER I LOG (RIMOSSO)
-// ------------------------------------------
 
 // --- AVVIO DEL SERVER ---
 app.listen(PORT, () => {
