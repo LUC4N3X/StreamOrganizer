@@ -1,3 +1,11 @@
-# Node dependencies
-/node_modules
+Ignora le dipendenze locali 
+​node_modules/
+​File di log
+​.log
 npm-debug.log
+​File di ambiente 
+​.env
+.env.*
+​File di sistema
+​.DS_Store
+Thumbs.db
