@@ -31,7 +31,7 @@
 <body :class="{'light-mode': isLightMode}">
   <!-- 🌌 Sfondo animato -->
   <canvas id="bgCanvas"></canvas>
-  < <div id="app" :lang="lang" :class="{'not-logged-in': !isLoggedIn}">
+  <div id="app" :lang="lang" :class="{'not-logged-in': !isLoggedIn}">
     
     <div :class="['global-loader', { visible: isLoading }]">
             <div class="loader-spinner"></div>
@@ -557,12 +557,12 @@
                         class="addon-list"
                         v-bind="dragOptions"
                         data-tour="step-4"
-                    >
+                    
                         <template #item="{ element: addon }">
                             <li :class="['addon-item', { disabled: !addon.isEnabled }]">
                                 <input type="checkbox" v-model="addon.selected" class="addon-checkbox" @change.stop :disabled="isMonitoring">
                                 <div class="drag-handle" data-tour="step-5">
-                                    <img v-if="addon.manifest.logo" :src="addon.manifest.logo" class="addon-icon" @error="event => event.target.style.display = 'none'">
+                                    <img v-if="addon.manifest.logo" :src="addon.manifest.logo" class="addon-icon" @error="event => event.target.style.display = 'none'" loading="lazy" decoding="async">
                                     <div v-else class="addon-icon-placeholder"></div>
                                     <div class="addon-details">
                                         <h3 v-if="!addon.isEditing">
@@ -641,7 +641,7 @@
             💾
         </button>
 
-        <div :class="['modal-overlay', { visible: showInstructions }]" @click.self="showInstructions = false">
+        <div :class="['modal-overlay', { visible: showInstructions }]" @click.self="showInstructions = false" role="dialog" aria-modal="true">
              <div class="modal-content">
                  <button @click="showInstructions = false" class="modal-close-btn">&times;</button>
                  <h2>{{ t('instructions.title') }}</h2>
@@ -710,6 +710,7 @@
 	<script src="js/translations.js" defer></script>
     <script src="js/bg-animation.js" defer></script>
     <script src="js/app.js" defer></script>
+
 
 
 </body>
