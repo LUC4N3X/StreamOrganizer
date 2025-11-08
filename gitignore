@@ -1,11 +1,13 @@
-Ignora le dipendenze locali 
+Dipendenze installate
 ​node_modules/
-​File di log
+​Log
 ​.log
 npm-debug.log
-​File di ambiente 
+​File di ambiente (Segreti)
 ​.env
 .env.*
 ​File di sistema
 ​.DS_Store
 Thumbs.db
+​Output di Vercel
+​.vercel/
