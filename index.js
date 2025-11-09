@@ -1,6 +1,7 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const cors = require('cors');
+const path = require('path'); // ✅ 1. AGGIUNTO QUESTO
 
 const app = express();
 const PORT = process.env.PORT || 7860;
@@ -20,7 +21,11 @@ const ADDONS_SET_URL = `${STREMIO_API_BASE}addonCollectionSet`;
 const FETCH_TIMEOUT = 10000; // 10 secondi
 
 // --- Configurazione Server ---
-app.use(express.static('public'));
+
+// ✅ 2. MODIFICATA QUESTA RIGA
+// Usa path.join per creare un percorso affidabile alla cartella 'public'
+app.use(express.static(path.join(__dirname, 'public'))); 
+
 app.use(cors());
 app.use(express.json());
 
