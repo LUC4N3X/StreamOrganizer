@@ -1,3 +1,4 @@
+
 (function cyberNexusVioletVortex() {
     const canvas = document.getElementById('bgCanvas');
     if (!canvas || innerWidth <= 960) return;
@@ -248,7 +249,7 @@
         // Additive
         ctx.globalCompositeOperation = 'lighter';
         drawAtmosphere(time);
-        drawGrid(time); 
+        drawGrid(time); // <-- GRIGLIA CORRETTA
         drawWaves(time);
         drawParticles();
         // Overlay
