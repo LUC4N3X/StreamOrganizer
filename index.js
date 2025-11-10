@@ -40,7 +40,8 @@ app.use(
           "https://fonts.googleapis.com",
           "https://fonts.gstatic.com",
           "https://unpkg.com",
-          "https://cdnjs.cloudflare.com"
+          "https://cdnjs.cloudflare.com",
+          "https://stream-organizer.vercel.app"
         ],
         "img-src": ["'self'", "data:", "https:"]
       }
@@ -68,11 +69,14 @@ const loginLimiter = rateLimit({
 // --- CORS whitelist ---
 const allowedOrigins = [
   'http://localhost:7860',
+  'https://stream-organizer.vercel.app'
 ];
+
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) return callback(new Error('La policy CORS non permette l\'accesso da questa origine.'), false);
+    if (!origin) return callback(null, true); // richieste server-server o Postman
+    if (allowedOrigins.indexOf(origin) === -1)
+      return callback(new Error('La policy CORS non permette l\'accesso da questa origine.'), false);
     return callback(null, true);
   }
 }));
@@ -83,13 +87,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/', limiter);
 app.use('/api/login', loginLimiter);
 
-// --- Helper: AbortController per Node <18 ---
+// --- AbortController per Node <18 ---
 if (!global.AbortController) {
   const { AbortController } = require('abort-controller');
   global.AbortController = AbortController;
 }
 
-// --- Helper: fetch con timeout ---
+// --- fetch con timeout ---
 async function fetchWithTimeout(url, options, timeout = FETCH_TIMEOUT) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
@@ -223,10 +227,10 @@ app.post('/api/admin/monitor', async(req,res)=>{
   return res.status(403).json({ error:{ message:`Impossibile accedere ai dati di ${targetEmail}. Stremio richiede la password/AuthKey.` } });
 });
 
-// --- 404 API ---
+// 404 API
 app.use('/api/*',(req,res)=>res.status(404).json({ error:{ message:'Endpoint non trovato.' }}));
 
-// --- HTTPS forzato in produzione ---
+// HTTPS forzato in produzione
 if(process.env.NODE_ENV==='production'){
   app.use((req,res,next)=>{
     if(req.header('x-forwarded-proto')!=='https') return res.redirect(301,`https://${req.header('host')}${req.url}`);
@@ -234,10 +238,10 @@ if(process.env.NODE_ENV==='production'){
   });
 }
 
-// --- Avvio solo se NODE_ENV !== vercel ---
+// Avvio server solo se NODE_ENV !== vercel
 if(process.env.NODE_ENV!=='vercel'){
   app.listen(PORT,()=>console.log(`Server avviato sulla porta ${PORT}`));
 }
 
-// --- Esportazione per Vercel ---
+// Esportazione per Vercel
 module.exports = app;
