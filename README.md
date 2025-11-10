@@ -54,11 +54,19 @@
 git clone https://github.com/Luca1234105/StreamOrder.git
 cd StreamOrder
 
-# 2️⃣ Costruisci l'immagine Docker
+# 2️⃣ Crea un file .env nella root del progetto
+cat > .env <<EOL
+GITHUB_TOKEN=la_tua_chiave_github
+PORT=7860
+EOL
+
+# 3️⃣ Costruisci l'immagine Docker
 docker build -t streamorder .
 
-# 3️⃣ Avvia il container in background
-docker run -d -p 8080:80 --name streamorder-app streamorder
+# 4️⃣ Avvia il container in background caricando le variabili d'ambiente
+docker run -d -p 7860:7860 --env-file .env --name streamorder-app streamorder
+
+
 ```
 📦 Deploy & Build Manuale (Senza Docker)
 ```bash
