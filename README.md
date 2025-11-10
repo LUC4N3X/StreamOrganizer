@@ -87,7 +87,7 @@ Accedi subito alla versione web:
 
 
 
-👉 <a href="https://stream-organizer-xvkk.vercel.app/" style="color:#7ee787;font-weight:bold;text-decoration:none;">StreamOrder Online su Vercel ⚡</a> </p> </td> </tr> </table> </div>
+👉 <a href="https://stream-organizer.vercel.app" style="color:#7ee787;font-weight:bold;text-decoration:none;">StreamOrder Online su Vercel ⚡</a> </p> </td> </tr> </table> </div>
 
 ---
 ## 🌌 Screenshot
