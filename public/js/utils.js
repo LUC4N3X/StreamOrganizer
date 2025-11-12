@@ -28,7 +28,10 @@ export const mapAddon = (addon) => ({
     isExpanded: false,
     disableAutoUpdate: addon.disableAutoUpdate !== undefined ? addon.disableAutoUpdate : false,
     githubInfo: null,
-    isLoadingGithub: false
+    isLoadingGithub: false,
+
+    
+    resourceNames: getResourceNames(addon.manifest.resources)
 });
 
 /**
