@@ -1,33 +1,20 @@
-// public/js/composables/useProfiles.js
-
-// 'ref' e 'nextTick' vengono passati come argomenti
-export function useProfiles(
-    ref,
-    nextTick,
-    isLoggedIn, 
-    isMonitoring, 
-    authKey, 
-    email, 
-    showToast, 
-    t
-) {
+export function useProfiles(ref, nextTick, isLoggedIn, isMonitoring, authKey, email, showToast, t) {
     const savedProfiles = ref([]);
     const selectedProfileId = ref(null);
-    
-    // Funzioni che verranno iniettate dal setup principale
-    // per evitare dipendenze circolari
+
+    // Callback iniettate per evitare dipendenze circolari
     let retrieveAddonsFromServerCallback = () => {};
     let logoutCallback = () => {};
-    
     const setRetrieveAddons = (fn) => { retrieveAddonsFromServerCallback = fn; };
     const setLogout = (fn) => { logoutCallback = fn; };
 
+    // --- Load & Save ---
     const loadProfiles = () => {
         try {
-            const profilesJson = localStorage.getItem('stremioConsoleProfiles');
-            let loadedProfiles = profilesJson ? JSON.parse(profilesJson) : [];
-            if (!Array.isArray(loadedProfiles)) loadedProfiles = [];
-            savedProfiles.value = loadedProfiles.filter(p => p.id && p.email).map(p => ({
+            const stored = localStorage.getItem('stremioConsoleProfiles');
+            let profiles = stored ? JSON.parse(stored) : [];
+            if (!Array.isArray(profiles)) profiles = [];
+            savedProfiles.value = profiles.filter(p => p.id && p.email).map(p => ({
                 ...p,
                 isEditing: false,
                 newName: p.name || p.email
@@ -42,7 +29,7 @@ export function useProfiles(
         try {
             const cleanProfiles = savedProfiles.value.map(p => ({
                 id: p.id,
-                name: p.name, 
+                name: p.name,
                 email: p.email,
                 authKey: p.authKey,
                 isMonitoring: p.isMonitoring
@@ -50,7 +37,7 @@ export function useProfiles(
             localStorage.setItem('stremioConsoleProfiles', JSON.stringify(cleanProfiles));
         } catch (e) {
             console.error("Error saving profiles:", e);
-            showToast("Impossibile salvare i profili in locale.", 'error');
+            showToast("Unable to save profiles locally.", 'error');
         }
     };
 
@@ -60,21 +47,21 @@ export function useProfiles(
         const profileId = authKey.value;
         const profileEmail = email.value;
         const existingIndex = savedProfiles.value.findIndex(p => p.id === profileId);
-
-        let profileName = newProfileName || profileEmail;
-        if (!profileName) profileName = `User ${Date.now()}`;
+        let profileName = newProfileName || profileEmail || `User ${Date.now()}`;
 
         if (existingIndex !== -1) {
-            savedProfiles.value[existingIndex].name = profileName;
-            savedProfiles.value[existingIndex].email = profileEmail;
-            savedProfiles.value[existingIndex].authKey = authKey.value;
-            savedProfiles.value[existingIndex].isMonitoring = isMonitoring.value;
-            savedProfiles.value[existingIndex].newName = profileName;
+            Object.assign(savedProfiles.value[existingIndex], {
+                name: profileName,
+                email: profileEmail,
+                authKey: authKey.value,
+                isMonitoring: isMonitoring.value,
+                newName: profileName
+            });
         } else {
             savedProfiles.value.push({
                 id: profileId,
                 name: profileName,
-                email: profileEmail, 
+                email: profileEmail,
                 authKey: authKey.value,
                 isMonitoring: isMonitoring.value,
                 isEditing: false,
@@ -85,18 +72,15 @@ export function useProfiles(
         showToast(t.value('profiles.saveSuccess'), 'success');
     };
 
+    // --- Edit ---
     const startEditProfile = (profile) => {
-        savedProfiles.value.forEach(p => {
-            if (p.id !== profile.id && p.isEditing) p.isEditing = false;
-        });
+        savedProfiles.value.forEach(p => { if (p.id !== profile.id) p.isEditing = false; });
         profile.newName = profile.name || profile.email;
         profile.isEditing = true;
+
         nextTick(() => {
             const input = document.querySelector(`.profile-list-item[data-profile-id="${profile.id}"] .profile-name-edit-input`);
-            if (input) {
-                input.focus();
-                input.select();
-            }
+            if (input) { input.focus(); input.select(); }
         });
     };
 
@@ -110,42 +94,40 @@ export function useProfiles(
         profile.isEditing = false;
     };
 
+    // --- Load Profile / Restore Session ---
     const loadProfile = (profileId) => {
         const profile = savedProfiles.value.find(p => p.id === profileId);
         if (!profile) return;
 
         sessionStorage.clear();
-        
-        authKey.value = profile.authKey;
-        email.value = profile.email;
-        isMonitoring.value = profile.isMonitoring;
-        isLoggedIn.value = true;
-        
+
+        Object.assign(authKey, { value: profile.authKey });
+        Object.assign(email, { value: profile.email });
+        Object.assign(isMonitoring, { value: profile.isMonitoring });
+        Object.assign(isLoggedIn, { value: true });
+
         sessionStorage.setItem('stremioAuthKey', profile.authKey);
         sessionStorage.setItem('stremioEmail', profile.email);
         sessionStorage.setItem('stremioIsMonitoring', profile.isMonitoring ? 'true' : 'false');
-        
-        // Chiama la funzione iniettata
+
         retrieveAddonsFromServerCallback(profile.authKey, profile.email);
 
         showToast(t.value('addon.sessionRestored'), 'success');
     };
 
+    // --- Delete Profile ---
     const deleteProfile = (profileId) => {
-        const profileIndex = savedProfiles.value.findIndex(p => p.id === profileId);
-        if (profileIndex === -1) return;
+        const index = savedProfiles.value.findIndex(p => p.id === profileId);
+        if (index === -1) return;
 
-        const profileName = savedProfiles.value[profileIndex].name || savedProfiles.value[profileIndex].email;
+        const profileName = savedProfiles.value[index].name || savedProfiles.value[index].email;
+        if (!confirm(t.value('profiles.deleteConfirm', { name: profileName }))) return;
 
-        if (confirm(t.value('profiles.deleteConfirm', { name: profileName }))) {
-            savedProfiles.value.splice(profileIndex, 1);
-            saveProfiles();
-            showToast(t.value('profiles.deleteSuccess', { name: profileName }), 'info');
-            if (profileId === authKey.value) {
-                // Chiama la funzione iniettata
-                logoutCallback();
-            }
-        }
+        savedProfiles.value.splice(index, 1);
+        saveProfiles();
+        showToast(t.value('profiles.deleteSuccess', { name: profileName }), 'info');
+
+        if (profileId === authKey.value) logoutCallback();
     };
 
     return {
@@ -158,7 +140,7 @@ export function useProfiles(
         finishEditProfile,
         loadProfile,
         deleteProfile,
-        setRetrieveAddons, // Esponi i setter
+        setRetrieveAddons,
         setLogout
     };
 }
