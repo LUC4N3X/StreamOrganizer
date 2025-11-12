@@ -1,15 +1,13 @@
-
-
-// Importa Vue (accede alla variabile globale Vue caricata dal CDN)
+// --- Import Vue dal CDN ---
 const { createApp, ref, computed, onMounted, onBeforeUnmount, watch, nextTick } = Vue;
 
-// Importa utils
+// --- Import utils ---
 import { debounce, mapAddon, deepClone, getResourceNames } from './utils.js';
 
-// Importa il fix per lo scroll (solo per side effects)
+// --- Fix scroll mobile (side effects only) ---
 import './mobile-scroll-fix.js';
 
-// Importa i Composables
+// --- Composables ---
 import { useAppCore } from './composables/useAppCore.js';
 import { useTranslations } from './composables/useTranslations.js';
 import { useHistory } from './composables/useHistory.js';
@@ -21,279 +19,259 @@ import { useFiltersAndSelection } from './composables/useFiltersAndSelection.js'
 import { useImportExport } from './composables/useImportExport.js';
 import { useTour } from './composables/useTour.js';
 
-
+// --- Create Vue App ---
 const app = createApp({
     setup() {
-        
-        // --- 1. Core Utils & State ---
+
+        // --- 1. Core utils & state ---
         const { lang, t, initLang } = useTranslations(ref, computed);
         const { 
-            isLoading, apiBaseUrl, isMobile, isLightMode, showInstructions, 
-            toasts, showToast, updateIsMobile, toggleTheme, initTheme 
+            isLoading, apiBaseUrl, isMobile, isLightMode, showInstructions,
+            toasts, showToast, updateIsMobile, toggleTheme, initTheme
         } = useAppCore(ref);
 
-        // --- 2. Stato Addons (definito qui per essere passato) ---
+        // --- 2. Stato addons ---
         const addons = ref([]);
 
-        // --- 3. Autenticazione (CREA 'isMonitoring' PRIMA) ---
+        // --- 3. Auth ---
         const { 
-            email, password, authKey, isLoggedIn, isMonitoring, adminClickCount, 
-            showAdminInput, adminKey, targetEmail, loginMode, providedAuthKey, 
+            email, password, authKey, isLoggedIn, isMonitoring, adminClickCount,
+            showAdminInput, adminKey, targetEmail, loginMode, providedAuthKey,
             login, monitorLogin, toggleLoginMode, incrementAdminClick,
-            setResetHistory // <-- Prendi il setter
-        } = useAuth(ref, apiBaseUrl, showToast, t, mapAddon, isLoading, addons); // <-- resetHistory rimosso da qui
+            setResetHistory
+        } = useAuth(ref, showToast, t, mapAddon, isLoading, addons);
 
-        // --- 4. Cronologia (ORA PUÒ LEGGERE 'isMonitoring') ---
-        const { 
-            history, redoStack, actionLog, redoActionLog, hasUnsavedChanges, 
-            recordAction, undo, redo, resetHistory // <-- 'resetHistory' è creato QUI
+        // --- 4. History ---
+        const {
+            history, redoStack, actionLog, redoActionLog, hasUnsavedChanges,
+            recordAction, undo, redo, resetHistory
         } = useHistory(ref, addons, isLoading, isMonitoring, showToast, t, deepClone);
-        
-        // --- 5. Inietta 'resetHistory' in 'useAuth' per completare il ciclo ---
-        setResetHistory(resetHistory);
 
-        // --- 6. Funzione Logout (Orchestratore) ---
-        const logout = () => { 
-            if (hasUnsavedChanges.value && !confirm(t.value('list.logoutConfirm'))) return; 
-            
-            sessionStorage.clear(); 
-            email.value = ''; 
-            password.value = ''; 
-            authKey.value = null; 
-            addons.value = []; 
-            isLoggedIn.value = false; 
-            isMonitoring.value = false; 
-            showAdminInput.value = false; 
-            
-            resetHistory(); // Resetta la cronologia
-            
-            // Resetta altri stati (es. da filtri, tour, ecc.)
-            searchQuery.value = ''; 
-            showSearchInput.value = false; 
-            showInstructions.value = false; 
-            toasts.value = []; 
-            showWelcomeScreen.value = false; 
-            showWelcomeTourModal.value = false; 
-            
-            loadProfiles(); 
+        setResetHistory(resetHistory); 
+
+        // --- 5. Logout ---
+        const logout = () => {
+            if (hasUnsavedChanges.value && !confirm(t.value('list.logoutConfirm'))) return;
+
+            sessionStorage.clear();
+            email.value = '';
+            password.value = '';
+            authKey.value = null;
+            addons.value = [];
+            isLoggedIn.value = false;
+            isMonitoring.value = false;
+            showAdminInput.value = false;
+
+            resetHistory();
+
+            // Reset stati extra
+            searchQuery.value = '';
+            showSearchInput.value = false;
+            showInstructions.value = false;
+            toasts.value = [];
+            showWelcomeScreen.value = false;
+            showWelcomeTourModal.value = false;
+
+            loadProfiles();
         };
-        
-        // --- 7. Profili (dipende da auth e funzioni) ---
-        const { 
-            savedProfiles, selectedProfileId, loadProfiles, saveProfiles, 
+
+        // --- 6. Profiles ---
+        const {
+            savedProfiles, selectedProfileId, loadProfiles, saveProfiles,
             saveProfile, startEditProfile, finishEditProfile, loadProfile, deleteProfile,
-            setRetrieveAddons, setLogout 
+            setRetrieveAddons, setLogout
         } = useProfiles(ref, nextTick, isLoggedIn, isMonitoring, authKey, email, showToast, t);
-        
-        // --- 8. Gestione Addons (il nucleo) ---
-        const { 
-            newAddonUrl, retrieveAddonsFromServer, refreshAddonList, saveOrder, 
-            addNewAddon, startEdit, finishEdit, moveUp, moveDown, moveTop, moveBottom, 
-            removeAddon, toggleAddonDisableAutoUpdate, onDragEnd 
+
+        // --- 7. Addons ---
+        const {
+            newAddonUrl, retrieveAddonsFromServer, refreshAddonList, saveOrder,
+            addNewAddon, startEdit, finishEdit, moveUp, moveDown, moveTop, moveBottom,
+            removeAddon, toggleAddonDisableAutoUpdate, onDragEnd
         } = useAddons(
-            ref, nextTick, addons, apiBaseUrl, authKey, email, isMonitoring, isLoading, 
+            ref, nextTick, addons, authKey, email, isMonitoring, isLoading,
             recordAction, showToast, t, mapAddon, hasUnsavedChanges, resetHistory,
             savedProfiles, saveProfiles
         );
-        
-        // --- 9. Azioni Addon (dipende da addons e saveOrder) ---
-        const { 
-            isAutoUpdateEnabled, lastUpdateCheck, isUpdating, 
-            checkAllAddonsStatus, toggleAddonDetails, testAddonSpeed, runAutoUpdate, 
-            openConfiguration, copyManifestUrl, initAutoUpdate
+
+        // --- 8. Addon Actions ---
+        const {
+            isAutoUpdateEnabled, lastUpdateCheck, isUpdating,
+            checkAllAddonsStatus, toggleAddonDetails, testAddonSpeed,
+            runAutoUpdate, openConfiguration, copyManifestUrl, initAutoUpdate
         } = useAddonActions(
-            ref, apiBaseUrl, isLoggedIn, isMonitoring, isLoading, showToast, t, addons, 
-            (updating) => saveOrder(updating) 
+            ref, isLoggedIn, isMonitoring, isLoading, showToast, t, addons,
+            (updating) => saveOrder(updating)
         );
-        
-        // --- 10. Filtri e Selezione ---
-        const { 
-            activeFilter, searchQuery, showSearchInput, searchInputRef, 
-            toggleSearch, hideSearchOnBlur, filteredAddons, draggableList, 
-            dragOptions, enabledCount, disabledCount, errorCount, selectedAddons, 
+
+        // --- 9. Filters & Selection ---
+        const {
+            activeFilter, searchQuery, showSearchInput, searchInputRef,
+            toggleSearch, hideSearchOnBlur, filteredAddons, draggableList,
+            dragOptions, enabledCount, disabledCount, errorCount, selectedAddons,
             allSelected, toggleSelectAll, enableSelected, disableSelected, removeSelected
         } = useFiltersAndSelection(
-            ref, computed, watch, nextTick, addons, isMonitoring, hasUnsavedChanges, isMobile, 
+            ref, computed, watch, nextTick, addons, isMonitoring, hasUnsavedChanges, isMobile,
             recordAction, showToast, t, debounce
         );
-        
-        // --- 11. Import/Export ---
-        const { 
-            fileInput, shareInput, shareUrl, importedConfigFromUrl, 
-            showImportConfirm, pendingImportData, importSource, pendingImportNames, 
-            exportBackup, exportTxt, triggerFileInput, handleFileImport, 
+
+        // --- 10. Import / Export ---
+        const {
+            fileInput, shareInput, shareUrl, importedConfigFromUrl,
+            showImportConfirm, pendingImportData, importSource, pendingImportNames,
+            exportBackup, exportTxt, triggerFileInput, handleFileImport,
             closeImportConfirm, confirmImport, generateShareLink, copyShareLink, checkUrlImport
         } = useImportExport(
             ref, addons, isMonitoring, recordAction, showToast, t, mapAddon, hasUnsavedChanges
         );
-        
-        // --- 12. Tour & Welcome ---
-        const { 
-            showWelcomeScreen, showWelcomeTourModal, dontShowWelcomeAgain, 
+
+        // --- 11. Tour & Welcome ---
+        const {
+            showWelcomeScreen, showWelcomeTourModal, dontShowWelcomeAgain,
             dismissWelcomeScreen, skipTour, beginTour, startTour
         } = useTour(
             ref, nextTick, isMobile, isMonitoring, hasUnsavedChanges, t,
-            showImportConfirm, pendingImportData, pendingImportNames, 
+            showImportConfirm, pendingImportData, pendingImportNames,
             importSource, importedConfigFromUrl
         );
 
-        // --- 13. NUOVO: Gestori di eventi ottimizzati ---
+        // --- 12. Eventi toggle ---
         const handleToggleEnabled = (addon, event) => {
             if (isMonitoring.value) return;
-            
-            // 1. Ottieni il nuovo stato dall'evento
+
             const newState = event.target.checked;
-            
-            // 2. Applica il nuovo stato
             addon.isEnabled = newState;
-            
-            // 3. Registra l'azione (ORA CORRETTA)
+
             const actionKey = newState ? 'actions.enabledAddon' : 'actions.disabledAddon';
             recordAction(t.value(actionKey, { name: addon.manifest.name }));
-            hasUnsavedChanges.value = true; 
+            hasUnsavedChanges.value = true;
         };
 
         const handleToggleSelected = (addon, event) => {
             addon.selected = event.target.checked;
         };
 
-        // --- 14. Gestione Login (per mostrare Welcome Screen) ---
+        // --- 13. Login wrappers ---
         const aEseguiLogin = async () => {
             const success = await login();
-            if (success) {
-                showWelcomeScreen.value = true;
-            }
+            if (success) showWelcomeScreen.value = true;
         };
 
         const aEseguiMonitorLogin = async () => {
-            await monitorLogin(showWelcomeScreen); // Passa il ref
+            await monitorLogin(showWelcomeScreen);
         };
 
-        // --- 15. Collegamenti finali per dipendenze circolari ---
+        // --- 14. Dipendenze circolari ---
         setRetrieveAddons(retrieveAddonsFromServer);
         setLogout(logout);
 
-        // --- 16. Eventi globali ---
-        const beforeUnloadHandler = (event) => { 
-            if (hasUnsavedChanges.value) { 
-                event.preventDefault(); 
-                event.returnValue = ''; 
-            } 
+        // --- 15. Eventi globali ---
+        const beforeUnloadHandler = (event) => {
+            if (hasUnsavedChanges.value) {
+                event.preventDefault();
+                event.returnValue = '';
+            }
         };
-        
-        // --- 17. Watchers ---
-        watch(lang, (newLang) => { 
-            document.documentElement.lang = newLang; 
-            document.title = t.value('meta.title'); 
-            try { 
-                localStorage.setItem('stremioConsoleLang', newLang); 
-            } catch(e) { 
-                console.warn("Cannot save lang to localStorage."); 
-            } 
+
+        // --- 16. Watchers ---
+        watch(lang, (newLang) => {
+            document.documentElement.lang = newLang;
+            document.title = t.value('meta.title');
+            try { localStorage.setItem('stremioConsoleLang', newLang); }
+            catch(e) { console.warn("Cannot save lang to localStorage."); }
         });
-        
+
         watch(isAutoUpdateEnabled, (newValue) => {
             try {
                 localStorage.setItem('stremioAutoUpdateEnabled', newValue);
-                if (newValue) {
-                    showToast(t.value('autoUpdate.enabled'), 'info');
-                } else {
-                    showToast(t.value('autoUpdate.disabled'), 'info');
-                }
-            } catch(e) { 
-                console.warn("Cannot save auto-update pref to localStorage."); 
-            }
+                showToast(t.value(newValue ? 'autoUpdate.enabled' : 'autoUpdate.disabled'), 'info');
+            } catch(e) { console.warn("Cannot save auto-update pref to localStorage."); }
         });
 
-        // --- 18. Lifecycle Hooks ---
+        // --- 17. Lifecycle Hooks ---
         onMounted(() => {
-            window.addEventListener('beforeunload', beforeUnloadHandler); 
+            window.addEventListener('beforeunload', beforeUnloadHandler);
             window.addEventListener('resize', updateIsMobile);
-            
+
             initTheme();
             loadProfiles();
             initLang();
-            checkUrlImport(); // Controlla import da URL
-            initAutoUpdate(); // Avvia pianificazione auto-update
+            checkUrlImport();
+            initAutoUpdate();
 
-            // Logica di ripristino sessione
+            // Ripristino sessione
             try {
-                const storedKey = sessionStorage.getItem('stremioAuthKey'); 
-                const storedList = sessionStorage.getItem('stremioAddonList'); 
-                const storedEmail = sessionStorage.getItem('stremioEmail'); 
+                const storedKey = sessionStorage.getItem('stremioAuthKey');
+                const storedList = sessionStorage.getItem('stremioAddonList');
+                const storedEmail = sessionStorage.getItem('stremioEmail');
                 const storedMonitoring = sessionStorage.getItem('stremioIsMonitoring') === 'true';
-                
+
                 if (storedKey && storedList) {
-                    authKey.value = storedKey; 
-                    email.value = storedEmail || ''; 
-                    isMonitoring.value = storedMonitoring; 
+                    authKey.value = storedKey;
+                    email.value = storedEmail || '';
+                    isMonitoring.value = storedMonitoring;
                     if(isMonitoring.value) targetEmail.value = storedEmail || '';
-                    
+
                     addons.value = JSON.parse(storedList).map(a => mapAddon(a));
                     isLoggedIn.value = true;
                     showToast(t.value('addon.sessionRestored'), 'info');
-                    showWelcomeScreen.value = true; // Mostra welcome screen al ripristino
+                    showWelcomeScreen.value = true;
                 }
-            } catch(e) { 
-                console.error("Error restoring session:", e); 
-                sessionStorage.clear(); 
+            } catch(e) {
+                console.error("Error restoring session:", e);
+                sessionStorage.clear();
             }
         });
 
-        onBeforeUnmount(() => { 
-            window.removeEventListener('beforeunload', beforeUnloadHandler); 
-            window.removeEventListener('resize', updateIsMobile); 
+        onBeforeUnmount(() => {
+            window.removeEventListener('beforeunload', beforeUnloadHandler);
+            window.removeEventListener('resize', updateIsMobile);
         });
 
-        // --- 19. Return ---
-        // Ritorna tutto ciò che serve al template, raggruppato
+        // --- 18. Return ---
         return {
             // Core
-            isLoading, isMobile, isLightMode, showInstructions, toasts, showToast, 
-            toggleTheme, t, lang, 
+            isLoading, isMobile, isLightMode, showInstructions, toasts, showToast,
+            toggleTheme, t, lang,
             // Auth
-            email, password, authKey, isLoggedIn, isMonitoring, adminClickCount, 
-            showAdminInput, adminKey, targetEmail, loginMode, providedAuthKey, 
-            login: aEseguiLogin, // Usa il wrapper
-            monitorLogin: aEseguiMonitorLogin, // Usa il wrapper
+            email, password, authKey, isLoggedIn, isMonitoring, adminClickCount,
+            showAdminInput, adminKey, targetEmail, loginMode, providedAuthKey,
+            login: aEseguiLogin, monitorLogin: aEseguiMonitorLogin,
             toggleLoginMode, incrementAdminClick, logout,
             // Profiles
-            savedProfiles, selectedProfileId, saveProfile, startEditProfile, 
-            finishEditProfile, loadProfile, deleteProfile,
+            savedProfiles, selectedProfileId, saveProfile, startEditProfile, finishEditProfile,
+            loadProfile, deleteProfile,
             // Addons
-            addons, newAddonUrl, refreshAddonList, saveOrder, addNewAddon, startEdit, 
-            finishEdit, moveUp, moveDown, moveTop, moveBottom, removeAddon, 
-            /* toggleAddonEnabled, */ toggleAddonDisableAutoUpdate, onDragEnd, // Vecchia funzione commentata/rimossa
+            addons, newAddonUrl, refreshAddonList, saveOrder, addNewAddon, startEdit, finishEdit,
+            moveUp, moveDown, moveTop, moveBottom, removeAddon,
+            toggleAddonDisableAutoUpdate, onDragEnd,
             // Addon Actions
-            isAutoUpdateEnabled, lastUpdateCheck, isUpdating, checkAllAddonsStatus, 
-            toggleAddonDetails, testAddonSpeed, runAutoUpdate, openConfiguration, 
-            copyManifestUrl, getResourceNames, // getResourceNames è da utils
+            isAutoUpdateEnabled, lastUpdateCheck, isUpdating, checkAllAddonsStatus,
+            toggleAddonDetails, testAddonSpeed, runAutoUpdate, openConfiguration,
+            copyManifestUrl, getResourceNames,
             // History
-            history, redoStack, actionLog, redoActionLog, hasUnsavedChanges, 
+            history, redoStack, actionLog, redoActionLog, hasUnsavedChanges,
             undo, redo,
             // Filters & Selection
-            activeFilter, searchQuery, showSearchInput, searchInputRef, 
-            toggleSearch, hideSearchOnBlur, filteredAddons, draggableList, 
-            dragOptions, enabledCount, disabledCount, errorCount, selectedAddons, 
+            activeFilter, searchQuery, showSearchInput, searchInputRef,
+            toggleSearch, hideSearchOnBlur, filteredAddons, draggableList,
+            dragOptions, enabledCount, disabledCount, errorCount, selectedAddons,
             allSelected, toggleSelectAll, enableSelected, disableSelected, removeSelected,
             // Import/Export
-            fileInput, shareInput, shareUrl, showImportConfirm, pendingImportData, 
-            importSource, pendingImportNames, exportBackup, exportTxt, 
-            triggerFileInput, handleFileImport, closeImportConfirm, confirmImport, 
+            fileInput, shareInput, shareUrl, showImportConfirm, pendingImportData,
+            importSource, pendingImportNames, exportBackup, exportTxt,
+            triggerFileInput, handleFileImport, closeImportConfirm, confirmImport,
             generateShareLink, copyShareLink,
             // Tour
-            showWelcomeScreen, showWelcomeTourModal, dontShowWelcomeAgain, 
+            showWelcomeScreen, showWelcomeTourModal, dontShowWelcomeAgain,
             dismissWelcomeScreen, skipTour, beginTour, startTour,
-            
-            // NUOVE FUNZIONI ESPORTE
-            handleToggleEnabled,
-            handleToggleSelected
+            // Nuove funzioni
+            handleToggleEnabled, handleToggleSelected
         };
     }
 });
 
-// Registra il componente draggable (assicurati che vuedraggable sia caricato)
+// Registra draggable
 app.component('draggable', window.vuedraggable);
 
-// Monta l'applicazione
+// Monta app
 app.mount('#app');
