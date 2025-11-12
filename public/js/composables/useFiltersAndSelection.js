@@ -1,91 +1,50 @@
-// public/js/composables/useFiltersAndSelection.js
-
-// 'ref', 'computed', 'watch', 'nextTick' vengono passati come argomenti
-export function useFiltersAndSelection(
-    ref,
-    computed,
-    watch,
-    nextTick,
-    addons,
-    isMonitoring,
-    hasUnsavedChanges,
-    isMobile,
-    recordAction,
-    showToast,
-    t,
-    debounce
-) {
-
-    // --- Filter & Search Refs ---
+export function useFiltersAndSelection(ref, computed, watch, nextTick, addons, isMonitoring, hasUnsavedChanges, isMobile, recordAction, showToast, t, debounce) {
     const activeFilter = ref('all');
-    const searchQuery = ref(''); 
+    const searchQuery = ref('');
     const actualSearchQuery = ref('');
-    const showSearchInput = ref(false); 
-    const searchInputRef = ref(null); 
+    const showSearchInput = ref(false);
+    const searchInputRef = ref(null);
 
-    // --- Search Logic ---
-    const debouncedSearchHandler = debounce((newValue) => {
-        actualSearchQuery.value = newValue;
-    }, 300);
+    const debouncedSearchHandler = debounce(q => actualSearchQuery.value = q, 300);
+    watch(searchQuery, debouncedSearchHandler);
 
-    watch(searchQuery, (newValue) => {
-        debouncedSearchHandler(newValue);
-    });
-
-    const toggleSearch = () => { 
-        showSearchInput.value = !showSearchInput.value; 
-        if (showSearchInput.value) nextTick(() => searchInputRef.value?.focus()); 
-    };
-    
-    const hideSearchOnBlur = (event) => { 
-        const searchContainer = event.currentTarget.closest('.list-controls-header'); 
-        if (!searchContainer || (!searchContainer.contains(event.relatedTarget) && event.relatedTarget?.closest('.search-icon-btn') !== event.currentTarget.parentElement.querySelector('.search-icon-btn'))) 
-            showSearchInput.value = false; 
+    const toggleSearch = () => {
+        showSearchInput.value = !showSearchInput.value;
+        if (showSearchInput.value) nextTick(() => searchInputRef.value?.focus());
     };
 
-    // --- Computed Lists ---
-    const filteredAddons = computed(() => { 
-        let f = addons.value; 
+    const hideSearchOnBlur = e => {
+        const container = e.currentTarget.closest('.list-controls-header');
+        if (!container || (!container.contains(e.relatedTarget) && e.relatedTarget?.closest('.search-icon-btn') !== e.currentTarget.parentElement.querySelector('.search-icon-btn'))) {
+            showSearchInput.value = false;
+        }
+    };
 
-        if (activeFilter.value === 'enabled') f = addons.value.filter(a => a.isEnabled); 
-        if (activeFilter.value === 'disabled') f = addons.value.filter(a => !a.isEnabled); 
-        if (activeFilter.value === 'errors') f = addons.value.filter(a => a.status === 'error'); 
-
-        if (!actualSearchQuery.value) return f; 
-        const lcq = actualSearchQuery.value.toLowerCase(); 
-        return f.filter(a => a.manifest.name.toLowerCase().includes(lcq)); 
+    const filteredAddons = computed(() => {
+        let list = addons.value;
+        if (activeFilter.value === 'enabled') list = list.filter(a => a.isEnabled);
+        if (activeFilter.value === 'disabled') list = list.filter(a => !a.isEnabled);
+        if (activeFilter.value === 'errors') list = list.filter(a => a.status === 'error');
+        if (!actualSearchQuery.value) return list;
+        const q = actualSearchQuery.value.toLowerCase();
+        return list.filter(a => a.manifest.name.toLowerCase().includes(q));
     });
-    
-    const draggableList = computed({ 
-        get: () => filteredAddons.value, 
-        set(reorderedFilteredList) { 
-            if (isMonitoring.value) return; 
 
-            const filteredUrlsMap = new Map(filteredAddons.value.map(a => [a.transportUrl, a]));
-            let nextFilteredIndex = 0;
-            const newAddonsList = [];
-
-            addons.value.forEach(originalAddon => {
-                if (filteredUrlsMap.has(originalAddon.transportUrl)) {
-                    if (nextFilteredIndex < reorderedFilteredList.length) {
-                        newAddonsList.push(reorderedFilteredList[nextFilteredIndex]);
-                        nextFilteredIndex++;
-                    }
-                } else {
-                    newAddonsList.push(originalAddon);
-                }
-            });
-            
-            if (JSON.stringify(addons.value.map(a => a.transportUrl)) !== JSON.stringify(newAddonsList.map(a => a.transportUrl))) {
-                addons.value = newAddonsList;
-                // recordAction è chiamato in onDragEnd
+    const draggableList = computed({
+        get: () => filteredAddons.value,
+        set(newList) {
+            if (isMonitoring.value) return;
+            const map = new Map(filteredAddons.value.map(a => [a.transportUrl, a]));
+            let i = 0;
+            const merged = addons.value.map(a => map.has(a.transportUrl) ? newList[i++] : a);
+            if (JSON.stringify(addons.value.map(a => a.transportUrl)) !== JSON.stringify(merged.map(a => a.transportUrl))) {
+                addons.value = merged;
                 hasUnsavedChanges.value = true;
             }
-        } 
+        }
     });
 
-    // --- Drag Options ---
-    const dragOptions = computed(() => ({ 
+    const dragOptions = computed(() => ({
         animation: 150,
         ghostClass: "ghost-class",
         handle: ".drag-handle",
@@ -98,75 +57,43 @@ export function useFiltersAndSelection(
         fallbackTolerance: 5,
         filter: '.no-drag'
     }));
-    
-    // --- Computed Counts ---
+
     const enabledCount = computed(() => addons.value.filter(a => a.isEnabled).length);
     const disabledCount = computed(() => addons.value.filter(a => !a.isEnabled).length);
     const errorCount = computed(() => addons.value.filter(a => a.status === 'error').length);
-    
-    // --- Selection Logic ---
+
     const selectedAddons = computed(() => addons.value.filter(a => a.selected));
     const allSelected = computed(() => addons.value.length > 0 && selectedAddons.value.length === addons.value.length);
 
-    const toggleSelectAll = () => { 
-        const targetState = !allSelected.value; 
-        addons.value.forEach(addon => addon.selected = targetState); 
+    const toggleSelectAll = () => {
+        const state = !allSelected.value;
+        addons.value.forEach(a => a.selected = state);
     };
 
     const enableSelected = () => {
         if (isMonitoring.value) return;
         let count = 0;
-        selectedAddons.value.forEach(addon => {
-            if (!addon.isEnabled) {
-                addon.isEnabled = true;
-                count++;
-            }
-            addon.selected = false;
-        });
-        
-        if (count > 0) {
-            recordAction(t.value('actions.bulkEnabled', { count: count }));
-            showToast(t.value('bulkActions.enabledSuccess', { count: count }), 'success');
-            hasUnsavedChanges.value = true;
-        } else {
-            showToast(t.value('bulkActions.noneToEnable'), 'info');
-        }
+        selectedAddons.value.forEach(a => { if (!a.isEnabled) { a.isEnabled = true; count++; } a.selected = false; });
+        if (count > 0) { recordAction(t.value('actions.bulkEnabled', { count })); showToast(t.value('bulkActions.enabledSuccess', { count }), 'success'); hasUnsavedChanges.value = true; }
+        else showToast(t.value('bulkActions.noneToEnable'), 'info');
     };
 
-    const disableSelected = () => { 
-        if (isMonitoring.value) return; 
-        let count = 0; 
-        selectedAddons.value.forEach(addon => { 
-            if (addon.isEnabled) { 
-                addon.isEnabled = false; 
-                count++; 
-            } 
-            addon.selected = false; 
-        }); 
-        if (count > 0) { 
-            recordAction(t.value('actions.bulkDisabled', { count: count }));
-            showToast(t.value('bulkActions.disabledSuccess', { count: count }), 'success'); 
-            hasUnsavedChanges.value = true; 
-        } else { 
-            showToast(t.value('bulkActions.noneToDisable'), 'info'); 
-        }
+    const disableSelected = () => {
+        if (isMonitoring.value) return;
+        let count = 0;
+        selectedAddons.value.forEach(a => { if (a.isEnabled) { a.isEnabled = false; count++; } a.selected = false; });
+        if (count > 0) { recordAction(t.value('actions.bulkDisabled', { count })); showToast(t.value('bulkActions.disabledSuccess', { count }), 'success'); hasUnsavedChanges.value = true; }
+        else showToast(t.value('bulkActions.noneToDisable'), 'info');
     };
 
-    const removeSelected = () => { 
-        if (isMonitoring.value || selectedAddons.value.length === 0) return; 
-        if (confirm(t.value('bulkActions.removeConfirm', { count: selectedAddons.value.length }))) { 
-            const selectedUrls = new Set(selectedAddons.value.map(a => a.transportUrl)); 
-            const originalCount = addons.value.length; 
-            const filteredList = addons.value.filter(addon => !selectedUrls.has(addon.transportUrl));
-            const removedCount = originalCount - filteredList.length;
-            
-            if (removedCount > 0) {
-                recordAction(t.value('actions.bulkRemoved', { count: removedCount }));
-                addons.value = filteredList;
-                showToast(t.value('bulkActions.removeSuccess', { count: removedCount }), 'success'); 
-                hasUnsavedChanges.value = true; 
-            }
-        }
+    const removeSelected = () => {
+        if (isMonitoring.value || selectedAddons.value.length === 0) return;
+        if (!confirm(t.value('bulkActions.removeConfirm', { count: selectedAddons.value.length }))) return;
+        const urls = new Set(selectedAddons.value.map(a => a.transportUrl));
+        const originalLength = addons.value.length;
+        addons.value = addons.value.filter(a => !urls.has(a.transportUrl));
+        const removedCount = originalLength - addons.value.length;
+        if (removedCount > 0) { recordAction(t.value('actions.bulkRemoved', { count: removedCount })); showToast(t.value('bulkActions.removeSuccess', { count: removedCount }), 'success'); hasUnsavedChanges.value = true; }
     };
 
     return {
