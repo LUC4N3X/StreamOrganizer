@@ -1,4 +1,4 @@
-// public/js/app.js
+
 
 // Importa Vue (accede alla variabile globale Vue caricata dal CDN)
 const { createApp, ref, computed, onMounted, onBeforeUnmount, watch, nextTick } = Vue;
@@ -75,7 +75,7 @@ const app = createApp({
             showWelcomeScreen.value = false; 
             showWelcomeTourModal.value = false; 
             
-            loadProfiles(); // Ricarica i profili salvati
+            loadProfiles(); 
         };
         
         // --- 7. Profili (dipende da auth e funzioni) ---
@@ -89,7 +89,7 @@ const app = createApp({
         const { 
             newAddonUrl, retrieveAddonsFromServer, refreshAddonList, saveOrder, 
             addNewAddon, startEdit, finishEdit, moveUp, moveDown, moveTop, moveBottom, 
-            removeAddon, toggleAddonEnabled, toggleAddonDisableAutoUpdate, onDragEnd
+            removeAddon, toggleAddonDisableAutoUpdate, onDragEnd 
         } = useAddons(
             ref, nextTick, addons, apiBaseUrl, authKey, email, isMonitoring, isLoading, 
             recordAction, showToast, t, mapAddon, hasUnsavedChanges, resetHistory,
@@ -103,7 +103,7 @@ const app = createApp({
             openConfiguration, copyManifestUrl, initAutoUpdate
         } = useAddonActions(
             ref, apiBaseUrl, isLoggedIn, isMonitoring, isLoading, showToast, t, addons, 
-            (updating) => saveOrder(updating) // Passa saveOrder come callback
+            (updating) => saveOrder(updating) 
         );
         
         // --- 10. Filtri e Selezione ---
@@ -137,7 +137,27 @@ const app = createApp({
             importSource, importedConfigFromUrl
         );
 
-        // --- 13. Gestione Login (per mostrare Welcome Screen) ---
+        // --- 13. NUOVO: Gestori di eventi ottimizzati ---
+        const handleToggleEnabled = (addon, event) => {
+            if (isMonitoring.value) return;
+            
+            // 1. Ottieni il nuovo stato dall'evento
+            const newState = event.target.checked;
+            
+            // 2. Applica il nuovo stato
+            addon.isEnabled = newState;
+            
+            // 3. Registra l'azione (ORA CORRETTA)
+            const actionKey = newState ? 'actions.enabledAddon' : 'actions.disabledAddon';
+            recordAction(t.value(actionKey, { name: addon.manifest.name }));
+            hasUnsavedChanges.value = true; 
+        };
+
+        const handleToggleSelected = (addon, event) => {
+            addon.selected = event.target.checked;
+        };
+
+        // --- 14. Gestione Login (per mostrare Welcome Screen) ---
         const aEseguiLogin = async () => {
             const success = await login();
             if (success) {
@@ -149,11 +169,11 @@ const app = createApp({
             await monitorLogin(showWelcomeScreen); // Passa il ref
         };
 
-        // --- 14. Collegamenti finali per dipendenze circolari ---
+        // --- 15. Collegamenti finali per dipendenze circolari ---
         setRetrieveAddons(retrieveAddonsFromServer);
         setLogout(logout);
 
-        // --- 15. Eventi globali ---
+        // --- 16. Eventi globali ---
         const beforeUnloadHandler = (event) => { 
             if (hasUnsavedChanges.value) { 
                 event.preventDefault(); 
@@ -161,7 +181,7 @@ const app = createApp({
             } 
         };
         
-        // --- 16. Watchers ---
+        // --- 17. Watchers ---
         watch(lang, (newLang) => { 
             document.documentElement.lang = newLang; 
             document.title = t.value('meta.title'); 
@@ -185,7 +205,7 @@ const app = createApp({
             }
         });
 
-        // --- 17. Lifecycle Hooks ---
+        // --- 18. Lifecycle Hooks ---
         onMounted(() => {
             window.addEventListener('beforeunload', beforeUnloadHandler); 
             window.addEventListener('resize', updateIsMobile);
@@ -225,7 +245,7 @@ const app = createApp({
             window.removeEventListener('resize', updateIsMobile); 
         });
 
-        // --- 18. Return ---
+        // --- 19. Return ---
         // Ritorna tutto ciò che serve al template, raggruppato
         return {
             // Core
@@ -243,7 +263,7 @@ const app = createApp({
             // Addons
             addons, newAddonUrl, refreshAddonList, saveOrder, addNewAddon, startEdit, 
             finishEdit, moveUp, moveDown, moveTop, moveBottom, removeAddon, 
-            toggleAddonEnabled, toggleAddonDisableAutoUpdate, onDragEnd,
+            /* toggleAddonEnabled, */ toggleAddonDisableAutoUpdate, onDragEnd, // Vecchia funzione commentata/rimossa
             // Addon Actions
             isAutoUpdateEnabled, lastUpdateCheck, isUpdating, checkAllAddonsStatus, 
             toggleAddonDetails, testAddonSpeed, runAutoUpdate, openConfiguration, 
@@ -263,7 +283,11 @@ const app = createApp({
             generateShareLink, copyShareLink,
             // Tour
             showWelcomeScreen, showWelcomeTourModal, dontShowWelcomeAgain, 
-            dismissWelcomeScreen, skipTour, beginTour, startTour
+            dismissWelcomeScreen, skipTour, beginTour, startTour,
+            
+            // NUOVE FUNZIONI ESPORTE
+            handleToggleEnabled,
+            handleToggleSelected
         };
     }
 });
