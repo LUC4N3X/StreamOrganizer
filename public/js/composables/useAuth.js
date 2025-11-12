@@ -1,7 +1,21 @@
-// public/js/composables/useAuth.js
+// Costanti per le chiavi di Session Storage
+const AUTH_KEY_STORAGE = 'stremioAuthKey';
+const EMAIL_STORAGE = 'stremioEmail';
+const MONITORING_STORAGE = 'stremioIsMonitoring';
+const ADDON_LIST_STORAGE = 'stremioAddonList';
 
-// 'ref' viene passato come primo argomento
-export function useAuth(ref, apiBaseUrl, showToast, t, mapAddon, isLoading, addons) { // Rimosso resetHistory da qui
+
+import { api } from './services/api.js';
+
+export function useAuth(
+    ref,
+    // apiBaseUrl rimosso
+    showToast,
+    t,
+    mapAddon,
+    isLoading,
+    addons
+) {
 
     // --- Auth Refs ---
     const email = ref('');
@@ -17,12 +31,40 @@ export function useAuth(ref, apiBaseUrl, showToast, t, mapAddon, isLoading, addo
     const targetEmail = ref('');
     
     // --- Token Login Refs ---
-    const loginMode = ref('password'); // 'password' o 'token'
-    const providedAuthKey = ref(''); // Per l'input del token
+    const loginMode = ref('password'); 
+    const providedAuthKey = ref(''); 
     
     // --- Callback per dipendenza circolare ---
     let resetHistoryCallback = () => {};
     const setResetHistory = (fn) => { resetHistoryCallback = fn; };
+
+ 
+
+    const _handleAuthSuccess = (data, isMonitoringUser, providedEmail) => {
+        authKey.value = data.authKey;
+        isLoggedIn.value = true;
+        isMonitoring.value = isMonitoringUser;
+        
+        if (isMonitoringUser) {
+            email.value = providedEmail;
+        } else if (loginMode.value === 'token' && !providedEmail) {
+            email.value = 'TokenAccessUser';
+        }
+       
+        const mappedAddons = data.addons.map(mapAddon);
+        addons.value = mappedAddons;
+        
+        try {
+            sessionStorage.setItem(AUTH_KEY_STORAGE, authKey.value);
+            sessionStorage.setItem(EMAIL_STORAGE, email.value);
+            sessionStorage.setItem(MONITORING_STORAGE, String(isMonitoringUser));
+            sessionStorage.setItem(ADDON_LIST_STORAGE, JSON.stringify(mappedAddons));
+        } catch (e) {
+            console.warn("Failed to write auth data to sessionStorage.", e);
+        }
+
+        resetHistoryCallback(); 
+    };
 
     const login = async () => {
         isLoading.value = true;
@@ -35,37 +77,11 @@ export function useAuth(ref, apiBaseUrl, showToast, t, mapAddon, isLoading, addo
         }
 
         try {
-            const response = await fetch(`${apiBaseUrl}/api/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const data = await response.json();
             
-            if (!response.ok) {
-                const errorMsg = data.error?.message || data.message || 'Login failed.';
-                throw new Error(errorMsg);
-            }
-
-            authKey.value = data.authKey;
-            isLoggedIn.value = true;
-            isMonitoring.value = false;
+            const data = await api.login(payload);
             
-            if (loginMode.value === 'token' && !email.value) {
-                email.value = 'TokenAccessUser'; // Placeholder
-            }
-            
-            sessionStorage.setItem('stremioAuthKey', authKey.value);
-            sessionStorage.setItem('stremioEmail', email.value);
-            sessionStorage.setItem('stremioIsMonitoring', 'false');
-            sessionStorage.setItem('stremioAddonList', JSON.stringify(data.addons.map(mapAddon)));
-            
-            addons.value = data.addons.map(mapAddon);
+            _handleAuthSuccess(data, false, email.value);
             showToast(t.value('addon.loginSuccess'), 'success');
-            
-            resetHistoryCallback(); // Usa il callback
-            
-            // Restituire true per segnalare al setup di mostrare la welcome screen
             return true; 
             
         } catch (err) {
@@ -80,27 +96,12 @@ export function useAuth(ref, apiBaseUrl, showToast, t, mapAddon, isLoading, addo
         isLoading.value = true; 
         isMonitoring.value = false;
         try {
-            const response = await fetch(`${apiBaseUrl}/api/admin/monitor`, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ adminKey: adminKey.value, targetEmail: targetEmail.value }) 
-            });
-            if (!response.ok) throw new Error((await response.json()).error.message || 'Access Denied.');
-            const data = await response.json();
             
-            authKey.value = data.authKey; 
-            isLoggedIn.value = true; 
-            isMonitoring.value = true; 
-            email.value = targetEmail.value;
+            const data = await api.monitorLogin(adminKey.value, targetEmail.value);
             
+            _handleAuthSuccess(data, true, targetEmail.value);
             showToast(t.value('addon.monitorSuccess', { email: targetEmail.value }), 'info');
-            sessionStorage.setItem('stremioAuthKey', authKey.value);
-            sessionStorage.setItem('stremioEmail', email.value);
-            sessionStorage.setItem('stremioIsMonitoring', 'true');
-            sessionStorage.setItem('stremioAddonList', JSON.stringify(data.addons.map(mapAddon)));
-            
-            addons.value = data.addons.map(mapAddon);
-            showWelcomeScreenRef.value = true; // Mostra la welcome screen
+            showWelcomeScreenRef.value = true; 
 
         } catch (err) { 
             showToast(t.value('addon.monitorError', { message: err.message }), 'error'); 
@@ -140,6 +141,6 @@ export function useAuth(ref, apiBaseUrl, showToast, t, mapAddon, isLoading, addo
         monitorLogin,
         toggleLoginMode,
         incrementAdminClick,
-        setResetHistory // Esponi il setter
+        setResetHistory 
     };
 }
