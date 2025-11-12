@@ -5,7 +5,7 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 const Joi = require('joi');
 const helmet = require('helmet');
-const cookieParser = require('cookie-parser'); // <-- AGGIUNTO
+const cookieParser = require('cookie-parser');
 
 const app = express();
 const PORT = process.env.PORT || 7860;
@@ -17,92 +17,83 @@ app.set('trust proxy', 1);
 const MONITOR_KEY_SECRET = process.env.MONITOR_KEY;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 
-// --- Costanti API Stremio ---
+// --- API Stremio ---
 const STREMIO_API_BASE = 'https://api.strem.io/api/';
 const LOGIN_API_URL = `${STREMIO_API_BASE}login`;
 const ADDONS_GET_URL = `${STREMIO_API_BASE}addonCollectionGet`;
 const ADDONS_SET_URL = `${STREMIO_API_BASE}addonCollectionSet`;
-
 const FETCH_TIMEOUT = 10000;
 
 // --- Helmet + CSP ---
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-        "script-src": ["'self'", "'unsafe-eval'", "https://unpkg.com", "https://cdnjs.cloudflare.com"],
-        "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
-        "font-src": ["'self'", "https://fonts.gstatic.com"],
-        "connect-src": [
-          "'self'",
-          "https://api.strem.io",
-          "https://api.github.com",
-          "https://fonts.googleapis.com",
-          "https://fonts.gstatic.com",
-          "https://unpkg.com",
-          "https://cdnjs.cloudflare.com",
-          "https://stream-organizer.vercel.app", // Assicurati che questo sia il tuo URL Vercel
-          process.env.VERCEL_URL // Aggiunge URL Vercel dinamicamente
-        ],
-        "img-src": ["'self'", "data:", "https:"]
-      }
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "script-src": ["'self'", "'unsafe-eval'", "https://unpkg.com", "https://cdnjs.cloudflare.com"],
+      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+      "font-src": ["'self'", "https://fonts.gstatic.com"],
+      "connect-src": [
+        "'self'",
+        "https://api.strem.io",
+        "https://api.github.com",
+        "https://fonts.googleapis.com",
+        "https://fonts.gstatic.com",
+        "https://unpkg.com",
+        "https://cdnjs.cloudflare.com",
+        "https://stream-organizer.vercel.app",
+        process.env.VERCEL_URL || ''
+      ],
+      "img-src": ["'self'", "data:", "https:"]
     }
-  })
-);
+  }
+}));
 
-// --- Rate limiting ---
-const limiter = rateLimit({
+// --- Middleware generali ---
+app.use(express.json());
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// --- Rate Limiter ---
+const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: process.env.RATE_LIMIT_MAX || 100,
-  message: { error: { message: 'Troppo richieste. Riprova tra 15 minuti.' } },
   standardHeaders: true,
   legacyHeaders: false,
+  message: { error: { message: 'Troppi richieste. Riprova tra 15 minuti.' } }
 });
-
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: process.env.LOGIN_RATE_LIMIT_MAX || 20,
-  message: { error: { message: 'Troppi tentativi di login. Riprova tra 15 minuti.' } },
   standardHeaders: true,
   legacyHeaders: false,
+  message: { error: { message: 'Troppi tentativi di login. Riprova tra 15 minuti.' } }
 });
+app.use('/api/', apiLimiter);
+app.use('/api/login', loginLimiter);
 
-// --- CORS whitelist ---
+// --- CORS ---
 const allowedOrigins = [
   'http://localhost:7860',
-  'https://stream-organizer.vercel.app' // Il tuo URL di produzione
+  'https://stream-organizer.vercel.app'
 ];
-if (process.env.VERCEL_URL) {
-  allowedOrigins.push(`https://${process.env.VERCEL_URL}`); // URL di preview
-}
+if (process.env.VERCEL_URL) allowedOrigins.push(`https://${process.env.VERCEL_URL}`);
 
 app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true); 
-    if (allowedOrigins.indexOf(origin) !== -1 || (process.env.VERCEL_ENV === 'preview' && origin.endsWith('.vercel.app'))) {
-        return callback(null, true);
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || (process.env.VERCEL_ENV === 'preview' && origin.endsWith('.vercel.app'))) {
+      return callback(null, true);
     }
     return callback(new Error('La policy CORS non permette l\'accesso da questa origine.'), false);
   },
-  credentials: true // <-- AGGIUNTO per i cookie
+  credentials: true
 }));
 
-// --- Middleware ---
-app.use(express.json());
-app.use(cookieParser()); // <-- AGGIUNTO
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/api/', limiter);
-app.use('/api/login', loginLimiter);
+// --- AbortController Node <18 ---
+if (!global.AbortController) global.AbortController = require('abort-controller').AbortController;
 
-// --- AbortController per Node <18 ---
-if (!global.AbortController) {
-  const { AbortController } = require('abort-controller');
-  global.AbortController = AbortController;
-}
-
-// --- fetch con timeout ---
-async function fetchWithTimeout(url, options, timeout = FETCH_TIMEOUT) {
+// --- Fetch con timeout ---
+async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   try {
@@ -116,168 +107,137 @@ async function fetchWithTimeout(url, options, timeout = FETCH_TIMEOUT) {
   }
 }
 
-// --- Opzioni Cookie Sicuro --- (AGGIUNTO)
+// --- Opzioni cookie sicure ---
 const cookieOptions = {
-    httpOnly: true,
-    secure: true, // Vercel è sempre HTTPS
-    sameSite: 'strict',
-    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 giorni
+  httpOnly: true,
+  secure: true,
+  sameSite: 'strict',
+  maxAge: 30 * 24 * 60 * 60 * 1000
 };
 
-// --- Joi Schemi ---
-const authKeySchema = Joi.object({ authKey: Joi.string().min(1).required() });
-const loginSchema = Joi.object({ email: Joi.string().email().required(), password: Joi.string().min(6).required() });
-const manifestUrlSchema = Joi.object({ manifestUrl: Joi.string().uri().required() });
-// MODIFICATO: Rimosso authKey dallo schema del body
-const setAddonsSchema = Joi.object({ 
-  addons: Joi.array().min(1).required(), 
-  email: Joi.string().email().allow(null) 
-});
+// --- Schemi Joi ---
+const schemas = {
+  authKey: Joi.object({ authKey: Joi.string().min(1).required() }),
+  login: Joi.object({ email: Joi.string().email().required(), password: Joi.string().min(6).required() }),
+  manifestUrl: Joi.object({ manifestUrl: Joi.string().uri().required() }),
+  setAddons: Joi.object({ addons: Joi.array().min(1).required(), email: Joi.string().email().allow(null) })
+};
 
-// --- Helper: URL sicuro ---
+// --- Helper ---
 function isSafeUrl(url) {
   try {
     const parsed = new URL(url);
     if (!['http:', 'https:'].includes(parsed.protocol)) return false;
     const privateIPs = [/^10\./, /^172\.(1[6-9]|2[0-9]|3[01])\./, /^192\.168\./];
-    if (privateIPs.some(r => r.test(parsed.hostname))) return false;
-    return true;
+    return !privateIPs.some(r => r.test(parsed.hostname));
   } catch { return false; }
 }
 
+// --- Async wrapper ---
+const asyncHandler = fn => (req,res,next) => Promise.resolve(fn(req,res,next)).catch(next);
+
 // --- Funzioni principali ---
 async function getAddonsByAuthKey(authKey) {
-  const { error } = authKeySchema.validate({ authKey });
-  if (error) throw new Error("AuthKey non valido.");
+  const { error } = schemas.authKey.validate({ authKey });
+  if (error) throw new Error("AuthKey non valida.");
   const res = await fetchWithTimeout(ADDONS_GET_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ authKey: authKey.trim() })
   });
   const data = await res.json();
-  if (data.error || !data.result) throw new Error(data.error?.message || 'Impossibile recuperare gli addon.');
+  if (!data.result || data.error) throw new Error(data.error?.message || 'Errore recupero addon.');
   return data.result.addons || [];
 }
 
 async function getStremioData(email, password) {
-  const { error } = loginSchema.validate({ email, password });
-  if (error) throw new Error("Email o Password non validi.");
+  const { error } = schemas.login.validate({ email, password });
+  if (error) throw new Error("Email o password non valide.");
   const res = await fetchWithTimeout(LOGIN_API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: email.trim(), password })
   });
   const data = await res.json();
-  if (data.error || !data.result?.authKey) throw new Error(data.error?.message || 'Credenziali non valide.');
+  if (!data.result?.authKey || data.error) throw new Error(data.error?.message || 'Credenziali non valide.');
   const addons = await getAddonsByAuthKey(data.result.authKey);
   return { addons, authKey: data.result.authKey };
 }
 
 // --- ENDPOINTS ---
-
-// Login (MODIFICATO: Imposta il cookie)
-app.post('/api/login', async (req,res)=>{
+app.post('/api/login', asyncHandler(async (req, res) => {
   const { email, password, authKey: providedAuthKey } = req.body;
-  try {
-    let data; // Dati da Stremio { addons, authKey }
-    if(email && password) {
-        data = await getStremioData(email,password);
-    } else if(providedAuthKey) {
-        const { error } = authKeySchema.validate({ authKey: providedAuthKey });
-        if (error) throw new Error("AuthKey fornita non valida.");
-        data = { addons: await getAddonsByAuthKey(providedAuthKey), authKey: providedAuthKey };
-    } else {
-        return res.status(400).json({ error: { message: "Email/password o authKey obbligatori." } });
-    }
-    
-    // Patch di sicurezza:
-    res.cookie('authKey', data.authKey, cookieOptions); // 1. Imposta il cookie
-    return res.json({ addons: data.addons }); // 2. Restituisci solo gli addons
+  let data;
+  if(email && password) data = await getStremioData(email,password);
+  else if(providedAuthKey) data = { addons: await getAddonsByAuthKey(providedAuthKey), authKey: providedAuthKey };
+  else return res.status(400).json({ error: { message: "Email/password o authKey richiesti." } });
 
-  } catch(err) {
-    const status = err.message.includes('timeout') ? 504 : 401;
-    res.status(status).json({ error: { message: err.message } });
-  }
-});
+  res.cookie('authKey', data.authKey, cookieOptions);
+  res.json({ addons: data.addons });
+}));
 
-// Get addons (MODIFICATO: Legge dal cookie)
-app.post('/api/get-addons', async (req,res)=>{
-  const { authKey } = req.cookies; // <-- Legge dal cookie
+app.post('/api/get-addons', asyncHandler(async (req,res)=>{
+  const { authKey } = req.cookies;
   const { email } = req.body;
-  const { error } = authKeySchema.validate({ authKey });
-  if(error || !email) return res.status(400).json({ error: { message: "authKey (cookie) non valida o email (body) mancante." } });
-  try { res.json({ addons: await getAddonsByAuthKey(authKey) }); } 
-  catch(err){ res.status(err.message.includes('timeout') ? 504 : 500).json({ error:{ message: err.message } }); }
-});
+  if(!authKey || !email) return res.status(400).json({ error:{ message:"Cookie authKey mancante o email mancante." } });
+  res.json({ addons: await getAddonsByAuthKey(authKey) });
+}));
 
-// Set addons (MODIFICATO: Legge dal cookie)
-app.post('/api/set-addons', async (req,res)=>{
-  const { authKey } = req.cookies; // <-- Legge dal cookie
-  const authKeyValidation = authKeySchema.validate({ authKey });
-  if (authKeyValidation.error) return res.status(401).json({ error: { message: "Nessuna authKey valida fornita (cookie)." } });
+app.post('/api/set-addons', asyncHandler(async(req,res)=>{
+  const { authKey } = req.cookies;
+  if(!authKey) return res.status(401).json({ error:{ message:"Cookie authKey mancante." } });
 
-  const { error } = setAddonsSchema.validate(req.body); // Valida il body (senza authKey)
-  if(error) return res.status(400).json({ error: { message: error.details[0].message } });
-  
-  try {
-    const { addons } = req.body; // authKey non è più nel body
-    const addonsToSave = addons.map(a=>{
-      const clean = JSON.parse(JSON.stringify(a));
-      if(clean.isEditing) delete clean.isEditing;
-      if(clean.newLocalName) delete clean.newLocalName;
-      if(clean.manifest){ delete clean.manifest.newLocalName; delete clean.manifest.isEditing; }
-      clean.manifest.name = a.manifest.name.trim();
-      if(!clean.manifest.id) clean.manifest.id = `external-${Math.random().toString(36).substring(2,9)}`;
-      return clean;
-    });
-    const resSet = await fetchWithTimeout(ADDONS_SET_URL, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ authKey: authKey.trim(), addons: addonsToSave }) // Usa l'authKey dal cookie
-    });
-    const dataSet = await resSet.json();
-    if(dataSet.error) throw new Error(dataSet.error.message || 'Errore salvataggio addon.');
-    res.json({ success:true, message:"Addon salvati con successo." });
-  } catch(err){ res.status(err.message.includes('timeout') ? 504 : 500).json({ error:{ message: err.message } }); }
-});
+  const { error } = schemas.setAddons.validate(req.body);
+  if(error) return res.status(400).json({ error:{ message: error.details[0].message } });
 
-// Fetch manifest
-app.post('/api/fetch-manifest', async(req,res)=>{
-  const { error } = manifestUrlSchema.validate(req.body);
+  const addonsToSave = req.body.addons.map(a=>{
+    const clean = JSON.parse(JSON.stringify(a));
+    delete clean.isEditing; delete clean.newLocalName;
+    if(clean.manifest) delete clean.manifest.isEditing, delete clean.manifest.newLocalName;
+    clean.manifest.name = a.manifest.name.trim();
+    if(!clean.manifest.id) clean.manifest.id = `external-${Math.random().toString(36).substring(2,9)}`;
+    return clean;
+  });
+
+  const resSet = await fetchWithTimeout(ADDONS_SET_URL,{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ authKey: authKey.trim(), addons: addonsToSave })
+  });
+  const dataSet = await resSet.json();
+  if(dataSet.error) throw new Error(dataSet.error.message || 'Errore salvataggio addon.');
+  res.json({ success:true, message:"Addon salvati con successo." });
+}));
+
+app.post('/api/fetch-manifest', asyncHandler(async(req,res)=>{
+  const { error } = schemas.manifestUrl.validate(req.body);
   if(error) return res.status(400).json({ error:{ message: "URL manifesto non valido." } });
   const { manifestUrl } = req.body;
-  if(!isSafeUrl(manifestUrl)) return res.status(400).json({ error:{ message:'URL non sicuro o non valido.' } });
-  try{
-    const headers = {};
-    if(GITHUB_TOKEN) headers['Authorization'] = `token ${GITHUB_TOKEN}`;
-    const resp = await fetchWithTimeout(manifestUrl,{ headers });
-    if(!resp.ok) throw new Error(`Status ${resp.status}`);
-    const manifest = await resp.json();
-    if(!manifest.id || !manifest.version) throw new Error("Manifesto non valido.");
-    res.json(manifest);
-  }catch(err){ res.status(err.message.includes('timeout') ? 504 : 500).json({ error:{ message: err.message } }); }
-});
+  if(!isSafeUrl(manifestUrl)) return res.status(400).json({ error:{ message:'URL non sicuro.' } });
 
-// Monitor admin
-app.post('/api/admin/monitor', async(req,res)=>{
+  const headers = GITHUB_TOKEN ? { Authorization:`token ${GITHUB_TOKEN}` } : {};
+  const resp = await fetchWithTimeout(manifestUrl,{ headers });
+  if(!resp.ok) throw new Error(`Status ${resp.status}`);
+  const manifest = await resp.json();
+  if(!manifest.id || !manifest.version) throw new Error("Manifesto non valido.");
+  res.json(manifest);
+}));
+
+app.post('/api/admin/monitor', asyncHandler(async(req,res)=>{
   const { adminKey, targetEmail } = req.body;
-  if(!MONITOR_KEY_SECRET || adminKey !== MONITOR_KEY_SECRET) return res.status(401).json({ error:{ message: "Chiave di monitoraggio non corretta." } });
-  if(!targetEmail) return res.status(400).json({ error:{ message: "È necessaria l'email dell'utente da monitorare." } });
-  return res.status(403).json({ error:{ message:`Impossibile accedere ai dati di ${targetEmail}. Stremio richiede la password/AuthKey.` } });
+  if(!MONITOR_KEY_SECRET || adminKey!==MONITOR_KEY_SECRET) return res.status(401).json({ error:{ message:"Chiave di monitoraggio non corretta." } });
+  if(!targetEmail) return res.status(400).json({ error:{ message:"Email target richiesta." } });
+  return res.status(403).json({ error:{ message:`Accesso ai dati di ${targetEmail} non consentito.` } });
+}));
+
+app.post('/api/logout',(req,res)=>{
+  res.cookie('authKey','',{ ...cookieOptions, maxAge:0 });
+  res.json({ success:true, message:"Logout effettuato." });
 });
 
-// Logout (AGGIUNTO: per cancellare il cookie)
-app.post('/api/logout', (req, res) => {
-    res.cookie('authKey', '', {
-        ...cookieOptions,
-        maxAge: 0 // Scadenza immediata
-    });
-    res.json({ success: true, message: "Logout effettuato." });
-});
-
-// 404 API
+// --- 404 ---
 app.use('/api/*',(req,res)=>res.status(404).json({ error:{ message:'Endpoint non trovato.' }}));
 
-// HTTPS forzato in produzione
+// --- HTTPS forzato in produzione ---
 if(process.env.NODE_ENV==='production'){
   app.use((req,res,next)=>{
     if(req.header('x-forwarded-proto')!=='https') return res.redirect(301,`https://${req.header('host')}${req.url}`);
@@ -285,10 +245,14 @@ if(process.env.NODE_ENV==='production'){
   });
 }
 
-// Avvio server solo se NODE_ENV !== vercel (Questo è il blocco corretto per Vercel)
-if(process.env.NODE_ENV!=='vercel' && !process.env.VERCEL_ENV){
-  app.listen(PORT,()=>console.log(`Server avviato sulla porta ${PORT}`));
-}
+// --- Error handler globale ---
+app.use((err, req, res, next)=>{
+  console.error(err);
+  res.status(err.status || 500).json({ error:{ message: err.message || 'Errore interno del server.' } });
+});
 
-// Esportazione per Vercel (Questo è il blocco corretto per Vercel)
+// --- Avvio server locale ---
+if(!process.env.VERCEL_ENV) app.listen(PORT,()=>console.log(`Server avviato sulla porta ${PORT}`));
+
+// --- Export per Vercel ---
 module.exports = app;
