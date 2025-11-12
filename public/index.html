@@ -307,7 +307,7 @@
           <draggable v-if="filteredAddons.length > 0" v-model="draggableList" @end="onDragEnd" item-key="transportUrl" class="addon-list" v-bind="dragOptions" data-tour="step-4">
             <template #item="{ element: addon }">
               <li :class="['addon-item', { disabled: !addon.isEnabled }]">
-                <input type="checkbox" v-model="addon.selected" class="addon-checkbox" @change.stop :disabled="isMonitoring">
+                <input type="checkbox" :checked="addon.selected" @change.stop="handleToggleSelected(addon, $event)" class="addon-checkbox" :disabled="isMonitoring">
                 <div class="drag-handle" data-tour="step-5">
                   <img v-if="addon.manifest.logo" :src="addon.manifest.logo" class="addon-icon" @error="event => event.target.style.display = 'none'" loading="lazy" decoding="async">
                   <div v-else class="addon-icon-placeholder"></div>
@@ -345,7 +345,7 @@
                     {{ addon.disableAutoUpdate ? '🔒' : '🔓' }}
                   </button>
                   <label class="toggle-switch" :title="t('addon.toggleTitle')" data-tour="step-6">
-                    <input type="checkbox" v-model="addon.isEnabled" @change.stop="toggleAddonEnabled(addon)" :disabled="isMonitoring">
+                    <input type="checkbox" :checked="addon.isEnabled" @change.stop="handleToggleEnabled(addon, $event)" :disabled="isMonitoring">
                     <span class="slider"></span>
                   </label>
                   <button @click.stop="testAddonSpeed(addon)" class="icon-btn" :title="t('addon.speedTestTitle')">⏱️</button>
@@ -360,7 +360,7 @@
                     <li><strong>{{ t('addon.details.version') }}:</strong> {{ addon.manifest.version || 'N/A' }}</li>
                     <li><strong>{{ t('addon.details.id') }}:</strong> {{ addon.manifest.id || 'N/A' }}</li>
                     <li><strong>{{ t('addon.details.types') }}:</strong> {{ addon.manifest.types ? addon.manifest.types.join(', ') : 'N/A' }}</li>
-                    <li><strong>{{ t('addon.details.resources') }}:</strong> {{ getResourceNames(addon.manifest.resources) }}</li>
+                    <li><strong>{{ t('addon.details.resources') }}:</strong> {{ addon.resourceNames }}</li>
                     <li><strong>{{ t('addon.details.url') }}:</strong> {{ addon.transportUrl }}</li>
                     <li v-if="addon.isLoadingGithub" style="color: #aaa;">
                       <em>Caricamento dati GitHub...</em>
