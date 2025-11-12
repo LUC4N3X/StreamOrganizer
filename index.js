@@ -6,8 +6,8 @@ const rateLimit = require('express-rate-limit');
 const Joi = require('joi');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
-const { kv } = require('@vercel/kv'); // --- MODIFICA --- (Caching)
-const crypto = require('crypto'); // --- MODIFICA --- (Per chiavi cache sicure)
+const { kv } = require('@vercel/kv'); 
+const crypto = require('crypto'); 
 
 const app = express();
 const PORT = process.env.PORT || 7860;
@@ -25,7 +25,13 @@ const LOGIN_API_URL = `${STREMIO_API_BASE}login`;
 const ADDONS_GET_URL = `${STREMIO_API_BASE}addonCollectionGet`;
 const ADDONS_SET_URL = `${STREMIO_API_BASE}addonCollectionSet`;
 
-const FETCH_TIMEOUT = 10000;
+// --- MODIFICA CHIAVE ---
+// Impostiamo il timeout a 8 secondi (invece di 10)
+// Questo assicura che il nostro server vada in timeout prima 
+// del timeout di Vercel (10s), inviando un errore JSON corretto.
+const FETCH_TIMEOUT = 8000; // 8 secondi
+// --- FINE MODIFICA ---
+
 const CACHE_TTL_ADDONS = 86400; // 1 giorno (invalidato al salvataggio)
 const CACHE_TTL_MANIFEST = 21600; // 6 ore
 
@@ -48,7 +54,7 @@ app.use(
           "https://cdnjs.cloudflare.com",
           "https://stream-organizer.vercel.app", 
           process.env.VERCEL_URL,
-          process.env.KV_REST_API_URL // --- MODIFICA --- (Allow Vercel KV)
+          process.env.KV_REST_API_URL 
         ],
         "img-src": ["'self'", "data:", "https:"]
       }
@@ -96,7 +102,7 @@ app.use(cors({
 // --- Middleware ---
 app.use(express.json());
 app.use(cookieParser());
-// app.use(express.static(path.join(__dirname, 'public'))); // --- MODIFICA --- (Rimosso. Gestito da vercel.json)
+// app.use(express.static(path.join(__dirname, 'public'))); // Rimosso. Gestito da vercel.json
 app.use('/api/', limiter);
 app.use('/api/login', loginLimiter);
 
@@ -149,7 +155,7 @@ function isSafeUrl(url) {
   } catch { return false; }
 }
 
-// --- MODIFICA --- (Helper per chiave cache sicura)
+// --- Helper per chiave cache sicura ---
 function getCacheKey(prefix, key) {
   const hash = crypto.createHash('sha256').update(key).digest('hex');
   return `${prefix}:${hash}`;
@@ -157,7 +163,7 @@ function getCacheKey(prefix, key) {
 
 // --- Funzioni principali ---
 
-// --- MODIFICA --- (Funzione aggiornata con Caching)
+// Funzione aggiornata con Caching
 async function getAddonsByAuthKey(authKey) {
   const { error } = authKeySchema.validate({ authKey });
   if (error) throw new Error("AuthKey non valido.");
@@ -210,7 +216,6 @@ async function getStremioData(email, password) {
   const data = await res.json();
   if (data.error || !data.result?.authKey) throw new Error(data.error?.message || 'Credenziali non valide.');
   
-  // Questa funzione ora userà la cache (se disponibile)
   const addons = await getAddonsByAuthKey(data.result.authKey); 
   return { addons, authKey: data.result.authKey };
 }
@@ -233,7 +238,7 @@ app.post('/api/login', async (req,res)=>{
     }
     
     res.cookie('authKey', data.authKey, cookieOptions); 
-    return res.json({ addons: data.addons }); // Ritorna solo addons (cache-friendly)
+    return res.json({ addons: data.addons }); 
 
   } catch(err) {
     const status = err.message.includes('timeout') ? 504 : 401;
@@ -248,7 +253,6 @@ app.post('/api/get-addons', async (req,res)=>{
   const { error } = authKeySchema.validate({ authKey });
   if(error || !email) return res.status(400).json({ error: { message: "authKey (cookie) non valida o email (body) mancante." } });
   
-  // Questa funzione ora userà la cache (se disponibile)
   try { res.json({ addons: await getAddonsByAuthKey(authKey) }); }  
   catch(err){ res.status(err.message.includes('timeout') ? 504 : 500).json({ error:{ message: err.message } }); }
 });
@@ -280,8 +284,7 @@ app.post('/api/set-addons', async (req,res)=>{
     const dataSet = await resSet.json();
     if(dataSet.error) throw new Error(dataSet.error.message || 'Errore salvataggio addon.');
 
-    // --- MODIFICA --- (Invalidazione cache)
-    // Se il salvataggio ha successo, invalidiamo la cache
+    // Invalidazione cache
     try {
       const cacheKey = getCacheKey('addons', authKey);
       await kv.del(cacheKey);
@@ -289,7 +292,6 @@ app.post('/api/set-addons', async (req,res)=>{
     } catch (e) {
       console.error("Errore invalidazione Vercel KV (setAddons):", e.message);
     }
-    // --- FINE MODIFICA ---
 
     res.json({ success:true, message:"Addon salvati con successo." });
   } catch(err){ res.status(err.message.includes('timeout') ? 504 : 500).json({ error:{ message: err.message } }); }
@@ -354,8 +356,7 @@ app.post('/api/logout', (req, res) => {
     res.json({ success: true, message: "Logout effettuato." });
 });
 
-// --- MODIFICA --- (Endpoint Health Check)
-// Aggiunto per tenere "calda" la funzione serverless con UptimeRobot
+// Endpoint Health Check
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK' });
 });
@@ -366,7 +367,7 @@ app.use('/api/*',(req,res)=>res.status(404).json({ error:{ message:'Endpoint non
 // HTTPS forzato in produzione
 if(process.env.NODE_ENV==='production'){
   app.use((req,res,next)=>{
-    if(req.header('x-forwarded-proto')!=='httpsS') return res.redirect(301,`https://${req.header('host')}${req.url}`);
+    if(req.header('x-forwarded-proto')!=='https') return res.redirect(301,`https://${req.header('host')}${req.url}`);
     next();
   });
 }
