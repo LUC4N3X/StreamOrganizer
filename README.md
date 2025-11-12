@@ -33,6 +33,33 @@
 - 📜 **Realtime Logs** – Log in tempo reale con colori neon
 
 ---
+🛡️ Sicurezza & Privacy Cyberpunk
+
+> "Proteggi i tuoi dati come proteggeresti il tuo impianto neurale." ⚡
+
+
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Secure-Yes-green?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Encrypted-Cookies-blue?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/HTTPS-Recommended-purple?style=for-the-badge" />
+</p>🔹 Protezioni Implementate
+
+Cookie sicuri – AuthKey salvata solo in cookie HttpOnly, crittografati e SameSite strict.
+
+Rate Limiting – Difesa da attacchi brute-force su login e API sensibili.
+
+Helmet + CSP – Header HTTP avanzati per protezione XSS e injection.
+
+Dati sensibili al sicuro – Token e credenziali restano sul server, mai esposti al client.
+
+Logging minimale – Solo errori e info di sistema, niente dati sensibili.
+
+Uso responsabile – Non condividere le credenziali o l’authKey; StreamOrder non salva password in chiaro.
+
+
+> ⚠️ Nota d’uso: usa StreamOrder solo su HTTPS o in ambiente locale affidabile
+---
 
 ## 🧠 Tech Stack
 
