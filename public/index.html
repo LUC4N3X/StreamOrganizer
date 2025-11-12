@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
   <title>{{ t('meta.title') }}</title>
+<link rel="icon" type="image/png" href="favicon.png?v=<%= new Date().getTime() %>">
   <meta name="description" content="{{ t('meta.description') }}">
   <meta name="theme-color" content="#0d0d0d">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -478,6 +479,6 @@
   </div>
   <script src="js/translations.js" defer></script>
   <script src="js/bg-animation.js" defer></script>
-  <script src="js/app.js" defer></script>
+<script type="module" src="js/app.js" defer></script>
 </body>
 </html>
