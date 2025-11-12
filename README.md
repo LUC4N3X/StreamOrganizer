@@ -1,4 +1,4 @@
-# ⚡ STREAMORDER — The Cyberpunk Addon Command Console 🧠
+# ⚡ STREAMORDER — [ Cyberdeck Addon Console ]
 
 > _"Control the chaos. Rule your Addons."_  
 
