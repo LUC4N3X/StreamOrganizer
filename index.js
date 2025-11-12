@@ -6,6 +6,8 @@ const rateLimit = require('express-rate-limit');
 const Joi = require('joi');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
+const { kv } = require('@vercel/kv'); // --- MODIFICA --- (Re-introdotto)
+const crypto = require('crypto'); // --- MODIFICA --- (Re-introdotto)
 
 const app = express();
 const PORT = process.env.PORT || 7860;
@@ -24,6 +26,11 @@ const ADDONS_GET_URL = `${STREMIO_API_BASE}addonCollectionGet`;
 const ADDONS_SET_URL = `${STREMIO_API_BASE}addonCollectionSet`;
 const FETCH_TIMEOUT = 10000;
 
+// --- MODIFICA --- (Costanti per la cache)
+const CACHE_TTL_ADDONS = 86400; // 1 giorno (invalidato al salvataggio)
+const CACHE_TTL_MANIFEST = 21600; // 6 ore
+// ---
+
 // --- Helmet + CSP ---
 app.use(helmet({
   contentSecurityPolicy: {
@@ -41,7 +48,8 @@ app.use(helmet({
         "https://unpkg.com",
         "https://cdnjs.cloudflare.com",
         "https://stream-organizer.vercel.app",
-        process.env.VERCEL_URL || ''
+        process.env.VERCEL_URL || '',
+        process.env.KV_REST_API_URL || '' // --- MODIFICA --- (Necessario per KV)
       ],
       "img-src": ["'self'", "data:", "https:"]
     }
@@ -51,6 +59,8 @@ app.use(helmet({
 // --- Middleware generali ---
 app.use(express.json());
 app.use(cookieParser());
+// NOTA: Se usi il vercel.json corretto, questa riga non è necessaria
+// e può essere rimossa per servire 'public' dalla CDN Vercel.
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- Rate Limiter ---
@@ -133,13 +143,39 @@ function isSafeUrl(url) {
   } catch { return false; }
 }
 
+// --- MODIFICA --- (Helper per chiave cache sicura)
+function getCacheKey(prefix, key) {
+  const hash = crypto.createHash('sha256').update(key).digest('hex');
+  return `${prefix}:${hash}`;
+}
+// ---
+
 // --- Async wrapper ---
 const asyncHandler = fn => (req,res,next) => Promise.resolve(fn(req,res,next)).catch(next);
 
 // --- Funzioni principali ---
+
+// --- MODIFICA --- (Aggiunto Caching Fault-Tolerant)
 async function getAddonsByAuthKey(authKey) {
   const { error } = schemas.authKey.validate({ authKey });
   if (error) throw new Error("AuthKey non valida.");
+  
+  const cacheKey = getCacheKey('addons', authKey.trim());
+
+  // 1. PROVA A LEGGERE DALLA CACHE
+  try {
+    const cachedAddons = await kv.get(cacheKey);
+    if (cachedAddons) {
+      // console.log('Cache HIT per getAddons');
+      return cachedAddons;
+    }
+  } catch (e) {
+    console.error('Errore lettura Vercel KV (ignoro):', e.message);
+    // NON ANDARE IN CRASH! Continua e fetcha normalmente.
+  }
+
+  // console.log('Cache MISS per getAddons. Fetch da Stremio...');
+  // 2. FETCH DA STREMIO (se la cache fallisce o è vuota)
   const res = await fetchWithTimeout(ADDONS_GET_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -147,8 +183,20 @@ async function getAddonsByAuthKey(authKey) {
   });
   const data = await res.json();
   if (!data.result || data.error) throw new Error(data.error?.message || 'Errore recupero addon.');
-  return data.result.addons || [];
+  
+  const addons = data.result.addons || [];
+
+  // 3. PROVA A SCRIVERE IN CACHE (senza bloccare)
+  try {
+    await kv.set(cacheKey, addons, { ex: CACHE_TTL_ADDONS });
+  } catch (e) {
+    console.error('Errore scrittura Vercel KV (ignoro):', e.message);
+    // Non bloccare, la richiesta principale è riuscita.
+  }
+  
+  return addons;
 }
+// ---
 
 async function getStremioData(email, password) {
   const { error } = schemas.login.validate({ email, password });
@@ -160,6 +208,8 @@ async function getStremioData(email, password) {
   });
   const data = await res.json();
   if (!data.result?.authKey || data.error) throw new Error(data.error?.message || 'Credenziali non valide.');
+  
+  // Questa funzione ora userà la cache (se disponibile)
   const addons = await getAddonsByAuthKey(data.result.authKey);
   return { addons, authKey: data.result.authKey };
 }
@@ -180,6 +230,7 @@ app.post('/api/get-addons', asyncHandler(async (req,res)=>{
   const { authKey } = req.cookies;
   const { email } = req.body;
   if(!authKey || !email) return res.status(400).json({ error:{ message:"Cookie authKey mancante o email mancante." } });
+  // Questa funzione ora usa la cache
   res.json({ addons: await getAddonsByAuthKey(authKey) });
 }));
 
@@ -205,6 +256,17 @@ app.post('/api/set-addons', asyncHandler(async(req,res)=>{
   });
   const dataSet = await resSet.json();
   if(dataSet.error) throw new Error(dataSet.error.message || 'Errore salvataggio addon.');
+  
+  // --- MODIFICA --- (Invalidazione cache Fault-Tolerant)
+  try {
+    const cacheKey = getCacheKey('addons', authKey.trim());
+    await kv.del(cacheKey); // Invalida la vecchia cache
+  } catch (e) {
+    console.error('Errore invalidazione Vercel KV (ignoro):', e.message);
+    // Non bloccare la risposta, il salvataggio è riuscito
+  }
+  // ---
+
   res.json({ success:true, message:"Addon salvati con successo." });
 }));
 
@@ -214,11 +276,37 @@ app.post('/api/fetch-manifest', asyncHandler(async(req,res)=>{
   const { manifestUrl } = req.body;
   if(!isSafeUrl(manifestUrl)) return res.status(400).json({ error:{ message:'URL non sicuro.' } });
 
+  // --- MODIFICA --- (Aggiunto Caching Fault-Tolerant)
+  const cacheKey = getCacheKey('manifest', manifestUrl);
+
+  // 1. PROVA A LEGGERE DALLA CACHE
+  try {
+    const cachedManifest = await kv.get(cacheKey);
+    if (cachedManifest) {
+      // console.log('Cache HIT per fetchManifest');
+      return res.json(cachedManifest);
+    }
+  } catch (e) {
+    console.error('Errore lettura Vercel KV (ignoro):', e.message);
+  }
+  // ---
+
+  // console.log('Cache MISS per fetchManifest. Fetch da URL...');
+  // 2. FETCH DA URL
   const headers = GITHUB_TOKEN ? { Authorization:`token ${GITHUB_TOKEN}` } : {};
   const resp = await fetchWithTimeout(manifestUrl,{ headers });
   if(!resp.ok) throw new Error(`Status ${resp.status}`);
   const manifest = await resp.json();
   if(!manifest.id || !manifest.version) throw new Error("Manifesto non valido.");
+
+  // 3. PROVA A SCRIVERE IN CACHE
+  try {
+    await kv.set(cacheKey, manifest, { ex: CACHE_TTL_MANIFEST });
+  } catch (e) {
+    console.error('Errore scrittura Vercel KV (ignoro):', e.message);
+  }
+  // ---
+
   res.json(manifest);
 }));
 
@@ -247,7 +335,14 @@ if(process.env.NODE_ENV==='production'){
 
 // --- Error handler globale ---
 app.use((err, req, res, next)=>{
-  console.error(err);
+  console.error(err); // Logga l'errore vero sul server
+  
+  // Gestisce specificamente gli errori di timeout
+  if (err.message.includes('timeout')) {
+    return res.status(504).json({ error: { message: err.message } });
+  }
+  
+  // Gestisce altri errori
   res.status(err.status || 500).json({ error:{ message: err.message || 'Errore interno del server.' } });
 });
 
