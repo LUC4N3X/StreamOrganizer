@@ -1,18 +1,16 @@
-// public/js/composables/useAddonActions.js
+import { api } from './services/api.js';
 
-// 'ref' viene passato come argomento
 export function useAddonActions(
     ref,
-    apiBaseUrl,
+    
     isLoggedIn,
     isMonitoring,
     isLoading,
     showToast,
     t,
     addons,
-    saveOrder // saveOrder viene da useAddons, ma è passato dal setup principale
+    saveOrder
 ) {
-    
     const isAutoUpdateEnabled = ref(false);
     const lastUpdateCheck = ref(null);
     const isUpdating = ref(false);
@@ -20,230 +18,148 @@ export function useAddonActions(
     const checkAllAddonsStatus = async () => {
         isLoading.value = true;
         showToast(t.value('addon.statusCheck'), 'info');
-        let errorCountLocal = 0;
-   
-        await Promise.allSettled(addons.value.map(async (addon) => {
+        let errorCount = 0;
+
+        await Promise.all(addons.value.map(async addon => {
             addon.status = 'checking';
             addon.errorDetails = null;
-            
             try {
-                const response = await fetch(`${apiBaseUrl}/api/check-health`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ addonUrl: addon.transportUrl })
-                });
                 
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.statusText}`);
-                }
-                const data = await response.json();
-                if (data.status === 'ok') {
-                    addon.status = 'ok';
-                } else {
+                const data = await api.checkHealth(addon.transportUrl);
+                
+                if (data.status !== 'ok') {
                     throw new Error(data.details || 'Check failed');
                 }
+                addon.status = 'ok';
+
             } catch (err) {
-                console.error(`Error checking ${addon.manifest.name}:`, err);
                 addon.status = 'error';
                 addon.errorDetails = err.message;
-                errorCountLocal++;
+                errorCount++;
             }
         }));
 
-        showToast(t.value('addon.statusCheckComplete', { errorCount: errorCountLocal }), errorCountLocal > 0 ? 'error' : 'success');
+        showToast(t.value('addon.statusCheckComplete', { errorCount }), errorCount ? 'error' : 'success');
         isLoading.value = false;
     };
 
     const fetchGithubInfo = async (addon) => {
         if (addon.githubInfo || addon.isLoadingGithub) return;
 
-        const description = addon.manifest.description || '';
-        const transportUrl = addon.transportUrl || '';
-        
-        const githubRepoRegex = /(https?:\/\/github\.com\/[\w-]+\/[\w-]+)/;
-        const githubPagesRegex = /https?:\/\/([\w-]+)\.github\.io\/([\w-]+)/;
-        let repoUrl = null;
-        let match = null;
+        const githubRepo = addon.manifest.description?.match(/https?:\/\/github\.com\/[\w-]+\/[\w-]+/)?.[0]
+                        || addon.transportUrl?.match(/https?:\/\/github\.com\/[\w-]+\/[\w-]+/)?.[0]
+                        || addon.transportUrl?.match(/https?:\/\/([\w-]+)\.github\.io\/([\w-]+)/)?.slice(1).join('/');
+        if (!githubRepo) return;
 
-        match = description.match(githubRepoRegex);
-        if (match) repoUrl = match[0];
-
-        if (!repoUrl) {
-            match = transportUrl.match(githubRepoRegex);
-            if (match) repoUrl = match[0];
-        }
-        
-        if (!repoUrl) {
-            match = transportUrl.match(githubPagesRegex);
-            if (match) repoUrl = `https://github.com/${match[1]}/${match[2]}`;
-        }
-
-        if (!repoUrl) {
-            console.log(`Nessun URL GitHub trovato per ${addon.manifest.name}`);
-            return;
-        }
-        
         addon.isLoadingGithub = true;
         try {
-            const response = await fetch(`${apiBaseUrl}/api/github-info`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ repoUrl: repoUrl })
-            });
-            if (!response.ok) throw new Error(`Impossibile caricare dati GitHub (status: ${response.status})`);
-            const data = await response.json();
-            if (data.info) {
-                addon.githubInfo = data.info;
-            } else if (data.error) {
-                throw new Error(data.error);
-            }
+            
+            const repoUrl = githubRepo.startsWith('http') ? githubRepo : `https://github.com/${githubRepo}`;
+            const data = await api.getGithubInfo(repoUrl);
+
+            addon.githubInfo = data.info || { error: data.error };
         } catch (err) {
-            console.error("Errore fetchGithubInfo:", err.message);
-            addon.githubInfo = { error: err.message }; 
+            addon.githubInfo = { error: err.message };
         } finally {
             addon.isLoadingGithub = false;
         }
     };
-    
-    const toggleAddonDetails = (addon) => { 
+
+    const toggleAddonDetails = addon => {
         addon.isExpanded = !addon.isExpanded;
-        if (addon.isExpanded) {
-            fetchGithubInfo(addon);
-        }
+        if (addon.isExpanded) fetchGithubInfo(addon);
     };
 
-    const testAddonSpeed = async (addon) => {
-        if (isLoading.value) return; 
-        showToast(t.value('addon.speedTestRunning', { name: addon.manifest.name }), 'info', 2000); 
-        isLoading.value = true; 
-        const startTime = performance.now();
+    // [NON MODIFICATO] Questo fetch testa un URL esterno, non la nostra API.
+    const testAddonSpeed = async addon => {
+        if (isLoading.value) return;
+        showToast(t.value('addon.speedTestRunning', { name: addon.manifest.name }), 'info', 2000);
+        isLoading.value = true;
+        const start = performance.now();
         try {
-            const controller = new AbortController(); 
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
-            await fetch(addon.transportUrl, { signal: controller.signal, mode: 'cors', cache: 'no-store' }); 
-            clearTimeout(timeoutId);
-            const endTime = performance.now(); 
-            const duration = Math.round(endTime - startTime);
-            showToast(t.value('addon.speedTestResult', { name: addon.manifest.name, time: duration }), 'success');
-        } catch (err) { 
-            showToast(t.value(err.name === 'AbortError' ? 'addon.speedTestTimeout' : 'addon.statusCheckError', { name: addon.manifest.name, message: err.message }), 'error'); 
-        } finally { 
-            isLoading.value = false; 
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+            await fetch(addon.transportUrl, { signal: controller.signal, mode: 'cors', cache: 'no-store' });
+            clearTimeout(timeout);
+            showToast(t.value('addon.speedTestResult', { name: addon.manifest.name, time: Math.round(performance.now() - start) }), 'success');
+        } catch (err) {
+            showToast(t.value(err.name === 'AbortError' ? 'addon.speedTestTimeout' : 'addon.statusCheckError', { name: addon.manifest.name, message: err.message }), 'error');
+        } finally {
+            isLoading.value = false;
         }
     };
-    
-    const runAutoUpdate = async (isManual = false) => {
-        if ((isLoading.value && !isUpdating.value) || isMonitoring.value || !isLoggedIn.value) { 
-            if (isManual) showToast(isMonitoring.value ? t.value('addon.monitorModeActive') : "Operazione già in corso o non loggato.", 'error'); 
-            return; 
-        }
-        isLoading.value = true; 
-        isUpdating.value = true; 
-        showToast(t.value('autoUpdate.running'), 'info');
-        let updatedCount = 0; 
-        let failedCount = 0; 
-        let hasManifestChanges = false;
-        
-        const fetchAndUpdateAddon = async (addon) => {
-            const transportUrl = addon.transportUrl || '';
-            const addonName = addon.manifest?.name || 'Unknown';
-            
-            const isCinemeta = transportUrl.includes('cinemeta.strem.io');
-            const isHttp = transportUrl.startsWith('http://') && !transportUrl.startsWith('https://');
-            const isLocked = addon.disableAutoUpdate; 
 
-            if (isLocked || isCinemeta || isHttp || !transportUrl) {
-                // ... logica di skip
-                return { status: 'fulfilled', id: addon.manifest.id, skipped: true };
-            }
+    const runAutoUpdate = async (isManual = false) => {
+        if ((isLoading.value && !isUpdating.value) || isMonitoring.value || !isLoggedIn.value) {
+            if (isManual) showToast(isMonitoring.value ? t.value('addon.monitorModeActive') : "Operation in progress or not logged in.", 'error');
+            return;
+        }
+
+        isLoading.value = true;
+        isUpdating.value = true;
+        showToast(t.value('autoUpdate.running'), 'info');
+
+        let updatedCount = 0, failedCount = 0, hasChanges = false;
+
+        const fetchAndUpdate = async addon => {
+            const { transportUrl, manifest, disableAutoUpdate } = addon;
+            if (disableAutoUpdate || !transportUrl || transportUrl.includes('cinemeta.strem.io') || transportUrl.startsWith('http://')) return { status: 'skipped', id: manifest.id };
 
             try {
-                const response = await fetch(`${apiBaseUrl}/api/fetch-manifest`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ manifestUrl: addon.transportUrl }) });
-                const responseText = await response.text(); 
-                let newManifest; 
-                try { newManifest = JSON.parse(responseText); } catch (e) { throw new Error(`Invalid JSON response.`); }
-                if (!response.ok || newManifest.error) throw new Error(newManifest.error?.message || "Failed to fetch");
-                
-                const getComparableManifest = (m) => { const { version, description, logo, types, resources, id, behaviorHints, configurable } = m; return JSON.stringify({ version, description, logo, types, resources, id, behaviorHints, configurable }); };
-                const oldManifestComparable = getComparableManifest(addon.manifest);
-                const newManifestComparable = getComparableManifest(newManifest);
-                
-                if (oldManifestComparable !== newManifestComparable) {
-                    hasManifestChanges = true; 
-                    updatedCount++;
-                    const oldManifest = addon.manifest;
-                    addon.manifest = { ...oldManifest, ...newManifest, name: oldManifest.name };
-                    addon.newLocalName = oldManifest.name; 
-                    return { status: 'fulfilled', id: addon.manifest.id };
-                }
-                return { status: 'fulfilled', id: addon.manifest.id, noChange: true };
-            } catch (error) { 
-                console.error(`Failed to update ${addonName}:`, error); 
-                failedCount++; 
-                return { status: 'rejected', id: addon.manifest.id, reason: error.message }; 
-            }
-        }; 
+                // [MODIFICATO] Usa il servizio api
+                const newManifest = await api.fetchManifest(transportUrl);
 
-        const results = await Promise.allSettled(addons.value.map(fetchAndUpdateAddon));
-        
-        if (hasManifestChanges) { 
-            showToast(t.value('autoUpdate.foundChanges', { count: updatedCount, failed: failedCount }), 'info'); 
-            // hasUnsavedChanges è impostato nel setup principale
-            await saveOrder(isUpdating); // Passa isUpdating a saveOrder
-        } else { 
-            showToast(t.value('autoUpdate.noChanges', { failed: failedCount }), failedCount > 0 ? 'error' : 'success'); 
-            isLoading.value = false; 
-            isUpdating.value = false; // Resetta qui se saveOrder non è chiamato
+                if (newManifest.error) throw new Error(newManifest.error?.message || "Failed to fetch");
+
+                const cmp = m => JSON.stringify({ version: m.version, description: m.description, logo: m.logo, types: m.types, resources: m.resources, id: m.id, behaviorHints: m.behaviorHints, configurable: m.configurable });
+                if (cmp(manifest) !== cmp(newManifest)) {
+                    hasChanges = true;
+                    updatedCount++;
+                    addon.manifest = { ...manifest, ...newManifest, name: manifest.name };
+                }
+                return { status: 'ok', id: manifest.id };
+            } catch (err) {
+                failedCount++;
+                return { status: 'failed', id: manifest.id, reason: err.message };
+            }
+        };
+
+        await Promise.all(addons.value.map(fetchAndUpdate));
+
+        if (hasChanges) {
+            showToast(t.value('autoUpdate.foundChanges', { count: updatedCount, failed: failedCount }), 'info');
+            await saveOrder(isUpdating);
+        } else {
+            showToast(t.value('autoUpdate.noChanges', { failed: failedCount }), failedCount ? 'error' : 'success');
+            isLoading.value = false;
+            isUpdating.value = false;
         }
-        
-        try { 
-            localStorage.setItem('stremioLastAutoUpdate', new Date().toISOString()); 
-            lastUpdateCheck.value = new Date().toISOString(); 
-        } catch (e) { 
-            console.warn("Cannot save last update time to localStorage.");
-        }
-        
-        // isUpdating.value è resettato da saveOrder o qui sopra
-    }; 
+
+        try { localStorage.setItem('stremioLastAutoUpdate', new Date().toISOString()); lastUpdateCheck.value = new Date().toISOString(); } catch {}
+    };
 
     const scheduleUpdateCheck = () => {
-        const now = new Date(); 
-        const nextUpdate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 3, 0, 0, 0);
-        if (now.getTime() > nextUpdate.getTime()) { nextUpdate.setDate(nextUpdate.getDate() + 1); }
-        const timeToNextUpdate = nextUpdate.getTime() - now.getTime(); 
-        console.log(`Next auto-update check scheduled for: ${nextUpdate.toLocaleString()}`);
-        
-        setTimeout(async () => { 
-            console.log("Running scheduled auto-update check..."); 
-            if (isLoggedIn.value && isAutoUpdateEnabled.value && !isMonitoring.value) { 
-                await runAutoUpdate(false); 
-            } 
-            scheduleUpdateCheck(); // Riprogramma
-        }, timeToNextUpdate);
+        const now = new Date();
+        const next = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 3, 0, 0);
+        if (now > next) next.setDate(next.getDate() + 1);
+        setTimeout(async () => {
+            if (isLoggedIn.value && isAutoUpdateEnabled.value && !isMonitoring.value) await runAutoUpdate(false);
+            scheduleUpdateCheck();
+        }, next - now);
     };
 
-    const openConfiguration = (addon) => { 
-        const baseUrl = addon.transportUrl.replace(/\/manifest.json$/, ''); 
-        window.open(`${baseUrl}/configure`, '_blank'); 
-    };
-    
-    const copyManifestUrl = async (addon) => { 
-        try { 
-            await navigator.clipboard.writeText(addon.transportUrl); 
-            showToast(t.value('addon.copyUrlSuccess'), 'success'); 
-        } catch(e) { 
-            showToast(t.value('addon.copyUrlError'), 'error'); 
-        } 
+    const openConfiguration = addon => window.open(addon.transportUrl.replace(/\/manifest.json$/, '') + '/configure', '_blank');
+
+    const copyManifestUrl = async addon => {
+        try { await navigator.clipboard.writeText(addon.transportUrl); showToast(t.value('addon.copyUrlSuccess'), 'success'); }
+        catch { showToast(t.value('addon.copyUrlError'), 'error'); }
     };
 
-    // Inizializza le preferenze di auto-update
     const initAutoUpdate = () => {
-         try {
+        try {
             isAutoUpdateEnabled.value = localStorage.getItem('stremioAutoUpdateEnabled') === 'true';
             lastUpdateCheck.value = localStorage.getItem('stremioLastAutoUpdate');
-        } catch (e) { 
-            console.warn("Error reading auto-update settings from localStorage."); 
-        }
+        } catch {}
         scheduleUpdateCheck();
     };
 
@@ -257,6 +173,6 @@ export function useAddonActions(
         runAutoUpdate,
         openConfiguration,
         copyManifestUrl,
-        initAutoUpdate // Esponi la funzione di inizializzazione
+        initAutoUpdate
     };
 }
