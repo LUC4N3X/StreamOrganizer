@@ -1,4 +1,7 @@
-<div align="center">
+<!-- =================== HEADER README CYBERPUNK =================== -->
+<div align="center" style="margin-bottom:30px;">
+
+  <!-- Titolo principale neon -->
   <h1 style="
     font-family: 'Segoe UI', Arial, sans-serif; 
     font-size: 3em; 
@@ -6,26 +9,37 @@
     text-shadow: 
       0 0 5px #ff00ff, 
       0 0 10px #ff00ff, 
-      0 0 20px #ff00ff, 
-      0 0 40px #ff66ff;">
+      0 0 15px #ff00ff, 
+      0 0 25px #ff66ff;
+    margin-bottom:5px;">
     ⚡ STREAMORDER ⬢ [ Cyberdeck Addon Console ]
   </h1>
-  <p style="color:#e0d4ff; font-size:1.2em; margin-top:-5px;">
+
+  <!-- Sottotitolo -->
+  <p style="color:#e0d4ff; font-size:1.2em; margin-top:0;">
     Control your Stremio Addons with style & precision
   </p>
+
+  <!-- Banner grafico -->
+  <img src="https://capsule-render.vercel.app/api?type=rect&color=0:ff00cc,100:3333ff&height=120&section=header&text=STREAMORDER&fontSize=45&fontAlignY=55&fontColor=ffffff&desc=The%20Cyberpunk%20Stremio%20Addon%20Console&descAlignY=80" 
+       alt="Cyberpunk Neon Banner" 
+       style="border-radius:12px;margin-top:15px;box-shadow:0 0 20px rgba(255,0,255,0.2);" />
+
+  <!-- Badges -->
+  <p style="margin-top:15px;">
+    <img src="https://img.shields.io/badge/Version-1.0.0-purple?style=for-the-badge&logo=stremio" />
+    <img src="https://img.shields.io/badge/Build-Stable-cyan?style=for-the-badge" />
+    <img src="https://img.shields.io/badge/Theme-Cyberpunk-ff00ff?style=for-the-badge&logoColor=white" />
+    <img src="https://img.shields.io/badge/Secure-Yes-green?style=for-the-badge" />
+  </p>
+
+  <!-- Motto -->
+  <blockquote style="color:#ff99ff; font-style:italic; font-size:1em; margin-top:10px;">
+    "Control the chaos. Rule your Addons."
+  </blockquote>
+
 </div>
-
-> _"Control the chaos. Rule your Addons."_  
-
-![Cyberpunk Neon Banner](https://capsule-render.vercel.app/api?type=rect&color=0:ff00cc,100:3333ff&height=120&section=header&text=STREAMORDER&fontSize=45&fontAlignY=55&fontColor=ffffff&desc=The%20Cyberpunk%20Stremio%20Addon%20Console&descAlignY=80)
-
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Version-1.0.0-purple?style=for-the-badge&logo=stremio" />
-  <img src="https://img.shields.io/badge/Build-Stable-cyan?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Theme-Cyberpunk-ff00ff?style=for-the-badge&logoColor=white" />
-  <img src="https://img.shields.io/badge/License-Unlicensed-red?style=for-the-badge" />
-</p>
+<!-- =================== /HEADER README CYBERPUNK =================== -->
 
 ---
 
