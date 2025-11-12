@@ -13,7 +13,10 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "index.js"
+      "dest": "index.js",
+      "config": {
+        "maxDuration": 30 
+      }
     },
     {
       "src": "/(.*\\.(css|js|ico|png|jpg|svg|txt|json|webmanifest))$",
