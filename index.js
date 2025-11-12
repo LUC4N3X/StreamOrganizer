@@ -5,9 +5,7 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 const Joi = require('joi');
 const helmet = require('helmet');
-const cookieParser = require('cookie-parser');
-const { kv } = require('@vercel/kv'); 
-const crypto = require('crypto'); 
+const cookieParser = require('cookie-parser'); // <-- AGGIUNTO
 
 const app = express();
 const PORT = process.env.PORT || 7860;
@@ -25,15 +23,7 @@ const LOGIN_API_URL = `${STREMIO_API_BASE}login`;
 const ADDONS_GET_URL = `${STREMIO_API_BASE}addonCollectionGet`;
 const ADDONS_SET_URL = `${STREMIO_API_BASE}addonCollectionSet`;
 
-// --- MODIFICA CHIAVE ---
-// Impostiamo il timeout a 8 secondi (invece di 10)
-// Questo assicura che il nostro server vada in timeout prima 
-// del timeout di Vercel (10s), inviando un errore JSON corretto.
-const FETCH_TIMEOUT = 8000; // 8 secondi
-// --- FINE MODIFICA ---
-
-const CACHE_TTL_ADDONS = 86400; // 1 giorno (invalidato al salvataggio)
-const CACHE_TTL_MANIFEST = 21600; // 6 ore
+const FETCH_TIMEOUT = 10000;
 
 // --- Helmet + CSP ---
 app.use(
@@ -52,9 +42,8 @@ app.use(
           "https://fonts.gstatic.com",
           "https://unpkg.com",
           "https://cdnjs.cloudflare.com",
-          "https://stream-organizer.vercel.app", 
-          process.env.VERCEL_URL,
-          process.env.KV_REST_API_URL 
+          "https://stream-organizer.vercel.app", // Assicurati che questo sia il tuo URL Vercel
+          process.env.VERCEL_URL // Aggiunge URL Vercel dinamicamente
         ],
         "img-src": ["'self'", "data:", "https:"]
       }
@@ -82,27 +71,27 @@ const loginLimiter = rateLimit({
 // --- CORS whitelist ---
 const allowedOrigins = [
   'http://localhost:7860',
-  'https://stream-organizer.vercel.app' 
+  'https://stream-organizer.vercel.app' // Il tuo URL di produzione
 ];
 if (process.env.VERCEL_URL) {
-  allowedOrigins.push(`https://${process.env.VERCEL_URL}`); 
+  allowedOrigins.push(`https://${process.env.VERCEL_URL}`); // URL di preview
 }
 
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin) return callback(null, true);  
+    if (!origin) return callback(null, true); 
     if (allowedOrigins.indexOf(origin) !== -1 || (process.env.VERCEL_ENV === 'preview' && origin.endsWith('.vercel.app'))) {
         return callback(null, true);
     }
     return callback(new Error('La policy CORS non permette l\'accesso da questa origine.'), false);
   },
-  credentials: true 
+  credentials: true // <-- AGGIUNTO per i cookie
 }));
 
 // --- Middleware ---
 app.use(express.json());
-app.use(cookieParser());
-// app.use(express.static(path.join(__dirname, 'public'))); // Rimosso. Gestito da vercel.json
+app.use(cookieParser()); // <-- AGGIUNTO
+app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/', limiter);
 app.use('/api/login', loginLimiter);
 
@@ -127,10 +116,10 @@ async function fetchWithTimeout(url, options, timeout = FETCH_TIMEOUT) {
   }
 }
 
-// --- Opzioni Cookie Sicuro ---
+// --- Opzioni Cookie Sicuro --- (AGGIUNTO)
 const cookieOptions = {
     httpOnly: true,
-    secure: true, 
+    secure: true, // Vercel è sempre HTTPS
     sameSite: 'strict',
     maxAge: 30 * 24 * 60 * 60 * 1000 // 30 giorni
 };
@@ -139,8 +128,9 @@ const cookieOptions = {
 const authKeySchema = Joi.object({ authKey: Joi.string().min(1).required() });
 const loginSchema = Joi.object({ email: Joi.string().email().required(), password: Joi.string().min(6).required() });
 const manifestUrlSchema = Joi.object({ manifestUrl: Joi.string().uri().required() });
+// MODIFICATO: Rimosso authKey dallo schema del body
 const setAddonsSchema = Joi.object({ 
-  addons: Joi.array().min(1).required(),  
+  addons: Joi.array().min(1).required(), 
   email: Joi.string().email().allow(null) 
 });
 
@@ -155,54 +145,18 @@ function isSafeUrl(url) {
   } catch { return false; }
 }
 
-// --- Helper per chiave cache sicura ---
-function getCacheKey(prefix, key) {
-  const hash = crypto.createHash('sha256').update(key).digest('hex');
-  return `${prefix}:${hash}`;
-}
-
 // --- Funzioni principali ---
-
-// Funzione aggiornata con Caching
 async function getAddonsByAuthKey(authKey) {
   const { error } = authKeySchema.validate({ authKey });
   if (error) throw new Error("AuthKey non valido.");
-
-  const cacheKey = getCacheKey('addons', authKey);
-  
-  // 1. Prova a leggere dalla cache
-  try {
-    let cachedAddons = await kv.get(cacheKey);
-    if (cachedAddons) {
-      // console.log('Cache HIT per getAddons');
-      return cachedAddons;
-    }
-  } catch (e) {
-    console.error("Errore lettura Vercel KV (getAddons):", e.message);
-    // Non bloccare, continua con il fetch
-  }
-
-  // console.log('Cache MISS per getAddons. Fetch da Stremio...');
-  // 2. Se non in cache, fetcha da Stremio
   const res = await fetchWithTimeout(ADDONS_GET_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ authKey: authKey.trim() })
   });
-  
   const data = await res.json();
   if (data.error || !data.result) throw new Error(data.error?.message || 'Impossibile recuperare gli addon.');
-  
-  const addons = data.result.addons || [];
-
-  // 3. Salva il risultato in cache
-  try {
-    await kv.set(cacheKey, addons, { ex: CACHE_TTL_ADDONS });
-  } catch (e) {
-    console.error("Errore scrittura Vercel KV (getAddons):", e.message);
-  }
-
-  return addons;
+  return data.result.addons || [];
 }
 
 async function getStremioData(email, password) {
@@ -215,18 +169,17 @@ async function getStremioData(email, password) {
   });
   const data = await res.json();
   if (data.error || !data.result?.authKey) throw new Error(data.error?.message || 'Credenziali non valide.');
-  
-  const addons = await getAddonsByAuthKey(data.result.authKey); 
+  const addons = await getAddonsByAuthKey(data.result.authKey);
   return { addons, authKey: data.result.authKey };
 }
 
 // --- ENDPOINTS ---
 
-// Login
+// Login (MODIFICATO: Imposta il cookie)
 app.post('/api/login', async (req,res)=>{
   const { email, password, authKey: providedAuthKey } = req.body;
   try {
-    let data; 
+    let data; // Dati da Stremio { addons, authKey }
     if(email && password) {
         data = await getStremioData(email,password);
     } else if(providedAuthKey) {
@@ -237,8 +190,9 @@ app.post('/api/login', async (req,res)=>{
         return res.status(400).json({ error: { message: "Email/password o authKey obbligatori." } });
     }
     
-    res.cookie('authKey', data.authKey, cookieOptions); 
-    return res.json({ addons: data.addons }); 
+    // Patch di sicurezza:
+    res.cookie('authKey', data.authKey, cookieOptions); // 1. Imposta il cookie
+    return res.json({ addons: data.addons }); // 2. Restituisci solo gli addons
 
   } catch(err) {
     const status = err.message.includes('timeout') ? 504 : 401;
@@ -246,28 +200,27 @@ app.post('/api/login', async (req,res)=>{
   }
 });
 
-// Get addons
+// Get addons (MODIFICATO: Legge dal cookie)
 app.post('/api/get-addons', async (req,res)=>{
-  const { authKey } = req.cookies; 
+  const { authKey } = req.cookies; // <-- Legge dal cookie
   const { email } = req.body;
   const { error } = authKeySchema.validate({ authKey });
   if(error || !email) return res.status(400).json({ error: { message: "authKey (cookie) non valida o email (body) mancante." } });
-  
-  try { res.json({ addons: await getAddonsByAuthKey(authKey) }); }  
+  try { res.json({ addons: await getAddonsByAuthKey(authKey) }); } 
   catch(err){ res.status(err.message.includes('timeout') ? 504 : 500).json({ error:{ message: err.message } }); }
 });
 
-// Set addons
+// Set addons (MODIFICATO: Legge dal cookie)
 app.post('/api/set-addons', async (req,res)=>{
-  const { authKey } = req.cookies; 
+  const { authKey } = req.cookies; // <-- Legge dal cookie
   const authKeyValidation = authKeySchema.validate({ authKey });
   if (authKeyValidation.error) return res.status(401).json({ error: { message: "Nessuna authKey valida fornita (cookie)." } });
 
-  const { error } = setAddonsSchema.validate(req.body); 
+  const { error } = setAddonsSchema.validate(req.body); // Valida il body (senza authKey)
   if(error) return res.status(400).json({ error: { message: error.details[0].message } });
   
   try {
-    const { addons } = req.body; 
+    const { addons } = req.body; // authKey non è più nel body
     const addonsToSave = addons.map(a=>{
       const clean = JSON.parse(JSON.stringify(a));
       if(clean.isEditing) delete clean.isEditing;
@@ -279,20 +232,10 @@ app.post('/api/set-addons', async (req,res)=>{
     });
     const resSet = await fetchWithTimeout(ADDONS_SET_URL, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ authKey: authKey.trim(), addons: addonsToSave }) 
+      body: JSON.stringify({ authKey: authKey.trim(), addons: addonsToSave }) // Usa l'authKey dal cookie
     });
     const dataSet = await resSet.json();
     if(dataSet.error) throw new Error(dataSet.error.message || 'Errore salvataggio addon.');
-
-    // Invalidazione cache
-    try {
-      const cacheKey = getCacheKey('addons', authKey);
-      await kv.del(cacheKey);
-      // console.log('Cache INVALIDATA per setAddons');
-    } catch (e) {
-      console.error("Errore invalidazione Vercel KV (setAddons):", e.message);
-    }
-
     res.json({ success:true, message:"Addon salvati con successo." });
   } catch(err){ res.status(err.message.includes('timeout') ? 504 : 500).json({ error:{ message: err.message } }); }
 });
@@ -301,25 +244,8 @@ app.post('/api/set-addons', async (req,res)=>{
 app.post('/api/fetch-manifest', async(req,res)=>{
   const { error } = manifestUrlSchema.validate(req.body);
   if(error) return res.status(400).json({ error:{ message: "URL manifesto non valido." } });
-  
   const { manifestUrl } = req.body;
   if(!isSafeUrl(manifestUrl)) return res.status(400).json({ error:{ message:'URL non sicuro o non valido.' } });
-
-  const cacheKey = getCacheKey('manifest', manifestUrl);
-
-  // 1. Prova a leggere dalla cache
-  try {
-    let cachedManifest = await kv.get(cacheKey);
-    if (cachedManifest) {
-      // console.log('Cache HIT per fetchManifest');
-      return res.json(cachedManifest);
-    }
-  } catch (e) {
-    console.error("Errore lettura Vercel KV (fetchManifest):", e.message);
-  }
-
-  // 2. Se non in cache, fetcha
-  // console.log('Cache MISS per fetchManifest. Fetch da URL...');
   try{
     const headers = {};
     if(GITHUB_TOKEN) headers['Authorization'] = `token ${GITHUB_TOKEN}`;
@@ -327,14 +253,6 @@ app.post('/api/fetch-manifest', async(req,res)=>{
     if(!resp.ok) throw new Error(`Status ${resp.status}`);
     const manifest = await resp.json();
     if(!manifest.id || !manifest.version) throw new Error("Manifesto non valido.");
-    
-    // 3. Salva in cache
-    try {
-      await kv.set(cacheKey, manifest, { ex: CACHE_TTL_MANIFEST });
-    } catch (e) {
-      console.error("Errore scrittura Vercel KV (fetchManifest):", e.message);
-    }
-
     res.json(manifest);
   }catch(err){ res.status(err.message.includes('timeout') ? 504 : 500).json({ error:{ message: err.message } }); }
 });
@@ -347,18 +265,13 @@ app.post('/api/admin/monitor', async(req,res)=>{
   return res.status(403).json({ error:{ message:`Impossibile accedere ai dati di ${targetEmail}. Stremio richiede la password/AuthKey.` } });
 });
 
-// Logout
+// Logout (AGGIUNTO: per cancellare il cookie)
 app.post('/api/logout', (req, res) => {
     res.cookie('authKey', '', {
         ...cookieOptions,
         maxAge: 0 // Scadenza immediata
     });
     res.json({ success: true, message: "Logout effettuato." });
-});
-
-// Endpoint Health Check
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'OK' });
 });
 
 // 404 API
@@ -372,10 +285,10 @@ if(process.env.NODE_ENV==='production'){
   });
 }
 
-// Avvio server solo se NODE_ENV !== vercel
+// Avvio server solo se NODE_ENV !== vercel (Questo è il blocco corretto per Vercel)
 if(process.env.NODE_ENV!=='vercel' && !process.env.VERCEL_ENV){
   app.listen(PORT,()=>console.log(`Server avviato sulla porta ${PORT}`));
 }
 
-// Esportazione per Vercel
+// Esportazione per Vercel (Questo è il blocco corretto per Vercel)
 module.exports = app;
