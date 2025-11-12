@@ -1,16 +1,13 @@
-<!-- =================== HEADER README CYBERPUNK =================== -->
+<!-- =================== HEADER README CYBERPUNK ANIMATO =================== -->
 <div align="center" style="margin-bottom:30px;">
 
-  <!-- Titolo principale neon -->
+  <!-- Titolo principale neon animato -->
   <h1 style="
     font-family: 'Segoe UI', Arial, sans-serif; 
     font-size: 3em; 
     color: #ff00ff; 
-    text-shadow: 
-      0 0 5px #ff00ff, 
-      0 0 10px #ff00ff, 
-      0 0 15px #ff00ff, 
-      0 0 25px #ff66ff;
+    text-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff, 0 0 15px #ff00ff, 0 0 25px #ff66ff;
+    animation: flicker 1.5s infinite alternate;
     margin-bottom:5px;">
     ⚡ STREAMORDER ⬢ [ Cyberdeck Addon Console ]
   </h1>
@@ -39,7 +36,19 @@
   </blockquote>
 
 </div>
-<!-- =================== /HEADER README CYBERPUNK =================== -->
+
+<!-- =================== CSS ANIMAZIONE FLICKER =================== -->
+<style>
+@keyframes flicker {
+  0% { text-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff, 0 0 15px #ff00ff, 0 0 25px #ff66ff; opacity:1; }
+  20% { text-shadow: 0 0 2px #ff00ff, 0 0 5px #ff00ff, 0 0 7px #ff66ff, 0 0 10px #ff66ff; opacity:0.9; }
+  40% { text-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff, 0 0 15px #ff00ff, 0 0 25px #ff66ff; opacity:1; }
+  60% { text-shadow: 0 0 3px #ff00ff, 0 0 6px #ff00ff, 0 0 10px #ff66ff, 0 0 15px #ff66ff; opacity:0.95; }
+  80% { text-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff, 0 0 15px #ff00ff, 0 0 25px #ff66ff; opacity:1; }
+  100% { text-shadow: 0 0 2px #ff00ff, 0 0 5px #ff00ff, 0 0 7px #ff66ff, 0 0 10px #ff66ff; opacity:0.9; }
+}
+</style>
+<!-- =================== /HEADER README CYBERPUNK ANIMATO =================== -->
 
 ---
 
