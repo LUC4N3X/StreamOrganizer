@@ -18,7 +18,7 @@
 
 > 🕹️ **StreamOrder** è una **Command Console Cyberpunk** per la gestione avanzata degli **addon Stremio**.  
 > Interfaccia **neon**, **drag & drop**, **backup automatici**, **sincronizzazione cloud** e **controllo totale** sul tuo ecosistema addon.  
-> Ideata per chi ama **ordine, potenza e stile futuristico** ⚙️💜
+> Ideata per chi ama **ordine, potenza e stile futuristico** 
 
 ---
 
