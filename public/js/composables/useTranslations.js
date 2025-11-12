@@ -1,11 +1,7 @@
-// public/js/composables/useTranslations.js
-
-// 'ref' e 'computed' vengono ora passati come argomenti
 export function useTranslations(ref, computed) {
     const lang = ref('it');
 
     const t = computed(() => (key, interpolations = {}) => {
-        // Assicurati che 'translations' esista nello scope globale
         if (typeof translations === 'undefined') {
             console.error("Variabile 'translations' non trovata.");
             return key;
@@ -23,9 +19,7 @@ export function useTranslations(ref, computed) {
     const initLang = () => {
         try { 
             const savedLang = localStorage.getItem('stremioConsoleLang'); 
-            if (savedLang && ['it', 'en'].includes(savedLang)) {
-                lang.value = savedLang;
-            }
+            if (savedLang && ['it', 'en'].includes(savedLang)) lang.value = savedLang;
         } catch(e) { 
             console.warn("Error reading lang from localStorage."); 
         }
