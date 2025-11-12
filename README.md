@@ -31,7 +31,7 @@
 - 🌌 **Cyberpunk UI** – Effetti neon, blur e dettagli terminal-style  
 - 🖥️ **Matrix Mode** – Modalità linea di comando per utenti avanzati  
 - 📜 **Realtime Logs** – Log in tempo reale con colori neon
-
+- 📡 **Diagnostica Addon** (Ping Test) – Controlla la latency e la disponibilità dei tuoi addon in tempo reale ⚡
 ---
 <div align="center" style="background:linear-gradient(135deg,#0a0014,#130022);border-radius:12px;padding:20px;margin:20px 0;box-shadow:0 0 20px rgba(255,0,255,0.3);">
   <h1 style="font-size:2.5em;color:#ff00ff;margin:0;font-family:Segoe UI,Arial,sans-serif;">
