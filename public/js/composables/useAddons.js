@@ -78,7 +78,8 @@ export function useAddons(
         hasUnsavedChanges.value = false;
     };
 
-    const saveOrder = async (isUpdating) => { // Riceve isUpdating da useAddonActions
+    // --- FUNZIONE MODIFICATA ---
+    const saveOrder = async (isUpdating) => {
         if (isMonitoring.value) return; 
         
         const enabledAddons = addons.value.filter(a => a.isEnabled);
@@ -94,7 +95,14 @@ export function useAddons(
                 body: JSON.stringify({ authKey: authKey.value, addons: addonsToSave, email: email.value }) 
             });
             const data = await response.json(); 
-            if (!response.ok || data.error) throw new Error(data.error || data.message || 'Save error.'); 
+
+            // --- INIZIO BLOCCO CORRETTO ---
+            if (!response.ok || data.error) {
+                // Estrai il messaggio di errore REALE prima di lanciarlo
+                const errorMessage = data.error?.message || data.message || 'Errore sconosciuto durante il salvataggio.';
+                throw new Error(errorMessage); 
+            }
+            // --- FINE BLOCCO CORRETTO ---
             
             showToast(t.value('addon.saveSuccess'), 'success'); 
             resetHistory(); // Pulisci la cronologia dopo un salvataggio riuscito
@@ -108,12 +116,14 @@ export function useAddons(
                 saveProfiles(); // Salva i profili aggiornati
             }
         } catch (err) { 
+            // Ora err.message conterrà la stringa di errore corretta
             showToast(t.value('addon.saveError', { message: err.message }), 'error'); 
         } finally { 
             isLoading.value = false; 
             isUpdating.value = false; // Assicurati di resettare isUpdating
         }
     };
+    // --- FINE FUNZIONE MODIFICATA ---
     
     const newAddonUrl = ref('');
     const addNewAddon = async () => {
@@ -247,11 +257,8 @@ export function useAddons(
         }
     };
     
-    const toggleAddonEnabled = (addon) => { 
-        if (!isMonitoring.value) {
-            recordAction(t.value(addon.isEnabled ? 'actions.disabledAddon' : 'actions.enabledAddon', { name: addon.manifest.name })); 
-        }
-    };
+    // NOTA: 'toggleAddonEnabled' è stato rimosso da qui e spostato in 'app.js'
+    // come 'handleToggleEnabled' per ottimizzazione.
 
     const toggleAddonDisableAutoUpdate = (addon) => {
         if (!isMonitoring.value) {
@@ -281,7 +288,7 @@ export function useAddons(
         moveTop,
         moveBottom,
         removeAddon,
-        toggleAddonEnabled,
+        // toggleAddonEnabled, // Rimosso per ottimizzazione
         toggleAddonDisableAutoUpdate,
         onDragEnd
     };
