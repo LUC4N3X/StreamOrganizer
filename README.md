@@ -1,4 +1,19 @@
-# ⚡ STREAMORDER — [ Cyberdeck Addon Console ]
+<div align="center">
+  <h1 style="
+    font-family: 'Segoe UI', Arial, sans-serif; 
+    font-size: 3em; 
+    color: #ff00ff; 
+    text-shadow: 
+      0 0 5px #ff00ff, 
+      0 0 10px #ff00ff, 
+      0 0 20px #ff00ff, 
+      0 0 40px #ff66ff;">
+    ⚡ STREAMORDER ⬢ [ Cyberdeck Addon Console ]
+  </h1>
+  <p style="color:#e0d4ff; font-size:1.2em; margin-top:-5px;">
+    Control your Stremio Addons with style & precision
+  </p>
+</div>
 
 > _"Control the chaos. Rule your Addons."_  
 
