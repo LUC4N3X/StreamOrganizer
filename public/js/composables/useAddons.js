@@ -29,35 +29,52 @@ export function useAddons(
                 body: JSON.stringify({ authKey: key, email: userEmail })
             });
             const data = await response.json();
-            if (!response.ok || data.error) throw new Error(data.error || 'Refresh failed.');
+            
+            // --- INIZIO BLOCCO MODIFICATO ---
+            if (!response.ok || data.error) {
+                 const errorMessage = data.error?.message || data.error || 'Refresh failed.';
+                 throw new Error(errorMessage);
+            }
 
+            // 1. Mappa gli addon del server per un rapido accesso (URL -> addon)
             const serverAddonsMap = new Map();
             data.addons.forEach(serverAddon => {
                 serverAddonsMap.set(serverAddon.transportUrl, serverAddon);
             });
 
+            // 2. Combina le liste: usa la lista locale (addons.value) come base
             const newAddonsList = addons.value.map(localAddon => {
                 const serverVersion = serverAddonsMap.get(localAddon.transportUrl);
+                
                 if (serverVersion) {
-                    const updatedAddon = mapAddon(serverVersion);
-                    updatedAddon.isEnabled = localAddon.isEnabled;
-                    updatedAddon.manifest.name = localAddon.manifest.name;
+                    // L'addon esiste ancora sul server.
+                    // Aggiorna il suo manifesto, ma mantieni le impostazioni locali.
+                    const updatedAddon = mapAddon(serverVersion); // Prende il nuovo manifesto
+                    updatedAddon.isEnabled = localAddon.isEnabled; // MANTIENE isEnabled locale
+                    updatedAddon.manifest.name = localAddon.manifest.name; // MANTIENE il nome locale
                     updatedAddon.newLocalName = localAddon.newLocalName;
-                    updatedAddon.disableAutoUpdate = localAddon.disableAutoUpdate;
-                    serverAddonsMap.delete(localAddon.transportUrl);
+                    updatedAddon.disableAutoUpdate = localAddon.disableAutoUpdate; // MANTIENE il blocco update
+                    
+                    serverAddonsMap.delete(localAddon.transportUrl); // Rimuovilo dalla mappa
                     return updatedAddon;
+                    
                 } else {
+                    // L'addon non è sul server (perché l'abbiamo disinstallato).
+                    // MANTIENI la versione locale, ma forzala come disabilitata.
                     localAddon.isEnabled = false; 
                     return localAddon;
                 }
             });
 
+            // 3. Aggiungi eventuali NUOVI addon 
+            // (addon che erano sul server ma non ancora nella nostra lista locale)
             serverAddonsMap.forEach(newServerAddon => {
                 newAddonsList.push(mapAddon(newServerAddon));
             });
 
             addons.value = newAddonsList;
             sessionStorage.setItem('stremioAddonList', JSON.stringify(addons.value));
+            // --- FINE BLOCCO MODIFICATO ---
             
             resetHistory(); // Resetta la cronologia dopo un refresh
             hasUnsavedChanges.value = false;
@@ -92,17 +109,22 @@ export function useAddons(
             const response = await fetch(`${apiBaseUrl}/api/set-addons`, { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ authKey: authKey.value, addons: addonsToSave, email: email.value }) 
+                // --- INIZIO BLOCCO CORRETTO ---
+                // Abbiamo rimosso 'authKey' da qui. 
+                // Il server la legge automaticamente dal cookie.
+                body: JSON.stringify({ 
+                    addons: addonsToSave, 
+                    email: email.value 
+                }) 
+                // --- FINE BLOCCO CORRETTO ---
             });
             const data = await response.json(); 
 
-            // --- INIZIO BLOCCO CORRETTO ---
             if (!response.ok || data.error) {
                 // Estrai il messaggio di errore REALE prima di lanciarlo
                 const errorMessage = data.error?.message || data.message || 'Errore sconosciuto durante il salvataggio.';
                 throw new Error(errorMessage); 
             }
-            // --- FINE BLOCCO CORRETTO ---
             
             showToast(t.value('addon.saveSuccess'), 'success'); 
             resetHistory(); // Pulisci la cronologia dopo un salvataggio riuscito
@@ -129,20 +151,20 @@ export function useAddons(
     const addNewAddon = async () => {
         if (isMonitoring.value) return; 
         const url = newAddonUrl.value.trim(); 
-        if (!url.startsWith('http')) { showToast("Invalid URL.", 'error'); return; } 
+        if (!url.startsWith('http')) { showToast("URL non valido.", 'error'); return; } 
         isLoading.value = true;
         try {
             const response = await fetch(`${apiBaseUrl}/api/fetch-manifest`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ manifestUrl: url }) });
             const responseText = await response.text();
             let manifest;
-            try { manifest = JSON.parse(responseText); } catch (e) { throw new Error(`Invalid JSON response.`); }
-            if (!response.ok || manifest.error) throw new Error(manifest.error?.message || "Invalid manifest.");
+            try { manifest = JSON.parse(responseText); } catch (e) { throw new Error(`Risposta JSON non valida.`); }
+            if (!response.ok || manifest.error) throw new Error(manifest.error?.message || "Manifesto non valido.");
             
             const cleanManifest = { id: manifest.id || `external-${Date.now()}`, version: manifest.version || '1.0.0', name: manifest.name || `New Addon`, types: manifest.types || ["movie", "series"], resources: manifest.resources || [], idPrefixes: manifest.idPrefixes || [], configurable: manifest.configurable, behaviorHints: manifest.behaviorHints, description: manifest.description || `URL: ${url}`, logo: manifest.logo || '', ...manifest };
             const newAddonUrlBase = url.split('?')[0]; 
             
             if (addons.value.some(a => a.transportUrl.split('?')[0] === newAddonUrlBase)) { 
-                showToast("Addon already exists.", 'error'); 
+                showToast("Addon già esistente.", 'error'); 
                 return; 
             }
             
@@ -256,9 +278,6 @@ export function useAddons(
             }
         }
     };
-    
-    // NOTA: 'toggleAddonEnabled' è stato rimosso da qui e spostato in 'app.js'
-    // come 'handleToggleEnabled' per ottimizzazione.
 
     const toggleAddonDisableAutoUpdate = (addon) => {
         if (!isMonitoring.value) {
