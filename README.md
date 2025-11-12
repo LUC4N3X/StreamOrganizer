@@ -33,32 +33,30 @@
 - 📜 **Realtime Logs** – Log in tempo reale con colori neon
 
 ---
-🛡️ Sicurezza & Privacy Cyberpunk
-
-> "Proteggi i tuoi dati come proteggeresti il tuo impianto neurale." ⚡
-
-
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Secure-Yes-green?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Encrypted-Cookies-blue?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/HTTPS-Recommended-purple?style=for-the-badge" />
-</p>🔹 Protezioni Implementate
-
-Cookie sicuri – AuthKey salvata solo in cookie HttpOnly, crittografati e SameSite strict.
-
-Rate Limiting – Difesa da attacchi brute-force su login e API sensibili.
-
-Helmet + CSP – Header HTTP avanzati per protezione XSS e injection.
-
-Dati sensibili al sicuro – Token e credenziali restano sul server, mai esposti al client.
-
-Logging minimale – Solo errori e info di sistema, niente dati sensibili.
-
-Uso responsabile – Non condividere le credenziali o l’authKey; StreamOrder non salva password in chiaro.
-
-
-> ⚠️ Nota d’uso: usa StreamOrder solo su HTTPS o in ambiente locale affidabile
+<div align="center" style="background:linear-gradient(135deg,#0a0014,#130022);border-radius:12px;padding:20px;margin:20px 0;box-shadow:0 0 20px rgba(255,0,255,0.3);">
+  <h1 style="font-size:2.5em;color:#ff00ff;margin:0;font-family:Segoe UI,Arial,sans-serif;">
+    🛡️ Sicurezza & Privacy Cyberpunk
+  </h1>
+  <p style="color:#e0d4ff;font-size:1.1em;margin:10px 0 0 0;">
+    "Proteggi i tuoi dati come proteggeresti il tuo impianto neurale." ⚡
+  </p>
+  <p>
+    <img src="https://img.shields.io/badge/Secure-Yes-green?style=for-the-badge" />
+    <img src="https://img.shields.io/badge/Encrypted-Cookies-blue?style=for-the-badge" />
+    <img src="https://img.shields.io/badge/HTTPS-Recommended-purple?style=for-the-badge" />
+  </p>
+  <ul style="text-align:left;color:#e0d4ff;font-size:1em;">
+    <li><strong>Cookie sicuri:</strong> AuthKey salvata solo in cookie HttpOnly, crittografati e SameSite strict.</li>
+    <li><strong>Rate Limiting:</strong> Difesa da attacchi brute-force su login e API sensibili.</li>
+    <li><strong>Helmet + CSP:</strong> Header HTTP avanzati per protezione XSS e injection.</li>
+    <li><strong>Dati sensibili al sicuro:</strong> Token e credenziali restano sul server, mai esposti al client.</li>
+    <li><strong>Logging minimale:</strong> Solo errori e info di sistema, niente dati sensibili.</li>
+    <li><strong>Uso responsabile:</strong> Non condividere credenziali o authKey; StreamOrder non salva password in chiaro.</li>
+  </ul>
+  <p style="color:#ff66ff;font-weight:bold;margin-top:10px;">
+    ⚠️ Nota: usa StreamOrder solo su HTTPS o ambiente locale affidabile.
+  </p>
+</div>
 ---
 
 ## 🧠 Tech Stack
