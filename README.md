@@ -35,7 +35,7 @@
 ---
 <div align="center" style="background:linear-gradient(135deg,#0a0014,#130022);border-radius:12px;padding:20px;margin:20px 0;box-shadow:0 0 20px rgba(255,0,255,0.3);">
   <h1 style="font-size:2.5em;color:#ff00ff;margin:0;font-family:Segoe UI,Arial,sans-serif;">
-    🛡️ Sicurezza & Privacy Cyberpunk
+    🛡️ Sicurezza & Privacy 
   </h1>
   <p style="color:#e0d4ff;font-size:1.1em;margin:10px 0 0 0;">
     "Proteggi i tuoi dati come proteggeresti il tuo impianto neurale." ⚡
