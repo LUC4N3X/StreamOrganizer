@@ -23,17 +23,21 @@ import { useTour } from './composables/useTour.js';
 const app = createApp({
     setup() {
 
-        // --- 1. Core utils & state ---
+        // --- 1. Traduzioni (DEFINISCE 't') ---
         const { lang, t, initLang } = useTranslations(ref, computed);
-        const { 
-            isLoading, apiBaseUrl, isMobile, isLightMode, showInstructions,
-            toasts, showToast, updateIsMobile, toggleTheme, initTheme
-        } = useAppCore(ref);
 
-        // --- 2. Stato addons ---
+        // --- 2. Core utils & state ---
+        // Importiamo 'toggleTheme' da useAppCore
+        const { 
+            isLoading, apiBaseUrl, isMobile, currentTheme,
+            showInstructions, toasts, showToast, updateIsMobile, initTheme,
+            toggleTheme // <-- MODIFICA: Importato
+        } = useAppCore(ref, watch);
+
+        // --- 3. Stato addons ---
         const addons = ref([]);
 
-        // --- 3. Auth ---
+        // --- 4. Auth ---
         const { 
             email, password, authKey, isLoggedIn, isMonitoring, adminClickCount,
             showAdminInput, adminKey, targetEmail, loginMode, providedAuthKey,
@@ -41,15 +45,15 @@ const app = createApp({
             setResetHistory
         } = useAuth(ref, showToast, t, mapAddon, isLoading, addons);
 
-        // --- 4. History ---
+        // --- 5. History ---
         const {
             history, redoStack, actionLog, redoActionLog, hasUnsavedChanges,
             recordAction, undo, redo, resetHistory
         } = useHistory(ref, addons, isLoading, isMonitoring, showToast, t, deepClone);
 
-        setResetHistory(resetHistory); 
+        setResetHistory(resetHistory); // inietta resetHistory in useAuth
 
-        // --- 5. Logout ---
+        // --- 6. Logout ---
         const logout = () => {
             if (hasUnsavedChanges.value && !confirm(t.value('list.logoutConfirm'))) return;
 
@@ -75,14 +79,14 @@ const app = createApp({
             loadProfiles();
         };
 
-        // --- 6. Profiles ---
+        // --- 7. Profiles ---
         const {
             savedProfiles, selectedProfileId, loadProfiles, saveProfiles,
             saveProfile, startEditProfile, finishEditProfile, loadProfile, deleteProfile,
             setRetrieveAddons, setLogout
         } = useProfiles(ref, nextTick, isLoggedIn, isMonitoring, authKey, email, showToast, t);
 
-        // --- 7. Addons ---
+        // --- 8. Addons ---
         const {
             newAddonUrl, retrieveAddonsFromServer, refreshAddonList, saveOrder,
             addNewAddon, startEdit, finishEdit, moveUp, moveDown, moveTop, moveBottom,
@@ -93,7 +97,7 @@ const app = createApp({
             savedProfiles, saveProfiles
         );
 
-        // --- 8. Addon Actions ---
+        // --- 9. Addon Actions ---
         const {
             isAutoUpdateEnabled, lastUpdateCheck, isUpdating,
             checkAllAddonsStatus, toggleAddonDetails, testAddonSpeed,
@@ -103,7 +107,7 @@ const app = createApp({
             (updating) => saveOrder(updating)
         );
 
-        // --- 9. Filters & Selection ---
+        // --- 10. Filters & Selection ---
         const {
             activeFilter, searchQuery, showSearchInput, searchInputRef,
             toggleSearch, hideSearchOnBlur, filteredAddons, draggableList,
@@ -114,7 +118,7 @@ const app = createApp({
             recordAction, showToast, t, debounce
         );
 
-        // --- 10. Import / Export ---
+        // --- 11. Import / Export ---
         const {
             fileInput, shareInput, shareUrl, importedConfigFromUrl,
             showImportConfirm, pendingImportData, importSource, pendingImportNames,
@@ -124,7 +128,7 @@ const app = createApp({
             ref, addons, isMonitoring, recordAction, showToast, t, mapAddon, hasUnsavedChanges
         );
 
-        // --- 11. Tour & Welcome ---
+        // --- 12. Tour & Welcome ---
         const {
             showWelcomeScreen, showWelcomeTourModal, dontShowWelcomeAgain,
             dismissWelcomeScreen, skipTour, beginTour, startTour
@@ -134,7 +138,7 @@ const app = createApp({
             importSource, importedConfigFromUrl
         );
 
-        // --- 12. Eventi toggle ---
+        // --- 13. Eventi toggle ---
         const handleToggleEnabled = (addon, event) => {
             if (isMonitoring.value) return;
 
@@ -150,7 +154,7 @@ const app = createApp({
             addon.selected = event.target.checked;
         };
 
-        // --- 13. Login wrappers ---
+        // --- 14. Login wrappers ---
         const aEseguiLogin = async () => {
             const success = await login();
             if (success) showWelcomeScreen.value = true;
@@ -160,11 +164,11 @@ const app = createApp({
             await monitorLogin(showWelcomeScreen);
         };
 
-        // --- 14. Dipendenze circolari ---
+        // --- 15. Dipendenze circolari ---
         setRetrieveAddons(retrieveAddonsFromServer);
         setLogout(logout);
 
-        // --- 15. Eventi globali ---
+        // --- 16. Eventi globali ---
         const beforeUnloadHandler = (event) => {
             if (hasUnsavedChanges.value) {
                 event.preventDefault();
@@ -172,7 +176,7 @@ const app = createApp({
             }
         };
 
-        // --- 16. Watchers ---
+        // --- 17. Watchers ---
         watch(lang, (newLang) => {
             document.documentElement.lang = newLang;
             document.title = t.value('meta.title');
@@ -187,7 +191,7 @@ const app = createApp({
             } catch(e) { console.warn("Cannot save auto-update pref to localStorage."); }
         });
 
-        // --- 17. Lifecycle Hooks ---
+        // --- 18. Lifecycle Hooks ---
         onMounted(() => {
             window.addEventListener('beforeunload', beforeUnloadHandler);
             window.addEventListener('resize', updateIsMobile);
@@ -227,11 +231,13 @@ const app = createApp({
             window.removeEventListener('resize', updateIsMobile);
         });
 
-        // --- 18. Return ---
+      
         return {
             // Core
-            isLoading, isMobile, isLightMode, showInstructions, toasts, showToast,
-            toggleTheme, t, lang,
+            isLoading, isMobile, currentTheme,
+            showInstructions, toasts, showToast,
+            t, lang,
+            toggleTheme, // <-- MODIFICA: Esportato
             // Auth
             email, password, authKey, isLoggedIn, isMonitoring, adminClickCount,
             showAdminInput, adminKey, targetEmail, loginMode, providedAuthKey,
