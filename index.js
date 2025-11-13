@@ -10,21 +10,21 @@ const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = process.env.PORT || 7860;
 
-// --- TRUST PROXY per Vercel/Docker --- (Invariato, buona practice)
+// --- TRUST PROXY per Vercel/Docker ---
 app.set('trust proxy', 1);
 
-// --- Chiavi segrete --- (Suggerimento: Assicurati che queste env var siano settate in prod; considera secret manager come AWS Secrets o Vercel Secrets)
+// --- Chiavi segrete ---
 const MONITOR_KEY_SECRET = process.env.MONITOR_KEY;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 
-// --- API Stremio --- (Invariato)
+// --- API Stremio ---
 const STREMIO_API_BASE = 'https://api.strem.io/api/';
 const LOGIN_API_URL = `${STREMIO_API_BASE}login`;
 const ADDONS_GET_URL = `${STREMIO_API_BASE}addonCollectionGet`;
 const ADDONS_SET_URL = `${STREMIO_API_BASE}addonCollectionSet`;
 const FETCH_TIMEOUT = 10000;
 
-// --- Helmet + CSP --- (Migliorato: Aggiunte direttive per worker-src se usi web workers; reso più restrittivo su img-src)
+// --- Helmet + CSP ---
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -43,74 +43,62 @@ app.use(helmet({
         "https://stream-organizer.vercel.app",
         process.env.VERCEL_URL || ''
       ],
-      "img-src": ["'self'", "data:", "https:"],  // Invariato, ma considera di restringere a domini specifici se possibile
-      "worker-src": ["'self'", "blob:"]  // Aggiunto: Per supportare worker se futuri aggiornamenti lo richiedono
+      "img-src": ["'self'", "data:", "https:"]
     }
   }
 }));
 
-// --- Middleware generali --- (Invariato, ma aggiunto compression per performance se non è già gestito da Vercel)
-const compression = require('compression');  // Nuovo: Installa 'compression' per ridurre payload risposte
-app.use(compression());
+// --- Middleware generali ---
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- Rate Limiter --- (Migliorato: Aggiunto keyGenerator per limitare per IP; aumentato flessibilità con env vars)
+// --- Rate Limiter ---
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: process.env.RATE_LIMIT_MAX || 100,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: { message: 'Troppi richieste. Riprova tra 15 minuti.' } },
-  keyGenerator: (req) => req.ip  // Nuovo: Limita per IP per prevenire abusi
+  message: { error: { message: 'Troppi richieste. Riprova tra 15 minuti.' } }
 });
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: process.env.LOGIN_RATE_LIMIT_MAX || 20,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: { message: 'Troppi tentativi di login. Riprova tra 15 minuti.' } },
-  keyGenerator: (req) => req.ip
+  message: { error: { message: 'Troppi tentativi di login. Riprova tra 15 minuti.' } }
 });
 app.use('/api/', apiLimiter);
 app.use('/api/login', loginLimiter);
 
-// --- CORS --- (Migliorato: Aggiunto supporto per origini dinamiche da env var; logga origini non permesse per debug)
+// --- CORS ---
 const allowedOrigins = [
   'http://localhost:7860',
   'https://stream-organizer.vercel.app'
 ];
 if (process.env.VERCEL_URL) allowedOrigins.push(`https://${process.env.VERCEL_URL}`);
-if (process.env.ADDITIONAL_ORIGINS) allowedOrigins.push(...process.env.ADDITIONAL_ORIGINS.split(','));  // Nuovo: Flessibilità via env
+
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin) || (process.env.VERCEL_ENV === 'preview' && origin.endsWith('.vercel.app'))) {
       return callback(null, true);
     }
-    console.warn(`Origine non permessa: ${origin}`);  // Nuovo: Logging per monitorare tentativi
     return callback(new Error('La policy CORS non permette l\'accesso da questa origine.'), false);
   },
   credentials: true
 }));
 
-// --- AbortController Node <18 --- (Invariato, ma considera upgrade a Node 18+ per rimuoverlo)
+// --- AbortController Node <18 ---
 if (!global.AbortController) global.AbortController = require('abort-controller').AbortController;
 
-// --- Fetch con timeout --- (Migliorato: Aggiunto retry base per flake API; gestito errori HTTP)
-async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT, retries = 1) {  // Nuovo: Aggiunto retries
+// --- Fetch con timeout ---
+async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   try {
     const res = await fetch(url, { ...options, signal: controller.signal });
     clearTimeout(id);
-    if (!res.ok) {
-      if (retries > 0 && res.status >= 500) {  // Nuovo: Retry su errori server-side
-        return fetchWithTimeout(url, options, timeout, retries - 1);
-      }
-      throw new Error(`HTTP error! Status: ${res.status}`);
-    }
     return res;
   } catch (err) {
     clearTimeout(id);
@@ -119,156 +107,152 @@ async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT, retr
   }
 }
 
-// --- Opzioni cookie sicure --- (Migliorato: Aggiunto domain per Vercel; secure solo in prod)
+// --- Opzioni cookie sicure ---
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',  // Nuovo: Non secure in dev per facilitare test localhost
+  secure: true,
   sameSite: 'strict',
-  maxAge: 30 * 24 * 60 * 60 * 1000,
-  domain: process.env.COOKIE_DOMAIN || undefined  // Nuovo: Per subdomini se deploy multiplo
+  maxAge: 30 * 24 * 60 * 60 * 1000
 };
 
-// --- Schemi Joi --- (Invariato, ma reso più restrittivo su addons array)
+// --- Schemi Joi ---
 const schemas = {
   authKey: Joi.object({ authKey: Joi.string().min(1).required() }),
   login: Joi.object({ email: Joi.string().email().required(), password: Joi.string().min(6).required() }),
   manifestUrl: Joi.object({ manifestUrl: Joi.string().uri().required() }),
-  setAddons: Joi.object({ 
-    addons: Joi.array().items(Joi.object().unknown(true)).min(1).required(),  // Migliorato: Allow unknown keys in addons
-    email: Joi.string().email().allow(null) 
-  })
+  setAddons: Joi.object({ addons: Joi.array().min(1).required(), email: Joi.string().email().allow(null) })
 };
 
-// --- Helper --- (Invariato, ma aggiunto check per localhost/loopback)
+// --- Helper ---
 function isSafeUrl(url) {
   try {
     const parsed = new URL(url);
     if (!['http:', 'https:'].includes(parsed.protocol)) return false;
-    const privateIPs = [/^10\./, /^172\.(1[6-9]|2[0-9]|3[01])\./, /^192\.168\./, /^127\./, /^::1$/];  // Nuovo: Aggiunto localhost
+    const privateIPs = [/^10\./, /^172\.(1[6-9]|2[0-9]|3[01])\./, /^192\.168\./];
     return !privateIPs.some(r => r.test(parsed.hostname));
   } catch { return false; }
 }
 
-// --- Async wrapper --- (Invariato)
-const asyncHandler = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+// --- Async wrapper ---
+const asyncHandler = fn => (req,res,next) => Promise.resolve(fn(req,res,next)).catch(next);
 
-// --- Funzioni principali --- (Rifattorizzato: Estratto logica comune per ridurre duplicazioni)
+// --- Funzioni principali ---
 async function getAddonsByAuthKey(authKey) {
   const { error } = schemas.authKey.validate({ authKey });
-  if (error) throw Object.assign(new Error("AuthKey non valida."), { status: 400 });
+  if (error) throw new Error("AuthKey non valida.");
   const res = await fetchWithTimeout(ADDONS_GET_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ authKey: authKey.trim() })
   });
   const data = await res.json();
-  if (!data.result || data.error) throw Object.assign(new Error(data.error?.message || 'Errore recupero addon.'), { status: 500 });
+  if (!data.result || data.error) throw new Error(data.error?.message || 'Errore recupero addon.');
   return data.result.addons || [];
 }
 
 async function getStremioData(email, password) {
   const { error } = schemas.login.validate({ email, password });
-  if (error) throw Object.assign(new Error("Email o password non valide."), { status: 400 });
+  if (error) throw new Error("Email o password non valide.");
   const res = await fetchWithTimeout(LOGIN_API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: email.trim(), password })
   });
   const data = await res.json();
-  if (!data.result?.authKey || data.error) throw Object.assign(new Error(data.error?.message || 'Credenziali non valide.'), { status: 401 });
+  if (!data.result?.authKey || data.error) throw new Error(data.error?.message || 'Credenziali non valide.');
   const addons = await getAddonsByAuthKey(data.result.authKey);
   return { addons, authKey: data.result.authKey };
 }
 
-// --- ENDPOINTS --- (Migliorato: Aggiunto status codes espliciti; ridotto codice ripetuto)
+// --- ENDPOINTS ---
 app.post('/api/login', asyncHandler(async (req, res) => {
   const { email, password, authKey: providedAuthKey } = req.body;
   let data;
-  if (email && password) data = await getStremioData(email, password);
-  else if (providedAuthKey) data = { addons: await getAddonsByAuthKey(providedAuthKey), authKey: providedAuthKey };
-  else throw Object.assign(new Error("Email/password o authKey richiesti."), { status: 400 });
+  if(email && password) data = await getStremioData(email,password);
+  else if(providedAuthKey) data = { addons: await getAddonsByAuthKey(providedAuthKey), authKey: providedAuthKey };
+  else return res.status(400).json({ error: { message: "Email/password o authKey richiesti." } });
+
   res.cookie('authKey', data.authKey, cookieOptions);
   res.json({ addons: data.addons });
 }));
 
-app.post('/api/get-addons', asyncHandler(async (req, res) => {
+app.post('/api/get-addons', asyncHandler(async (req,res)=>{
   const { authKey } = req.cookies;
-  const { email } = req.body;  // Nota: Questo email non è usato; considera rimuoverlo se non necessario
-  if (!authKey) throw Object.assign(new Error("Cookie authKey mancante."), { status: 400 });
+  const { email } = req.body;
+  if(!authKey || !email) return res.status(400).json({ error:{ message:"Cookie authKey mancante o email mancante." } });
   res.json({ addons: await getAddonsByAuthKey(authKey) });
 }));
 
-app.post('/api/set-addons', asyncHandler(async (req, res) => {
+app.post('/api/set-addons', asyncHandler(async(req,res)=>{
   const { authKey } = req.cookies;
-  if (!authKey) throw Object.assign(new Error("Cookie authKey mancante."), { status: 401 });
+  if(!authKey) return res.status(401).json({ error:{ message:"Cookie authKey mancante." } });
+
   const { error } = schemas.setAddons.validate(req.body);
-  if (error) throw Object.assign(new Error(error.details[0].message), { status: 400 });
-  const addonsToSave = req.body.addons.map(a => {
-    const clean = { ...a };  // Nuovo: Usa spread invece di JSON.parse/stringify per performance
+  if(error) return res.status(400).json({ error:{ message: error.details[0].message } });
+
+  const addonsToSave = req.body.addons.map(a=>{
+    const clean = JSON.parse(JSON.stringify(a));
     delete clean.isEditing; delete clean.newLocalName;
-    if (clean.manifest) delete clean.manifest.isEditing, delete clean.manifest.newLocalName;
+    if(clean.manifest) delete clean.manifest.isEditing, delete clean.manifest.newLocalName;
     clean.manifest.name = a.manifest.name.trim();
-    if (!clean.manifest.id) clean.manifest.id = `external-${Math.random().toString(36).substring(2, 9)}`;
+    if(!clean.manifest.id) clean.manifest.id = `external-${Math.random().toString(36).substring(2,9)}`;
     return clean;
   });
-  const resSet = await fetchWithTimeout(ADDONS_SET_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+
+  const resSet = await fetchWithTimeout(ADDONS_SET_URL,{
+    method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ authKey: authKey.trim(), addons: addonsToSave })
   });
   const dataSet = await resSet.json();
-  if (dataSet.error) throw Object.assign(new Error(dataSet.error.message || 'Errore salvataggio addon.'), { status: 500 });
-  res.json({ success: true, message: "Addon salvati con successo." });
+  if(dataSet.error) throw new Error(dataSet.error.message || 'Errore salvataggio addon.');
+  res.json({ success:true, message:"Addon salvati con successo." });
 }));
 
-app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
+app.post('/api/fetch-manifest', asyncHandler(async(req,res)=>{
   const { error } = schemas.manifestUrl.validate(req.body);
-  if (error) throw Object.assign(new Error("URL manifesto non valido."), { status: 400 });
+  if(error) return res.status(400).json({ error:{ message: "URL manifesto non valido." } });
   const { manifestUrl } = req.body;
-  if (!isSafeUrl(manifestUrl)) throw Object.assign(new Error('URL non sicuro.'), { status: 400 });
-  const headers = GITHUB_TOKEN ? { Authorization: `token ${GITHUB_TOKEN}` } : {};
-  const resp = await fetchWithTimeout(manifestUrl, { headers });
+  if(!isSafeUrl(manifestUrl)) return res.status(400).json({ error:{ message:'URL non sicuro.' } });
+
+  const headers = GITHUB_TOKEN ? { Authorization:`token ${GITHUB_TOKEN}` } : {};
+  const resp = await fetchWithTimeout(manifestUrl,{ headers });
+  if(!resp.ok) throw new Error(`Status ${resp.status}`);
   const manifest = await resp.json();
-  if (!manifest.id || !manifest.version) throw Object.assign(new Error("Manifesto non valido."), { status: 400 });
+  if(!manifest.id || !manifest.version) throw new Error("Manifesto non valido.");
   res.json(manifest);
 }));
 
-app.post('/api/admin/monitor', asyncHandler(async (req, res) => {
+app.post('/api/admin/monitor', asyncHandler(async(req,res)=>{
   const { adminKey, targetEmail } = req.body;
-  if (!MONITOR_KEY_SECRET || adminKey !== MONITOR_KEY_SECRET) throw Object.assign(new Error("Chiave di monitoraggio non corretta."), { status: 401 });
-  if (!targetEmail) throw Object.assign(new Error("Email target richiesta."), { status: 400 });
-  throw Object.assign(new Error(`Accesso ai dati di ${targetEmail} non consentito.`), { status: 403 });
+  if(!MONITOR_KEY_SECRET || adminKey!==MONITOR_KEY_SECRET) return res.status(401).json({ error:{ message:"Chiave di monitoraggio non corretta." } });
+  if(!targetEmail) return res.status(400).json({ error:{ message:"Email target richiesta." } });
+  return res.status(403).json({ error:{ message:`Accesso ai dati di ${targetEmail} non consentito.` } });
 }));
 
-app.post('/api/logout', (req, res) => {
-  res.cookie('authKey', '', { ...cookieOptions, maxAge: 0 });
-  res.json({ success: true, message: "Logout effettuato." });
+app.post('/api/logout',(req,res)=>{
+  res.cookie('authKey','',{ ...cookieOptions, maxAge:0 });
+  res.json({ success:true, message:"Logout effettuato." });
 });
 
-// --- 404 --- (Invariato)
-app.use('/api/*', (req, res) => res.status(404).json({ error: { message: 'Endpoint non trovato.' } }));
+// --- 404 ---
+app.use('/api/*',(req,res)=>res.status(404).json({ error:{ message:'Endpoint non trovato.' }}));
 
-// --- HTTPS forzato in produzione --- (Invariato, ma considera middleware come 'express-sslify' per semplicità)
-if (process.env.NODE_ENV === 'production') {
-  app.use((req, res, next) => {
-    if (req.header('x-forwarded-proto') !== 'https') return res.redirect(301, `https://${req.header('host')}${req.url}`);
+// --- HTTPS forzato in produzione ---
+if(process.env.NODE_ENV==='production'){
+  app.use((req,res,next)=>{
+    if(req.header('x-forwarded-proto')!=='https') return res.redirect(301,`https://${req.header('host')}${req.url}`);
     next();
   });
 }
 
-// --- Error handler globale --- (Migliorato: Aggiunto logging strutturato; nascosto stack in prod)
-app.use((err, req, res, next) => {
-  console.error({
-    message: err.message,
-    stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,  // Nuovo: Nascondi stack in prod per sicurezza
-    path: req.path,
-    method: req.method
-  });
-  res.status(err.status || 500).json({ error: { message: err.message || 'Errore interno del server.' } });
+// --- Error handler globale ---
+app.use((err, req, res, next)=>{
+  console.error(err);
+  res.status(err.status || 500).json({ error:{ message: err.message || 'Errore interno del server.' } });
 });
 
-// --- Avvio server locale --- (Invariato)
-if (!process.env.VERCEL_ENV) app.listen(PORT, () => console.log(`Server avviato sulla porta ${PORT}`));
+// --- Avvio server locale ---
+if(!process.env.VERCEL_ENV) app.listen(PORT,()=>console.log(`Server avviato sulla porta ${PORT}`));
 
-// --- Export per Vercel --- (Invariato)
+// --- Export per Vercel ---
 module.exports = app;
