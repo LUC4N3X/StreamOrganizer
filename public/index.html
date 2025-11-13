@@ -18,7 +18,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.min.js"></script>
   <link rel="stylesheet" href="css/style.css?v=1.0">
 </head>
-<body :class="{'light-mode': isLightMode}">
+<body :data-theme="currentTheme">
   <canvas id="bgCanvas"></canvas>
   <div id="app" :lang="lang" :class="{'not-logged-in': !isLoggedIn}">
     <div :class="['global-loader', { visible: isLoading }]">
@@ -33,6 +33,7 @@
         </transition-group>
       </div>
     </teleport>
+    
     <header class="main-header">
       <div class="neon-glow-aura"></div>
       <h1 @click="incrementAdminClick" data-tour="step-1">
@@ -57,6 +58,7 @@
         <span class="security-icon">🛡️</span>
         <span class="security-text">{{ t('subtitle.security') }}</span>
       </div>
+      
       <div class="header-controls">
         <div class="lang-switcher">
           <span>🌐 {{ t('footer.language') }}</span>
@@ -69,15 +71,15 @@
             <option value="pt">Português</option>
           </select>
         </div>
-        <div class="theme-switcher">
-          <span>🌙</span>
-          <label class="toggle-switch" :title="isLightMode ? t('footer.darkMode') : t('footer.lightMode')">
-            <input type="checkbox" v-model="isLightMode" @change="toggleTheme">
-            <span class="slider"></span>
-            <span class="slider-ball"></span>
-          </label>
-          <span>☀️</span>
-        </div>
+       <div class="theme-switcher">
+        <span>🌙</span>
+        <label class="toggle-switch" :title="currentTheme === 'light' ? t('footer.darkMode') : t('footer.lightMode')">
+          <input type="checkbox" :checked="currentTheme === 'light'" @change="toggleTheme">
+          <span class="slider"></span>
+          <span class="slider-ball"></span>
+        </label>
+        <span>☀️</span>
+      </div>
       </div>
       <button @click="showInstructions = true" class="instructions-btn" :title="t('instructions.buttonTitle')">
         ?
@@ -316,7 +318,7 @@
                       <span :class="['status-indicator', `status-${addon.status}`]" :title="t('addon.statusTitle', { status: addon.status })"></span>
                       <span v-if="addon.status === 'error' && addon.errorDetails" class="error-details-icon" :title="addon.errorDetails">ℹ️</span>
                       {{ addon.manifest.name }}
-                      <span v-if="!isMonitoring" @click.stop="startEdit(addon)" class="edit-icon" :title="t('addon.editTitle')" style="cursor:pointer; font-size:0.8rem; color:rgba(200,200,255,0.7);">🖊️</span>
+                      <span v-if="!isMonitoring" @click.stop="startEdit(addon)" class="edit-icon" :title="t('addon.editTitle')" style="cursor:pointer; font-size:0.8rem; color:rgba(200,200,2ENGLISH,0.7);">🖊️</span>
                     </h3>
                     <div v-else class="edit-mode-container" style="display: flex; flex-direction: column; gap: 8px;">
                       <div style="display:flex; align-items:center;">
