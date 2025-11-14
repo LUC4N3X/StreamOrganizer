@@ -155,6 +155,47 @@
     z-index: 1;
 }
 
+header { 
+    grid-column: 1 / -1; 
+    grid-row: 1 / 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    position: relative;
+    min-height: 150px;
+}
+header h1 {
+    font-family: var(--font-title);
+    color: var(--primary-color);
+    font-size: 1.9rem;
+    margin: 0;
+    letter-spacing: 0.6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    user-select: none;
+    text-align: center;
+    animation: softMove 3s ease-in-out infinite, glitchText 4s infinite steps(1);
+}
+header h1::after {
+    content: "";
+    height: 2px;
+    flex: 1;
+    background: var(--header-neon-line-bg);
+    margin-left: 10px;
+    border-radius: 2px;
+    animation: glowLine 10s infinite linear;
+}
+header .subtitle { 
+    font-size: 0.95rem; 
+    color: var(--text-muted); 
+    margin-top: 2px; 
+}
+
+
 /* ====== FOOTER ====== */
 .footer { 
     display:flex; 
@@ -176,6 +217,7 @@
 @media (max-width: 960px) {
     #app {
         grid-template-columns: 1fr !important;
+        grid-template-rows: auto auto; 
         grid-template-rows: auto 1fr auto; 
         margin: 24px auto;
         padding: 1.5rem;
@@ -203,14 +245,37 @@
         height: auto;
         overflow-y: visible;
     }
-    .main-header { gap: 4px; }
-    .main-header h1 { font-size: 1.4rem; gap: 8px; }
-    .main-header h1::after { display: none; }
-    .main-header .subtitle { font-size: 0.85rem; display: none; }
+    /* Modifiche per l'header su mobile */
+    .main-header {
+        padding: 15px 10px 20px; /* Riduci il padding */
+    }
+    .main-header h1 {
+        font-size: 1.4rem; 
+        margin-top: 10px;
+    }
+    .neon-line {
+        width: 50px;
+        margin-top: 4px;
+    }
+    .header-controls {
+        flex-direction: column; /* FORZA ALINEAMENTO VERTICALE */
+        gap: 12px;
+        margin-top: 15px;
+        width: 100%;
+        align-items: center;
+    }
+    .main-header .instructions-btn {
+        top: 10px; /* Sposta più in alto il pulsante ? */
+        right: 10px;
+        width: 32px; 
+        height: 32px; 
+        font-size: 1.1rem;
+    }
+    
+    header { gap: 4px; }
+    header h1 { font-size: 1.4rem; gap: 8px; }
+    header h1::after { display: none; }
+    header .subtitle { font-size: 0.85rem; }
     .footer { flex-direction: column; align-items: center; text-align: center; gap: 6px; }
     .list-controls-header { flex-direction: row; gap: 10px; align-items: center; }
-    input[type="email"], input[type="password"] {
-        min-width: 100%;
-        box-sizing: border-box;
-    }
 }
