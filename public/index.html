@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>{{ t('meta.title') }}</title>
+<link rel="icon" type="image/png" href="favicon.png?v=<%= new Date().getTime() %>">
+  <meta name="description" content="{{ t('meta.description') }}">
+  <meta name="theme-color" content="#0d0d0d">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+  <script src="https://unpkg.com/vuedraggable@next/dist/vuedraggable.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/introjs.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.min.js"></script>
+  <link rel="stylesheet" href="css/style.css?v=1.0">
+</head>
+<body :class="{'light-mode': isLightMode}">
+  <canvas id="bgCanvas"></canvas>
+  <div id="app" :lang="lang" :class="{'not-logged-in': !isLoggedIn}">
+    <div :class="['global-loader', { visible: isLoading }]">
+      <div class="loader-spinner"></div>
+    </div>
+    <teleport to="body">
+      <div id="toast-container">
+        <transition-group name="toast" tag="div">
+          <div v-for="toast in toasts" :key="toast.id" :class="['toast', toast.type]">
+            {{ toast.message }}
+          </div>
+        </transition-group>
+      </div>
+    </teleport>
+    <header class="main-header">
+      <div class="neon-glow-aura"></div>
+      <h1 @click="incrementAdminClick" data-tour="step-1">
+        {{ t('h1') }}
+      </h1>
+      <div class="neon-line"></div>
+      <transition name="fade">
+        <div v-if="!isLoggedIn && !isMonitoring" class="subtitle">
+          {{ t('subtitle.login') }}
+        </div>
+        <div v-else-if="isMonitoring" class="subtitle monitoring">
+          {{ t('subtitle.monitoring') }}
+        </div>
+        <div v-else-if="isLoggedIn && (showWelcomeScreen || showWelcomeTourModal)" class="subtitle welcome">
+          {{ t('welcome.title') }}
+        </div>
+        <div v-else-if="isLoggedIn" class="subtitle logged-in">
+          {{ t('subtitle.loggedIn') }}
+        </div>
+      </transition>
+      <div class="security-notice" v-if="!isLoggedIn && !showAdminInput">
+        <span class="security-icon">🛡️</span>
+        <span class="security-text">{{ t('subtitle.security') }}</span>
+      </div>
+      <div class="header-controls">
+        <div class="lang-switcher">
+          <span>🌐 {{ t('footer.language') }}</span>
+          <select v-model="lang" class="lang-select">
+            <option value="it">Italiano</option>
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="es">Español</option>
+            <option value="pt">Português</option>
+          </select>
+        </div>
+        <div class="theme-switcher">
+          <span>🌙</span>
+          <label class="toggle-switch" :title="isLightMode ? t('footer.darkMode') : t('footer.lightMode')">
+            <input type="checkbox" v-model="isLightMode" @change="toggleTheme">
+            <span class="slider"></span>
+            <span class="slider-ball"></span>
+          </label>
+          <span>☀️</span>
+        </div>
+      </div>
+      <button @click="showInstructions = true" class="instructions-btn" :title="t('instructions.buttonTitle')">
+        ?
+      </button>
+    </header>
+    <div v-if="!isLoggedIn" class="welcome-info-panel-container">
+      <div class="welcome-panel super-wow">
+        <h3>{{ t('welcome.title') }}</h3>
+        <p class="subtitle">{{ t('welcome.panel_p1') }}</p>
+        <div class="rocket-container">
+          <span class="rocket">🚀</span>
+        </div>
+        <div class="particles">
+          <span class="particle" style="--i:0;"></span>
+          <span class="particle" style="--i:1;"></span>
+          <span class="particle" style="--i:2;"></span>
+          <span class="particle" style="--i:3;"></span>
+          <span class="particle" style="--i:4;"></span>
+          <span class="particle" style="--i:5;"></span>
+        </div>
+      </div>
+    </div>
+    <div v-if="isLoggedIn && !showWelcomeScreen && !showWelcomeTourModal" class="stats-panel-container" data-tour="step-2">
+      <div class="stats-panel">
+        <h3>{{ t('stats.title') }}</h3>
+        <div v-if="!isMonitoring" style="margin-bottom: 20px; text-align: center;">
+          <button @click="saveProfile(email)" class="btn-special-green" style="width: 100%;">
+            👤 {{ t('profiles.saveButton') }}
+          </button>
+        </div>
+        <div class="stat-item">
+          <strong>{{ t('stats.total') }}:</strong>
+          <span class="stat-value">{{ addons.length }}</span>
+        </div>
+        <div class="stat-item">
+          <strong>{{ t('stats.enabled') }}:</strong>
+          <span class="stat-value enabled">{{ enabledCount }}</span>
+        </div>
+        <div class="stat-item">
+          <strong>{{ t('stats.disabled') }}:</strong>
+          <span class="stat-value disabled">{{ disabledCount }}</span>
+        </div>
+        <div class="stat-item">
+          <strong>{{ t('stats.errors') }}:</strong>
+          <span class="stat-value errors">{{ errorCount }}</span>
+        </div>
+        <div class="stat-bar-container" :title="`${((enabledCount / addons.length || 0) * 100).toFixed(0)}% ${t('stats.enabled')}`">
+          <div class="stat-bar enabled" :style="{ width: (enabledCount / addons.length || 0) * 100 + '%' }"></div>
+        </div>
+        <div class="stat-bar-container" style="margin-top: 5px;" :title="`${((errorCount / addons.length || 0) * 100).toFixed(0)}% ${t('stats.errors')}`">
+          <div class="stat-bar errors" :style="{ width: (errorCount / addons.length || 0) * 100 + '%' }"></div>
+        </div>
+        <div class="footer">
+          <div>
+            <div style="font-size:0.85rem;">{{ t('footer.copyright') }}</div>
+            <div style="font-size:0.85rem; opacity:0.8;">{{ t('footer.skin') }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="main-content">
+      <div class="panel panel-login-cyberpunk" v-if="!isLoggedIn">
+        <form @submit.prevent="login" v-if="!showAdminInput" style="margin-bottom:0;">
+          <h2 style="margin:0 0 8px 0; color:#BB86FC; font-family:'Orbitron',sans-serif;">{{ t('login.title') }}</h2>
+          <div v-if="loginMode === 'password'">
+            <div class="form-group">
+              <input type="email" v-model="email" :placeholder="t('login.emailPlaceholder')" required>
+            </div>
+            <div class="form-group">
+              <input type="password" v-model="password" :placeholder="t('login.passwordPlaceholder')" required>
+            </div>
+          </div>
+          <div v-if="loginMode === 'token'">
+            <div class="form-group">
+              <input type="text" v-model="providedAuthKey" :placeholder="t('login.tokenPlaceholder')" required>
+            </div>
+          </div>
+          <button type="submit" class="primary-btn" :disabled="isLoading">{{ isLoading ? t('login.loading') : t('login.button') }}</button>
+          <button type="button" @click="toggleLoginMode" class="secondary-btn" style="width: 100%; margin-top: 10px; background: linear-gradient(90deg, rgba(187,134,252,0.15), rgba(3,218,198,0.1)); border: 1px solid rgba(187,134,252,0.2); color: #BB86FC;">
+            {{ loginMode === 'password' ? t('login.useToken') : t('login.usePassword') }}
+          </button>
+        </form>
+        <div class="profile-management" v-if="!showAdminInput && savedProfiles.length > 0">
+          <h3 style="margin: 0 0 10px 0; color:#7FF7E1; font-family:'Orbitron',sans-serif; font-size:1.05rem; border-top: 1px solid rgba(187,134,252,0.1); padding:0; padding-top: 15px;">{{ t('profiles.title') }}</h3>
+          <p style="font-size: 0.9rem; margin-bottom: 15px; color: rgba(230,230,230,0.8);">{{ t('profiles.p1') }}</p>
+          <div class="profile-list-wrapper">
+            <div v-for="profile in savedProfiles" :key="profile.id" class="profile-list-item">
+              <template v-if="profile.isEditing">
+                <input type="text" v-model="profile.newName" class="profile-name-edit-input" @keyup.enter="finishEditProfile(profile)" @blur="finishEditProfile(profile)" :placeholder="profile.email" style="max-width: 60%;">
+              </template>
+              <template v-else>
+                <span class="profile-name-display" @click="startEditProfile(profile)">
+                  {{ profile.name || profile.email }} 🖊
+                </span>
+              </template>
+              <div class="profile-actions">
+                <button @click="loadProfile(profile.id)" class="secondary-btn" :title="t('profiles.selectButton')">
+                  {{ t('profiles.selectButton') }}
+                </button>
+                <button @click="deleteProfile(profile.id)" class="secondary-btn danger-btn" :title="t('addon.removeTitle')" style="width: 30px; height: 30px; padding: 0;">
+                  🗑️
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <form v-if="showAdminInput" @submit.prevent="monitorLogin" class="panel" style="margin-top:10px; padding:12px;">
+          <h2 style="margin:0 0 8px 0; color:#FFA500; font-family:'Orbitron',sans-serif;">{{ t('monitor.title') }}</h2>
+          <div class="form-group" style="margin-bottom:10px;"><input type="password" v-model="adminKey" :placeholder="t('monitor.keyPlaceholder')" required></div>
+          <div class="form-group" style="margin-bottom:12px;"><input type="email" v-model="targetEmail" :placeholder="t('monitor.emailPlaceholder')" required></div>
+          <button type="submit" class="primary-btn" :disabled="isLoading" style="background: linear-gradient(90deg,#FFA500,#FFB86C); color:#111;">{{ isLoading ? t('monitor.loading') : t('monitor.button') }}</button>
+        </form>
+      </div>
+      <div v-if="isLoggedIn && showWelcomeScreen" class="panel welcome-panel panel-login-cyberpunk">
+        <h2>{{ t('welcome.title') }}</h2>
+        <p>{{ t('welcome.p1') }}</p>
+        <div class="welcome-option">
+          <h4>{{ t('welcome.autoUpdateTitle') }}</h4>
+          <p>{{ t('welcome.autoUpdateDesc') }}</p>
+          <label class="toggle-switch large-toggle">
+            <input type="checkbox" v-model="isAutoUpdateEnabled" :disabled="isMonitoring">
+            <span class="slider"></span>
+          </label>
+          <span>{{ isAutoUpdateEnabled ? t('welcome.autoUpdateEnabled') : t('welcome.autoUpdateDisabled') }}</span>
+        </div>
+        <div class="welcome-option">
+          <h4>{{ t('welcome.manageTitle') }}</h4>
+          <p>{{ t('welcome.manageDesc') }}</p>
+          <button @click="dismissWelcomeScreen" class="primary-btn">
+            {{ t('welcome.proceedButton') }} →
+          </button>
+        </div>
+      </div>
+      <div v-if="isLoggedIn && !showWelcomeScreen && !showWelcomeTourModal">
+        <div style="margin-bottom:12px;">
+          <button @click="saveOrder" :class="['primary-btn', { 'unsaved-changes': hasUnsavedChanges }]" :disabled="isLoading || isMonitoring" style="width:100%;" data-tour="step-7">
+            <span v-if="hasUnsavedChanges" class="unsaved-indicator"></span>
+            💾 {{ t('list.saveButton') }} <span v-if="isMonitoring">(Disabled in Monitor Mode)</span>
+          </button>
+          <button @click="refreshAddonList" class="btn-neutral" :disabled="isLoading || isMonitoring" style="width:100%; margin-top: 10px;">
+            🔄 {{ t('list.refreshButton') }}
+          </button>
+        </div>
+        <div class="panel add-addon-panel" style="display:flex; gap:10px; align-items:center; padding:12px; min-height: auto;">
+          <input type="text" v-model="newAddonUrl" :placeholder="t('list.addPlaceholder')" style="flex:1;" :disabled="isMonitoring" data-tour="step-3">
+          <button @click="addNewAddon" class="secondary-btn" :disabled="isLoading || !newAddonUrl.trim() || isMonitoring">+ {{ t('list.addButton') }}</button>
+        </div>
+        <div class="panel" style="margin-top:1rem; padding:12px; min-height: auto;">
+          <h3 style="margin:0 0 10px 0; color:#B9A3FF; font-family:'Orbitron',sans-serif; font-size:1.05rem;">{{ t('backup.title') }}</h3>
+          <div style="display:flex; gap:10px;" class="backup-actions">
+            <button @click="exportBackup" class="btn-special-green" style="flex:1;">{{ t('backup.exportButton') }}</button>
+            <button @click="triggerFileInput" class="btn-neutral" style="flex:1;" :disabled="isMonitoring">{{ t('backup.importButton') }}</button>
+            <button @click="generateShareLink" class="btn-special-purple" style="flex:1;">{{ t('backup.shareButton') }}</button>
+            <button @click="exportTxt" class="btn-neutral" style="flex:1;">{{ t('backup.exportTxtButton') }}</button>
+          </div>
+          <input type="file" ref="fileInput" @change="handleFileImport" accept=".json" style="display: none;">
+        </div>
+        <div v-if="shareUrl" class="panel" style="margin-top:1rem; padding:12px; border-color: rgba(3,218,198,0.25); min-height: auto;">
+          <h3 style="margin:0 0 10px 0; color:#7FF7E1; font-family:'Orbitron',sans-serif; font-size:1.05rem;">{{ t('share.title') }}</h3>
+          <div style="display:flex; gap:10px;" class="add-addon-panel">
+            <input type="text" :value="shareUrl" ref="shareInput" readonly style="background:rgba(0,0,0,0.2);">
+            <button @click="copyShareUrl" class="secondary-btn">{{ t('share.copyButton') }}</button>
+          </div>
+        </div>
+        <div class="panel auto-update-panel">
+          <div class="auto-update-header">
+            <h3>{{ t('autoUpdate.title') }}</h3>
+            <label class="toggle-switch" :title="t('autoUpdate.toggleTitle')">
+              <input type="checkbox" v-model="isAutoUpdateEnabled" :disabled="isMonitoring">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <p>{{ t('autoUpdate.description') }}</p>
+          <button @click="runAutoUpdate(true)" class="btn-neutral" :disabled="isLoading || isMonitoring" style="width: 100%;">
+            ⚙️ {{ isLoading && isUpdating ? t('autoUpdate.running') : t('autoUpdate.forceButton') }}
+          </button>
+          <div v-if="lastUpdateCheck" class="last-check-time">
+            {{ t('autoUpdate.lastCheck') }}: {{ new Date(lastUpdateCheck).toLocaleString(lang) }}
+          </div>
+        </div>
+        <div style="margin-top:14px;">
+          <div class="panel actions-panel" style="justify-content: center; min-height: auto;">
+            <div class="filter-group" style="display:flex; gap: 8px;">
+              <button @click="activeFilter = 'all'" :class="['secondary-btn', {active: activeFilter === 'all'}]">{{ t('filters.all') }}</button>
+              <button @click="activeFilter = 'enabled'" :class="['secondary-btn', {active: activeFilter === 'enabled'}]">{{ t('filters.enabled') }}</button>
+              <button @click="activeFilter = 'disabled'" :class="['secondary-btn', {active: activeFilter === 'disabled'}]">{{ t('filters.disabled') }}</button>
+              <button @click="activeFilter = 'errors'" :class="['secondary-btn', {active: activeFilter === 'errors'}]">{{ t('filters.errors') }}</button>
+            </div>
+          </div>
+          <div class="panel" style="margin-top: 1rem; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: auto;">
+            <div style="display: flex; gap: 10px; width: 100%;">
+              <button @click="undo" class="secondary-btn" :disabled="history.length === 0 || isMonitoring" :title="t('actions.undo')" style="flex: 1; width: 50%;">
+                ↩️ {{ t('actions.undoLabel') }}
+              </button>
+              <button @click="redo" class="secondary-btn" :disabled="redoStack.length === 0 || isMonitoring" :title="t('actions.redo')" style="flex: 1; width: 50%;">
+                ↪️ {{ t('actions.redoLabel') }}
+              </button>
+            </div>
+            <div class="check-status-button-container">
+              <button @click="checkAllAddonsStatus" class="primary-btn" :disabled="isLoading" style="width:100%;">
+                📡 {{ t('list.checkStatusButton') }}
+              </button>
+            </div>
+          </div>
+          <div v-if="selectedAddons.length > 0" class="bulk-actions-panel">
+            <strong>{{ t('bulkActions.selected', { count: selectedAddons.length }) }}</strong>
+            <button @click="enableSelected" class="secondary-btn" :disabled="isMonitoring">{{ t('bulkActions.enable') }}</button>
+            <button @click="disableSelected" class="secondary-btn" :disabled="isMonitoring">{{ t('bulkActions.disable') }}</button>
+            <button @click="removeSelected" class="secondary-btn remove-selected-btn" :disabled="isMonitoring">{{ t('bulkActions.remove') }}</button>
+          </div>
+          <div class="list-controls-header">
+            <div class="search-container">
+              <button @click="toggleSearch" class="search-icon-btn" :title="t('search.toggleTitle')">🔍</button>
+              <div :class="['search-input-container', { visible: showSearchInput }]">
+                <input type="text" v-model="searchQuery" ref="searchInputRef" :placeholder="t('search.placeholder')" @blur="hideSearchOnBlur">
+              </div>
+            </div>
+            <div v-if="addons.length > 0">
+              <button @click="toggleSelectAll" class="secondary-btn" style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05);">
+                {{ allSelected ? t('bulkActions.deselectAll') : t('bulkActions.selectAll') }}
+              </button>
+              <span v-if="filteredAddons.length !== addons.length" style="font-size: 0.9rem; color: rgba(230,230,230,0.75); margin-left: 10px;">
+                {{ t('search.resultsCount', { shown: filteredAddons.length, total: addons.length }) }}
+              </span>
+            </div>
+          </div>
+          <draggable v-if="filteredAddons.length > 0" v-model="draggableList" @end="onDragEnd" item-key="transportUrl" class="addon-list" v-bind="dragOptions" data-tour="step-4">
+            <template #item="{ element: addon }">
+              <li :class="['addon-item', { disabled: !addon.isEnabled }]">
+                <input type="checkbox" :checked="addon.selected" @change.stop="handleToggleSelected(addon, $event)" class="addon-checkbox" :disabled="isMonitoring">
+                <div class="drag-handle" data-tour="step-5">
+                  <img v-if="addon.manifest.logo" :src="addon.manifest.logo" class="addon-icon" @error="event => event.target.style.display = 'none'" loading="lazy" decoding="async">
+                  <div v-else class="addon-icon-placeholder"></div>
+                  <div class="addon-details">
+                    <h3 v-if="!addon.isEditing">
+                      <span :class="['status-indicator', `status-${addon.status}`]" :title="t('addon.statusTitle', { status: addon.status })"></span>
+                      <span v-if="addon.status === 'error' && addon.errorDetails" class="error-details-icon" :title="addon.errorDetails">ℹ️</span>
+                      {{ addon.manifest.name }}
+                      <span v-if="!isMonitoring" @click.stop="startEdit(addon)" class="edit-icon" :title="t('addon.editTitle')" style="cursor:pointer; font-size:0.8rem; color:rgba(200,200,255,0.7);">🖊️</span>
+                    </h3>
+                    <div v-else class="edit-mode-container" style="display: flex; flex-direction: column; gap: 8px;">
+                      <div style="display:flex; align-items:center;">
+                        <span style="font-size: 0.8rem; margin-right: 5px; opacity: 0.8;">Nome:</span>
+                        <input type="text" v-model="addon.newLocalName" class="edit-name-input" @keyup.enter="finishEdit(addon)" style="flex: 1;">
+                      </div>
+                      <div style="display:flex; align-items:center;">
+                        <span style="font-size: 0.8rem; margin-right: 12px; opacity: 0.8;">URL:</span>
+                        <input type="text" v-model="addon.newTransportUrl" class="edit-name-input" @keyup.enter="finishEdit(addon)" style="flex: 1;">
+                      </div>
+                      <button @click.stop="finishEdit(addon)" class="save-edit-btn" style="width: 100%; margin-top: 5px;">
+                        {{ t('addon.saveButton') }}
+                      </button>
+                    </div>
+                    <p>{{ addon.manifest.description || t('addon.noDescription') }}</p>
+                  </div>
+                </div>
+                <div class="controls-container">
+                  <div class="move-controls" aria-hidden="false">
+                    <button @click.stop="moveTop(addon)" :disabled="addons.indexOf(addon) === 0 || isMonitoring" class="controls-btn" :title="t('addon.moveTopTitle')" aria-label="Move to top">🔝</button>
+                    <button @click.stop="moveBottom(addon)" :disabled="addons.indexOf(addon) === addons.length - 1 || isMonitoring" class="controls-btn" :title="t('addon.moveBottomTitle')" aria-label="Move to bottom">⬇️</button>
+                    <button @click.stop="moveUp(addon)" :disabled="addons.indexOf(addon) === 0 || isMonitoring" class="controls-btn" :title="t('addon.moveUpTitle')" aria-label="Move up">▲</button>
+                    <button @click.stop="moveDown(addon)" :disabled="addons.indexOf(addon) === addons.length - 1 || isMonitoring" class="controls-btn" :title="t('addon.moveDownTitle')" aria-label="Move down">▼</button>
+                  </div>
+                  <button @click.stop="toggleAddonDisableAutoUpdate(addon)" :class="['exclude-update-btn', addon.disableAutoUpdate ? 'excluded' : 'included']" :title="addon.disableAutoUpdate ? t('addon.autoUpdateDisabled') : t('addon.autoUpdateEnabled')" :disabled="isMonitoring">
+                    {{ addon.disableAutoUpdate ? '🔒' : '🔓' }}
+                  </button>
+                  <label class="toggle-switch" :title="t('addon.toggleTitle')" data-tour="step-6">
+                    <input type="checkbox" :checked="addon.isEnabled" @change.stop="handleToggleEnabled(addon, $event)" :disabled="isMonitoring">
+                    <span class="slider"></span>
+                  </label>
+                  <button @click.stop="testAddonSpeed(addon)" class="icon-btn" :title="t('addon.speedTestTitle')">⏱️</button>
+                  <button @click.stop="toggleAddonDetails(addon)" :class="['icon-btn', 'details-toggle-btn', { 'expanded': addon.isExpanded }]" :title="t('addon.detailsTitle')">►</button>
+                  <button v-if="addon.manifest.behaviorHints && addon.manifest.behaviorHints.configurable" @click.stop="openConfiguration(addon)" class="icon-btn" :title="t('addon.configureTitle')">⚙️</button>
+                  <button @click.stop="copyManifestUrl(addon)" class="icon-btn" :title="t('addon.copyTitle')">📋</button>
+                  <button @click.stop="removeAddon(addon)" class="remove-btn" :disabled="isLoading || isMonitoring" :title="t('addon.removeTitle')">🗑️</button>
+                </div>
+                <div :class="['addon-extra-details', { 'visible': addon.isExpanded }]">
+                  <h4>{{ t('addon.details.title') }}</h4>
+                  <ul>
+                    <li><strong>{{ t('addon.details.version') }}:</strong> {{ addon.manifest.version || 'N/A' }}</li>
+                    <li><strong>{{ t('addon.details.id') }}:</strong> {{ addon.manifest.id || 'N/A' }}</li>
+                    <li><strong>{{ t('addon.details.types') }}:</strong> {{ addon.manifest.types ? addon.manifest.types.join(', ') : 'N/A' }}</li>
+                    <li><strong>{{ t('addon.details.resources') }}:</strong> {{ addon.resourceNames }}</li>
+                    <li><strong>{{ t('addon.details.url') }}:</strong> {{ addon.transportUrl }}</li>
+                    <li v-if="addon.isLoadingGithub" style="color: #aaa;">
+                      <em>Caricamento dati GitHub...</em>
+                    </li>
+                    <li v-else-if="addon.githubInfo" class="github-stats">
+                      <strong>GitHub:</strong>
+                      <a :href="addon.githubInfo.url" target="_blank" rel="noopener noreferrer" style="color: #7FF7E1; text-decoration: none;">
+                        ⭐ {{ addon.githubInfo.stars }}
+                        <span style="margin: 0 5px;">|</span>
+                        🍴 {{ addon.githubInfo.forks }}
+                        <span style="margin: 0 5px;">|</span>
+                        ⚠️ {{ addon.githubInfo.issues }} {{ t('addon.details.issues') }}
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </li>
+            </template>
+          </draggable>
+          <p v-if="!isLoading && filteredAddons.length === 0 && addons.length > 0" style="text-align: center; margin-top: 2rem; color: #aaa;">{{ t('list.noResults') }}</p>
+          <p v-if="!isLoading && addons.length === 0" style="text-align: center; margin-top: 2rem; color: #aaa;">{{ t('list.noAddons') }}</p>
+        </div>
+        <div style="margin-top:1.5rem; display:flex; gap:10px;">
+          <button @click="logout" class="primary-btn logout-btn">{{ t('list.logoutButton') }}</button>
+        </div>
+      </div>
+    </div>
+    <button v-if="isLoggedIn && !isMonitoring && !showWelcomeScreen && !showWelcomeTourModal" @click="saveOrder" :class="['floating-save-btn', { visible: hasUnsavedChanges }]" :disabled="isLoading || !hasUnsavedChanges" data-tour="step-8">
+      <span v-if="hasUnsavedChanges" class="unsaved-indicator"></span>
+      💾
+    </button>
+    <div :class="['modal-overlay', { visible: showInstructions }]" @click.self="showInstructions = false" role="dialog" aria-modal="true">
+      <div class="modal-content">
+        <button @click="showInstructions = false" class="modal-close-btn">&times;</button>
+        <h2>{{ t('instructions.title') }}</h2>
+        <div style="padding: 15px; background: rgba(207,102,121,0.1); border: 1px solid #CF6679; border-radius: 8px; margin-bottom: 1.5rem;">
+          <h3 style="margin-top: 0; color: #FFBABA; border-bottom: none; padding-bottom: 0;">⚠️ {{ t('instructions.disclaimer.title') }} ⚠️</h3>
+          <p style="color: #FFBABA; font-weight: bold; font-size: 1rem;">
+            {{ t('instructions.disclaimer.p1') }}
+          </p>
+        </div>
+        <h3>{{ t('instructions.login.title') }}</h3>
+        <p>{{ t('instructions.login.p1') }}</p>
+        <p>{{ t('instructions.login.p2') }}</p>
+        <h3>{{ t('instructions.profiles.title') }}</h3>
+        <p>{{ t('instructions.profiles.p1') }}</p>
+        <h3>{{ t('instructions.list.title') }}</h3>
+        <p>{{ t('instructions.list.p1') }}</p>
+        <ul>
+          <li>{{ t('instructions.list.li1') }}</li>
+          <li>{{ t('instructions.list.li2') }}</li>
+          <li>{{ t('instructions.list.li3') }}</li>
+          <li>{{ t('instructions.list.li4') }}</li>
+          <li>{{ t('instructions.list.li5') }}</li>
+          <li>{{ t('instructions.list.li6') }}</li>
+          <li>{{ t('instructions.list.li7') }}</li>
+          <li>{{ t('instructions.list.li8') }}</li>
+        </ul>
+        <h3>{{ t('instructions.bulk.title') }}</h3>
+        <p>{{ t('instructions.bulk.p1') }}</p>
+        <h3>{{ t('instructions.status.title') }}</h3>
+        <p>{{ t('instructions.status.p1') }}</p>
+        <h3>{{ t('instructions.backup.title') }}</h3>
+        <p>{{ t('instructions.backup.p1') }}</p>
+        <p>{{ t('instructions.backup.p2') }}</p>
+        <p>{{ t('instructions.backup.p3') }}</p>
+        <h3>{{ t('instructions.share.title') }}</h3>
+        <p>{{ t('instructions.share.p1') }}</p>
+        <h3>{{ t('instructions.autoUpdate.title') }}</h3>
+        <p>{{ t('instructions.autoUpdate.p1') }}</p>
+        <p>{{ t('instructions.autoUpdate.p2') }}</p>
+        <h3>{{ t('instructions.other.title') }}</h3>
+        <p>{{ t('instructions.other.p1') }}</p>
+        <p>{{ t('instructions.other.p2') }}</p>
+        <p>{{ t('instructions.other.p3') }}</p>
+        <p>{{ t('instructions.other.p4') }}</p>
+        <p>{{ t('instructions.other.p5') }}</p>
+      </div>
+    </div>
+    <div :class="['modal-overlay', { visible: showImportConfirm }]" @click.self="closeImportConfirm">
+      <div class="modal-content" style="max-width: 500px;">
+        <button @click="closeImportConfirm" class="modal-close-btn">&times;</button>
+        <h2>{{ t('importConfirm.title') }}</h2>
+        <p>{{ t('importConfirm.p1') }}</p>
+        <p v-if="importSource === 'file'" style="color: #FFA500; font-weight: bold;">{{ t('importConfirm.p2_file') }}</p>
+        <p v-if="importSource === 'url'" style="color: #FFA500; font-weight: bold;">{{ t('importConfirm.p2_url') }}</p>
+        <div v-if="pendingImportNames.length > 0" class="import-preview-list">
+          <h4 style="margin-bottom: 5px; color: #ccc; font-size: 0.95rem;">{{ t('importConfirm.addonList') }} ({{ pendingImportNames.length }})</h4>
+          <ul style="max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 12px; font-size: 0.9rem; color: #eee; list-style-position: inside;">
+            <li v-for="(name, index) in pendingImportNames" :key="index" style="margin-bottom: 5px;">{{ name }}</li>
+          </ul>
+        </div>
+        <div class="modal-actions">
+          <button @click="closeImportConfirm" class="secondary-btn">{{ t('importConfirm.cancelButton') }}</button>
+          <button @click="confirmImport" class="secondary-btn danger-btn">{{ t('importConfirm.confirmButton') }}</button>
+        </div>
+      </div>
+    </div>
+    <div :class="['modal-overlay', { visible: showWelcomeTourModal }]" style="z-index: 2000;">
+      <div class="modal-content" style="max-width: 500px;">
+        <h2>{{ t('tour.welcome.title') }}</h2>
+        <p>{{ t('tour.welcome.p1') }}</p>
+        <p>{{ t('tour.welcome.p2') }}</p>
+        <div style="margin-top: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <label style="cursor: pointer; color: #ccc; font-size: 0.9rem;">
+            <input type="checkbox" v-model="dontShowWelcomeAgain" style="margin-right: 8px; vertical-align: middle; accent-color: #BB86FC;">
+            {{ t('tour.welcome.dontShowAgain') }}
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button @click="skipTour" class="secondary-btn">{{ t('tour.welcome.skipButton') }}</button>
+          <button @click="beginTour" class="primary-btn">{{ t('tour.welcome.startButton') }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="js/translations.js" defer></script>
+  <script src="js/bg-animation.js" defer></script>
+<script type="module" src="js/app.js" defer></script>
+</body>
+</html>
