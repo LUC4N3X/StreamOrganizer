@@ -1,81 +1,74 @@
-export function useAppCore(ref, watch) {
-    
-    // --- Stato ---
+// public/js/composables/useAppCore.js
+
+// 'ref' viene ora passato come argomento dalla funzione setup principale
+export function useAppCore(ref) {
+    // --- Refs ---
     const isLoading = ref(false);
-    const apiBaseUrl = ref('https://stream-organizer-api.onrender.com');
-    const isMobile = ref(window.innerWidth <= 768);
+    const apiBaseUrl = window.location.origin;
+    const isMobile = ref(window.innerWidth <= 960);
+    const isLightMode = ref(false);
     const showInstructions = ref(false);
+
+    // --- Toast Logic ---
     const toasts = ref([]);
-    
-    // --- LOGICA TEMA 
-    const validThemes = ['dark', 'light']; 
-    const currentTheme = ref('dark'); 
-
-   
-    const initTheme = () => {
-        try {
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme && validThemes.includes(savedTheme)) {
-                currentTheme.value = savedTheme;
-            } else {
-                currentTheme.value = 'dark'; // Fallback
-                localStorage.setItem('theme', 'dark');
-            }
-        } catch (e) {
-            console.warn("Impossibile caricare il tema dal localStorage.", e);
-            currentTheme.value = 'dark';
-        }
-        
-        // Imposta il tema sull'HTML all'avvio
-        document.documentElement.setAttribute('data-theme', currentTheme.value);
-    };
-
-
-    watch(currentTheme, (newTheme) => {
-        if (validThemes.includes(newTheme)) {
-            try {
-                // Applica il tema all'HTML
-                document.documentElement.setAttribute('data-theme', newTheme);
-                // Salva la preferenza
-                localStorage.setItem('theme', newTheme);
-            } catch (e) {
-                console.warn("Impossibile salvare il tema nel localStorage.", e);
-            }
-        }
-    });
-
-  
-    const toggleTheme = () => {
-        currentTheme.value = currentTheme.value === 'light' ? 'dark' : 'light';
-    };
-    // --- FINE LOGICA TEMA ---
-
-
-    // --- Funzioni Utilità ---
-    const showToast = (message, type = 'info', duration = 3000) => {
-        const id = Date.now() + Math.random();
+    let toastIdCounter = 0;
+    const showToast = (message, type = 'success', duration = 3000) => {
+        const id = toastIdCounter++;
         toasts.value.push({ id, message, type });
         setTimeout(() => {
-            toasts.value = toasts.value.filter(t => t.id !== id);
+            toasts.value = toasts.value.filter(toast => toast.id !== id);
         }, duration);
     };
 
-    const updateIsMobile = () => {
-        isMobile.value = window.innerWidth <= 768;
+    // --- Mobile & Theme Logic ---
+    const updateIsMobile = () => isMobile.value = window.innerWidth <= 960;
+
+    const applyTheme = (isLight) => {
+        if (isLight) {
+            document.body.classList.add('light-mode');
+        } else {
+            document.body.classList.remove('light-mode');
+        }
+        try {
+            localStorage.setItem('stremioConsoleTheme', isLight ? 'light' : 'dark');
+        } catch(e) {
+            console.warn("Cannot save theme pref to localStorage.");
+        }
     };
 
-    // --- Ritorno ---
+    const toggleTheme = () => {
+        // Il valore di isLightMode sarà modificato nel setup principale,
+        // questa funzione applica solo la modifica.
+        applyTheme(isLightMode.value);
+    };
+    
+    // Inizializza il tema al caricamento
+    const initTheme = () => {
+         try {
+            const savedTheme = localStorage.getItem('stremioConsoleTheme');
+            if (savedTheme) {
+                isLightMode.value = savedTheme === 'light';
+            } else {
+                isLightMode.value = false; 
+            }
+            applyTheme(isLightMode.value);
+        } catch(e) { 
+            console.warn("Error reading theme from localStorage or getting system preference.");
+            isLightMode.value = false; // Fallback sicuro
+            applyTheme(isLightMode.value);
+        }
+    };
+
     return {
         isLoading,
         apiBaseUrl,
         isMobile,
+        isLightMode,
         showInstructions,
         toasts,
         showToast,
         updateIsMobile,
-        
-        currentTheme,
-        initTheme,
-        toggleTheme 
+        toggleTheme,
+        initTheme
     };
 }
