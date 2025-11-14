@@ -17,7 +17,8 @@
     display: flex;
     gap: 15px; 
     align-items: center;
-    margin-right: 20px; 
+    /* Rimosso il margin-right per consentire al centering mobile di funzionare */
+    margin-right: 0; 
 }
 
 .main-header .lang-switcher,
@@ -30,7 +31,7 @@
 }
 
 .main-header .lang-select,
-.main-header .theme-select {
+.main-header .theme-select { /* **CORREZIONE: AGGIUNTA LA GRAFFA DI APERTURA** */
     background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
