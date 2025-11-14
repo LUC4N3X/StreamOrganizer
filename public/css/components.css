@@ -94,7 +94,7 @@ input:focus {
 }
 .primary-btn:hover:not(:disabled) { 
     transform: translateY(-3px) scale(1.02); 
-    filter: drop-shadow(0 8px 28px rgba(187,134,252,0.15)) brightness(1.05); 
+    filter: drop-shadow(0 8px 28px rgba(187,134,252,0.15)) brightness(1.05); /* TODO: Variabilizzare */
 }
 .primary-btn.unsaved-changes { 
     animation: pulse-glow 1.8s infinite; 
@@ -103,10 +103,10 @@ input:focus {
     display: inline-block; 
     width: 8px; 
     height: 8px; 
-    background-color: #ff4d4d; 
+    background-color: #ff4d4d; /* TODO: Variabilizzare */
     border-radius: 50%; 
     margin-right: 8px; 
-    box-shadow: 0 0 12px #ff4d4d, 0 0 22px #ff4d4d; 
+    box-shadow: 0 0 12px #ff4d4d, 0 0 22px #ff4d4d; /* TODO: Variabilizzare */
     animation: pulse-indicator 1.4s infinite; 
 }
 
@@ -178,7 +178,7 @@ input:focus {
 
 /* Logout Button */
 .logout-btn {
-    background: linear-gradient(90deg,#333,#111); 
+    background: linear-gradient(90deg,#333,#111); /* TODO: Variabilizzare */
     color: #fff;
     width: 100%;
 }   
@@ -200,7 +200,7 @@ input:focus {
     background: var(--addon-bg);
     border-left: var(--addon-border-left);
     transition: transform var(--transition-smooth), box-shadow var(--transition-smooth), opacity var(--transition-fast);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.65); 
+    box-shadow: 0 6px 18px rgba(0,0,0,0.65); /* TODO: Variabilizzare */
     contain: content;
     position: relative;
     overflow: hidden;
@@ -225,11 +225,11 @@ input:focus {
 }
 .addon-item:hover .addon-details h3 {
     animation: softMove 2s ease-in-out infinite;
-    color: #7FF7E1; 
+    color: #7FF7E1; /* TODO: Variabilizzare */
 }
 .addon-item:hover { 
     transform: translateY(-4px); 
-    box-shadow: 0 14px 42px rgba(11,8,20,0.75); 
+    box-shadow: 0 14px 42px rgba(11,8,20,0.75); /* TODO: Variabilizzare */
 }
 .addon-item.disabled { 
     opacity: 0.55; 
@@ -247,7 +247,7 @@ input:focus {
 .addon-item.sortable-chosen { 
     cursor: grabbing; 
     transform: translateY(-4px) scale(1.03); 
-    box-shadow: 0 16px 48px rgba(11,8,20,0.85); 
+    box-shadow: 0 16px 48px rgba(11,8,20,0.85); /* TODO: Variabilizzare */
 }
 .addon-icon { 
     width:56px; 
@@ -262,7 +262,7 @@ input:focus {
     width: 56px; 
     height: 56px; 
     flex-shrink: 0; 
-    background: rgba(255,255,255,0.02); 
+    background: rgba(255,255,255,0.02); /* TODO: Variabilizzare */
     border-radius: 10px; 
 }
 .drag-handle { 
@@ -305,13 +305,6 @@ input:focus {
     touch-action: manipulation; 
     flex-shrink: 0; 
 }
-@media (max-width: 768px) { 
-    .drag-handle { cursor: default; } 
-    .addon-item { flex-direction: column; align-items: flex-start; gap: 14px; position: relative; padding-left: 40px; }
-    .addon-checkbox { position: absolute; left: 12px; top: 16px; }
-    .drag-handle { width: 100%; gap: 10px; }
-    .addon-details { width: 100%; }
-}
 
 /* ====== ADDON CONTROLS ====== */
 .controls-container { 
@@ -341,26 +334,26 @@ input:focus {
     align-items: center; 
     justify-content: center; 
     transition: all var(--transition-smooth); 
-    box-shadow: 0 2px 5px rgba(0,0,0,0.45); 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.45); /* TODO: Variabilizzare */
     touch-action: manipulation;
 }
 .controls-btn:hover:not(:disabled) { 
     background: var(--controls-btn-hover-bg); 
-    box-shadow: 0 4px 12px rgba(187,134,252,0.18), inset 0 0 6px rgba(255,255,255,0.04); 
+    box-shadow: 0 4px 12px rgba(187,134,252,0.18), inset 0 0 6px rgba(255,255,255,0.04); /* TODO: Variabilizzare */
     transform: translateY(-2px); 
     color: var(--controls-btn-hover-text); 
 }
 .controls-btn:active:not(:disabled) { 
     transform: translateY(0) scale(0.98); 
-    box-shadow: 0 2px 6px rgba(187,134,252,0.12), inset 0 0 4px rgba(255,255,255,0.03); 
+    box-shadow: 0 2px 6px rgba(187,134,252,0.12), inset 0 0 4px rgba(255,255,255,0.03); /* TODO: Variabilizzare */
 }
 .controls-btn:disabled { 
     opacity: 0.45; 
     cursor: not-allowed; 
-    background: rgba(40,40,40,0.55); 
+    background: rgba(40,40,40,0.55); /* TODO: Variabilizzare */
     box-shadow: none; 
     transform: none; 
-    color: #777; 
+    color: #777; /* TODO: Variabilizzare */
 }
 .controls-btn[title*="Cima"], .controls-btn[title*="Top"] { color: var(--controls-btn-top-text); }
 .controls-btn[title*="Fondo"], .controls-btn[title*="Bottom"] { color: var(--controls-btn-bottom-text); }
@@ -390,7 +383,7 @@ input:focus {
 .icon-btn:hover:not(:disabled) { 
     transform: translateY(-2px); 
     background: var(--icon-btn-hover-bg); 
-    box-shadow: 0 4px 10px rgba(0,0,0,0.45); 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.45); /* TODO: Variabilizzare */
 }
 .remove-btn { 
     background: var(--btn-danger-bg); 
@@ -411,11 +404,7 @@ input:focus {
 }
 .remove-btn:hover:not(:disabled) { 
     transform: translateY(-2px) scale(1.06); 
-    box-shadow: 0 6px 18px rgba(255,112,140,0.22); 
-}
-@media (max-width: 768px) {
-    .controls-container { margin-left: 0; margin-top: 10px; width: 100%; flex-wrap: wrap; justify-content: flex-start; gap: 8px; }
-    .move-controls { display: grid; order: 1; }
+    box-shadow: 0 6px 18px rgba(255,112,140,0.22); /* TODO: Variabilizzare */
 }
 
 /* ====== STATUS INDICATOR ====== */
@@ -481,12 +470,12 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 .slider-ball {
     position: absolute;
-    left: 4px;  
+    left: 4px;  /* Default per dark mode */
     top: 4px;
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: #9C6BFF;  
+    background: #9C6BFF;  /* Default per dark mode */ /* TODO: Variabilizzare */
     transition: left 0.3s ease, background 0.3s ease;
 }
 
@@ -502,7 +491,7 @@ input:checked + .slider:before { transform: translateX(20px); }
     padding:7px 10px; 
     border-radius:8px; 
     border:none; 
-    background: linear-gradient(90deg,#03DAC6,#7CFFEF); 
+    background: linear-gradient(90deg,#03DAC6,#7CFFEF); /* TODO: Variabilizzare */
     font-weight:700; 
     cursor:pointer; 
 }
@@ -521,12 +510,7 @@ input:checked + .slider:before { transform: translateX(20px); }
     background: var(--btn-secondary-bg); 
     border: var(--btn-secondary-border); 
 }
-
-@media (max-width: 768px) {
-    .actions-panel { flex-direction: column; align-items: stretch; gap: 16px; }
-    .filter-group, .action-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-    .actions-panel .secondary-btn { flex-grow: 1; }
-}
+/* .filter-group .secondary-btn.active è coperto da .secondary-btn.active */
 
 /* ====== STATS PANEL ====== */
 .stats-panel {
@@ -544,7 +528,7 @@ input:checked + .slider:before { transform: translateX(20px); }
     color: var(--text-panel-h3); 
     font-family: var(--font-title); 
     font-size: 1.1rem; 
-    border-bottom: 1px solid var(--stats-panel-border); 
+    border-bottom: 1px solid var(--stats-panel-border); /* Usa lo stesso bordo del pannello */
     padding-bottom: 8px; 
 }
 .stat-item { 
@@ -586,7 +570,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 .stat-bar.errors { background: var(--stat-bar-errors-bg); } 
 .stat-bar.disabled { background: var(--stat-bar-disabled-bg); }
 .github-stats {
-    
+    /* Stili specifici per la li GitHub, se necessario */
 }
 
 /* ====== BULK ACTIONS ====== */
@@ -614,10 +598,6 @@ input:checked + .slider:before { transform: translateX(20px); }
 .bulk-actions-panel .remove-selected-btn { 
     background: var(--btn-danger-bg); /* Riusa la variabile danger */
     color: var(--btn-danger-text);
-}
-@media (max-width: 768px) {
-    .bulk-actions-panel { flex-direction: column; align-items: stretch; }
-    .bulk-actions-panel strong { text-align: center; margin-bottom: 5px; }
 }
 
 /* ====== SEARCH & LIST CONTROLS ====== */
@@ -677,11 +657,6 @@ input:checked + .slider:before { transform: translateX(20px); }
     height: 40px; 
     width: 100%; 
     padding-left: 10px; 
-}
-@media (max-width: 768px) {
-    .search-container { flex-grow: 1; }
-    .search-icon-btn { margin-left: auto; }
-    .search-input-container.visible { width: calc(100% - 50px); max-width: none; }
 }
 
 /* ====== CHECK STATUS BUTTON ====== */
@@ -787,14 +762,6 @@ input:checked + .slider:before { transform: translateX(20px); }
     background: var(--btn-secondary-bg); 
     border: var(--btn-secondary-border); 
 }
-@media (max-width: 768px) {
-    .modal-content { padding: 1.5rem; }
-    .modal-content h2 { font-size: 1.4rem; }
-    .modal-content h3 { font-size: 1rem; }
-    .modal-content p, .modal-content ul { font-size: 0.9rem; }
-    .modal-close-btn { top: 10px; right: 10px; }
-    .modal-actions { flex-wrap: wrap; justify-content: center; }
-}
 
 /* ====== GLOBAL LOADER ====== */
 .global-loader {
@@ -814,7 +781,6 @@ input:checked + .slider:before { transform: translateX(20px); }
   opacity: 1;
   visibility: visible;
 }
-/* Stili loader-spinner, particle, etc. sono principalmente animazioni, OK qui o in animations.css */
 .loader-spinner {
   width: 70px;
   height: 70px;
@@ -906,19 +872,10 @@ input:checked + .slider:before { transform: translateX(20px); }
     opacity: 1;
 }
 .toast.success { border-left-color: var(--success-color); } 
-.toast.error { border-left-color: var(--error-color); color: var(--error-color); } 
+.toast.error { border-left-color: var(--error-color); color: var(--error-color); } /* Colore testo specifico per errore */
 .toast.info { border-left-color: var(--primary-color); }
 .toast-leave-active { transition: all 0.55s ease-in; }
 .toast-leave-to { opacity: 0; transform: translateY(-100%); }
-@media (max-width: 768px) {
-    #toast-container {
-        width: calc(100% - 40px);
-        right: 20px;
-        left: 20px;
-        top: 20px;
-        bottom: auto;
-    }
-}
 
 /* ====== DETAILS EXPANDABLE ====== */
 .details-toggle-btn {
@@ -927,8 +884,8 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 .details-toggle-btn.expanded {
     transform: translateY(-2px) rotate(90deg);
-    background: rgba(187,134,252,0.22); 
-    box-shadow: 0 4px 12px rgba(187,134,252,0.18); 
+    background: rgba(187,134,252,0.22); /* TODO: Variabilizzare */
+    box-shadow: 0 4px 12px rgba(187,134,252,0.18); /* TODO: Variabilizzare */
 }
 .addon-extra-details {
     max-height: 0;
@@ -978,21 +935,12 @@ input:checked + .slider:before { transform: translateX(20px); }
     color: var(--addon-extra-li-strong);
     flex-shrink: 0;
 }
-@media (max-width: 768px) {
-    .addon-extra-details {
-        padding-left: 10px;
-        padding-right: 10px;
-    }
-    .addon-extra-details.visible {
-        padding: 12px 10px 16px 10px;
-    }
-}
 
 /* ====== AUTO-UPDATE PANEL ====== */
 .auto-update-panel {
     margin-top: 1rem;
     padding: 12px;
-    border-color: var(--bulk-actions-border); 
+    border-color: var(--bulk-actions-border); /* Riusa stile simile */
     min-height: auto;
 }
 .auto-update-header {
@@ -1016,7 +964,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 }
 .auto-update-panel .secondary-btn {
     width: 100%;
-    background: linear-gradient(90deg, #424242, #616161); 
+    background: linear-gradient(90deg, #424242, #616161); /* TODO: Variabilizzare */
     border: 1px solid rgba(255,255,255,0.06);
 }
 .auto-update-panel .secondary-btn:hover:not(:disabled) {
@@ -1092,12 +1040,12 @@ input:checked + .slider:before { transform: translateX(20px); }
     padding: 10px 12px;
     margin-bottom: 8px;
     border-radius: 8px;
-    background: rgba(187,134,252,0.06); 
+    background: rgba(187,134,252,0.06); /* TODO: Variabilizzare */
     border-left: 3px solid var(--primary-color);
     transition: background 0.25s;
 }
 .profile-list-item:hover {
-    background: rgba(187,134,252,0.18); 
+    background: rgba(187,134,252,0.18); /* TODO: Variabilizzare */
 }
 .profile-name-display {
     font-weight: 600;
@@ -1111,7 +1059,7 @@ input:checked + .slider:before { transform: translateX(20px); }
     gap: 8px;
 }
 .profile-name-edit-input {
-    background: rgba(0,0,0,0.32); 
+    background: rgba(0,0,0,0.32); /* TODO: Variabilizzare */
     border: 1px solid var(--primary-color);
     color: var(--text-color);
     padding: 5px 8px;
@@ -1125,7 +1073,7 @@ input:checked + .slider:before { transform: translateX(20px); }
     flex-shrink: 0;
 }
 .profile-actions .secondary-btn {
-    background: #2196F3; 
+    background: #2196F3; /* TODO: Variabilizzare */
     padding: 6px 10px;
     font-weight: 500;
 }
@@ -1134,17 +1082,6 @@ input:checked + .slider:before { transform: translateX(20px); }
     overflow-y: auto;
     padding-right: 5px;
     flex-shrink: 1;
-}
-@media (max-width: 768px) {
-    .panel form { margin-bottom: 0 !important; }
-    .profile-management { margin-top: 1rem !important; }
-    .profile-management h3 { padding-top: 5px !important; margin-top: 10px !important; }
-    .welcome-panel { padding: 1.5rem 1rem; }
-    .welcome-option { padding: 1rem; }
-}
-@media (max-width: 480px) {
-    .profile-list-wrapper { max-height: 240px; }
-    .profile-name-display { font-size: 0.9rem; }
 }
 
 /* ====== FLOATING SAVE BUTTON ====== */
@@ -1189,9 +1126,6 @@ input:checked + .slider:before { transform: translateX(20px); }
     height: 10px;
     margin: 0;
 }
-@media (max-width: 768px) {
-    .floating-save-btn { bottom: 20px; right: 20px; width: 50px; height: 50px; font-size: 1.3rem; }
-}
 
 /* ====== LANGUAGE SWITCHER ====== */
 .lang-switcher { 
@@ -1230,9 +1164,6 @@ input:checked + .slider:before { transform: translateX(20px); }
     background: var(--lang-select-option-bg);
     color: var(--lang-select-text);
     font-weight: 400;
-}
-@media (max-width: 768px) { 
-    .lang-switcher { margin-left: 0; margin-top: 10px; } 
 }
 
 /* ====== INTRO.JS STYLES (Tutorial) ====== */
@@ -1364,10 +1295,6 @@ header .instructions-btn:hover {
     box-shadow: 0 0 18px var(--neon-glow-primary); 
     transform: scale(1.08) rotate(5deg); 
 }
-@media (max-width: 768px) {
-    .instructions-btn { top: -5px; right: -5px; width: 32px; height: 32px; font-size: 1.1rem; }
-}
-
 
 /* ====== EXCLUDE UPDATE BUTTON ====== */
 .exclude-update-btn {
@@ -1411,11 +1338,6 @@ header .instructions-btn:hover {
     border-color: rgba(255,255,255,0.04);
     color: #777;
     box-shadow: none;
-}
-@media (max-width: 768px) {
-    .controls-container .exclude-update-btn {
-        order: 3;
-    }
 }
 
 /* ====== WELCOME PANEL SUPER WOW ====== */
@@ -1574,19 +1496,173 @@ header .instructions-btn:hover {
     text-shadow: 0 0 6px rgba(3, 218, 198, 0.32);
 }
 
-/* ====== OTTIMIZZAZIONE MOBILE ====== */
-button,
-a,
-input,
-[role="button"],
-.toggle-switch,
-.drag-handle {
-    touch-action: manipulation;
-}
-.import-preview-list {
-    margin-top: 1rem;
-}
 
-/* --- ERRORE DI SINTASSI --- 
-   La parentesi graffa '}' extra che era qui è stata rimossa 
-*/
+    .
+    /* Correzione per security notice */
+    .security-notice {
+        font-size: 0.8rem; /* Riduci font */
+        flex-wrap: wrap; /* Permetti wrap del flex per icona + testo */
+        justify-content: flex-start; /* Allinea a sinistra se necessario */
+        padding: 6px 8px; /* Riduci padding */
+        gap: 6px; /* Riduci gap tra icona e testo */
+    }
+
+    .security-text {
+        white-space: normal;
+        overflow-wrap: break-word;
+    }
+
+    /* ================================== 
+   MEDIA QUERIES RESPONSIVE
+   (Per smartphone < 600px)
+   ================================== */
+
+@media (max-width: 600px) { 
+
+    /* --- 1. IMPOSTAZIONI GLOBALI --- */
+    
+    /* Impedisce lo scroll orizzontale a livello di pagina */
+    html, body {
+        overflow-x: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    body { 
+        padding: 8px; /* Aggiunge un po' d'aria ai lati */
+        font-size: 0.92rem; 
+    }
+
+    /* Forza tutti i contenitori principali a non eccedere la larghezza */
+    main, section, .container, #app {
+        overflow-x: hidden;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* --- 2. FIX TESTO A CAPO (Per titoli, tagline, ecc.) --- */
+    
+    /* Regola globale per forzare il testo ad andare a capo */
+    h1, h2, h3, h4, h5, p, div, span, strong {
+        word-break: break-word; /* Va a capo anche su parole lunghe */
+        white-space: normal !important; /* Forza il "a capo" */
+        overflow: visible !important;   /* Evita che il testo venga tagliato */
+        hyphens: auto;
+    }
+
+    /* Correzione specifica per "Sicuro: la tua password..." */
+    .security-notice {
+        flex-wrap: wrap; /* Permette al testo di andare sotto l'icona */
+        justify-content: flex-start;
+        gap: 6px;
+        font-size: 0.85rem;
+    }
+
+    .security-text {
+        white-space: normal; /* Sicurezza extra */
+    }
+
+    /* Correzione per "Controlla il caos." */
+    .tagline { /* (Se hai una classe) */
+        font-size: 0.9rem;
+        white-space: normal;
+    }
+
+    /* --- 3. FIX LAYOUT GRIGLIA (Il problema principale) --- */
+
+    /* 1. Forza la griglia principale a 1 colonna */
+    #app.not-logged-in {
+        display: grid;
+        grid-template-columns: 1fr; /* UNA SOLA colonna */
+        gap: 1rem;
+    }
+
+    /* 2. Pannello login (che era a sinistra) */
+    .main-content {
+        grid-column: 1 / -1; /* Occupa tutta la larghezza della colonna */
+        grid-row: 2;         /* Mettilo in seconda riga (dopo l'header) */
+        max-width: 100%;
+        padding: 0;
+    }
+
+    /* 3. Pannello benvenuto "Wow" (che era a destra) */
+    .welcome-info-panel-container {
+        grid-column: 1 / -1; /* Occupa tutta la larghezza */
+        grid-row: 3;         /* Mettilo in terza riga (SOTTO il login) */
+        position: static;    /* FONDAMENTALE: Rimuovi 'sticky' */
+        max-width: 100%;
+        padding: 0;
+        margin-top: 1rem;
+    }
+
+    /* 4. Adatta il pannello "Wow" */
+    .welcome-panel.super-wow {
+        max-width: 100%;     /* Permetti al pannello di usare tutta la larghezza */
+        padding: 1rem 1.2rem;
+    }
+
+    /* --- 4. ADATTAMENTI COMPONENTI VARI --- */
+
+    .panel {
+        padding: 12px;
+        min-height: auto;
+    }
+
+    input[type="email"], 
+    input[type="password"], 
+    input[type="text"] {
+        font-size: 0.9rem;
+        padding: 10px 12px;
+    }
+
+    .primary-btn, .secondary-btn, .danger-btn, .btn-neutral, .btn-special-green, .btn-special-purple {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+
+    /* Lista Addon: stack verticale */
+    .addon-list {
+        gap: 8px;
+    }
+    .addon-item {
+        flex-direction: column; /* Stack verticale */
+        align-items: flex-start; /* Allinea a sinistra */
+        gap: 10px;
+        padding: 10px;
+    }
+
+    /* Pannelli azioni: stack verticale */
+    .actions-panel, .bulk-actions-panel {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    /* Controlli lista: ricerca full-width */
+    .list-controls-header {
+        flex-wrap: wrap; /* Permetti di andare a capo */
+    }
+    .search-input-container.visible {
+        width: 100%; /* Ricerca full-width */
+        order: 3; /* Metti la barra sotto il bottone */
+        flex-basis: 100%;
+    }
+    .search-icon-btn {
+        order: 2;
+    }
+
+    /* Modale */
+    .modal-content {
+        padding: 1.5rem 1rem;
+        width: 95vw;
+        max-width: 95vw;
+    }
+
+    /* Bottone salvataggio */
+    .floating-save-btn {
+        bottom: 20px;
+        right: 20px;
+        width: 48px;
+        height: 48px;
+        font-size: 1.3rem;
+    }
+}
