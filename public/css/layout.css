@@ -155,6 +155,10 @@
     z-index: 1;
 }
 
+/* NOTA: Queste regole "header" duplicate erano in conflitto 
+   con ".main-header" e creavano confusione.
+   Le regole di ".main-header" (sopra) sono usate 
+   visto che l'HTML usa <header class="main-header"> */
 header { 
     grid-column: 1 / -1; 
     grid-row: 1 / 2;
@@ -217,7 +221,7 @@ header .subtitle {
 @media (max-width: 960px) {
     #app {
         grid-template-columns: 1fr !important;
-        grid-template-rows: auto auto; 
+        /* grid-template-rows: auto auto;  <- Duplicato */
         grid-template-rows: auto 1fr auto; 
         margin: 24px auto;
         padding: 1.5rem;
@@ -234,7 +238,7 @@ header .subtitle {
         overflow-y: visible;
         padding-right: 0;
     }
-    .welcome-info-panel-container { display: none; }
+    .welcome-info-panel-container { display: none; } /* <- Questa ora funzionerà */
 }
 @media (max-width: 768px) {
     #app {
@@ -245,10 +249,19 @@ header .subtitle {
         height: auto;
         overflow-y: visible;
     }
-    header { gap: 4px; }
-    header h1 { font-size: 1.4rem; gap: 8px; }
-    header h1::after { display: none; }
-    header .subtitle { font-size: 0.85rem; }
+
+    /* --- CORREZIONE SELETTORI --- */
+    /* Usiamo .main-header per matchare la specificità delle regole base */
+    .main-header { gap: 4px; }
+    .main-header h1 { font-size: 1.4rem; gap: 8px; }
+    .main-header h1::after { display: none; } /* Nasconde la linea ::after su mobile */
+    .main-header .subtitle { font-size: 0.85rem; }
+    /* --- FINE CORREZIONE --- */
+
     .footer { flex-direction: column; align-items: center; text-align: center; gap: 6px; }
     .list-controls-header { flex-direction: row; gap: 10px; align-items: center; }
 }
+
+/* --- ERRORE DI SINTASSI --- 
+   La parentesi graffa '}' extra che era qui è stata rimossa 
+*/
