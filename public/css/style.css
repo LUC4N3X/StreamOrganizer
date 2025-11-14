@@ -671,7 +671,7 @@ input:checked + .slider:before { transform: translateX(20px); }
   background: rgba(187, 134, 252, 0.95);
   box-shadow: 0 0 12px rgba(187, 134, 252, 0.85);
 }
-.loader-particle:nth-child(3) { 
+.loader-particle:nth-child(3) { /* Added extra particle for bomb effect */
   transform-origin: -45px;
   animation-duration: 2.5s;
   background: var(--accent-color);
@@ -1946,12 +1946,12 @@ h1:hover {
 
 .slider-ball {
     position: absolute;
-    left: 4px;  
+    left: 4px;  /* Default per dark mode */
     top: 4px;
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: #9C6BFF;  
+    background: #9C6BFF;  /* Default per dark mode */
     transition: left 0.3s ease, background 0.3s ease;
 }
 
@@ -1992,7 +1992,7 @@ h1:hover {
 }
 
 .github-stats {
-    
+    /* Stili specifici per la li GitHub, se necessario; qui vuoto, ma puoi aggiungere */
 }
 
 .logout-btn {
@@ -2001,5 +2001,5 @@ h1:hover {
     width: 100%;
 }   
 
-
+/* ... (Mantenere tutto il CSS universale, header, e .main-content standard) ... */
 
