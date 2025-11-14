@@ -210,6 +210,16 @@ header .subtitle {
     flex-wrap: wrap; 
 }
 
+/* NEW: Disable hyphenation globally for text elements to prevent breaks like in the screenshot */
+#app * { /* Broad selector; narrow to .addon-item or specific classes if needed */
+    hyphens: none !important;
+    -webkit-hyphens: none !important;
+    -moz-hyphens: none !important;
+    word-break: normal !important; /* Allows words to wrap whole, no mid-word breaks */
+    overflow-wrap: normal !important;
+    white-space: normal !important; /* Natural wrapping */
+}
+
 /* ====== RESPONSIVE LAYOUT ====== */
 @media (max-width: 1200px) {
     #app { max-width: 1100px; }
@@ -219,7 +229,7 @@ header .subtitle {
 @media (max-width: 960px) {
     #app {
         grid-template-columns: 1fr !important;
-        grid-template-rows: auto auto auto !important; /* 3 righe: header, pannello, contenuto */
+        grid-template-rows: auto auto auto; /* 3 righe: header, pannello, contenuto */
         margin: 24px auto;
         padding: 1.5rem;
     }
@@ -299,4 +309,17 @@ header .subtitle {
     header .subtitle { font-size: 0.85rem; }
     .footer { flex-direction: column; align-items: center; text-align: center; gap: 6px; }
     .list-controls-header { flex-direction: row; gap: 10px; align-items: center; }
+    
+    /* NEW: Stack the addon list vertically on mobile to prevent narrow widths causing breaks */
+    .addon-list { /* Replace with your actual class for the container (e.g., the progress-bar-like row with 4 items) */
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 1rem !important; /* Space between items */
+        align-items: stretch !important; /* Full width for each item */
+    }
+    .addon-item { /* Replace with your actual class for each addon block (e.g., "Esp orta Bac kup (.json)") */
+        padding: 0.5rem !important; /* Add padding for readability */
+        font-size: 1rem !important; /* Slightly larger for mobile */
+        text-align: center !important; /* Center text if desired */
+    }
 }
