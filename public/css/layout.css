@@ -219,7 +219,7 @@ header .subtitle {
 @media (max-width: 960px) {
     #app {
         grid-template-columns: 1fr !important;
-        grid-template-rows: auto auto auto; /* 3 righe: header, pannello, contenuto */
+        grid-template-rows: auto auto auto !important; /* 3 righe: header, pannello, contenuto */
         margin: 24px auto;
         padding: 1.5rem;
     }
