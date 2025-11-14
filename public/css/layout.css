@@ -155,51 +155,6 @@
     z-index: 1;
 }
 
-/* NOTA: Queste regole "header" duplicate erano in conflitto 
-   con ".main-header" e creavano confusione.
-   Le regole di ".main-header" (sopra) sono usate 
-   visto che l'HTML usa <header class="main-header"> */
-header { 
-    grid-column: 1 / -1; 
-    grid-row: 1 / 2;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    position: relative;
-    min-height: 150px;
-}
-header h1 {
-    font-family: var(--font-title);
-    color: var(--primary-color);
-    font-size: 1.9rem;
-    margin: 0;
-    letter-spacing: 0.6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    user-select: none;
-    text-align: center;
-    animation: softMove 3s ease-in-out infinite, glitchText 4s infinite steps(1);
-}
-header h1::after {
-    content: "";
-    height: 2px;
-    flex: 1;
-    background: var(--header-neon-line-bg);
-    margin-left: 10px;
-    border-radius: 2px;
-    animation: glowLine 10s infinite linear;
-}
-header .subtitle { 
-    font-size: 0.95rem; 
-    color: var(--text-muted); 
-    margin-top: 2px; 
-}
-
-
 /* ====== FOOTER ====== */
 .footer { 
     display:flex; 
@@ -221,7 +176,6 @@ header .subtitle {
 @media (max-width: 960px) {
     #app {
         grid-template-columns: 1fr !important;
-        /* grid-template-rows: auto auto;  <- Duplicato */
         grid-template-rows: auto 1fr auto; 
         margin: 24px auto;
         padding: 1.5rem;
@@ -238,7 +192,7 @@ header .subtitle {
         overflow-y: visible;
         padding-right: 0;
     }
-    .welcome-info-panel-container { display: none; } /* <- Questa ora funzionerà */
+    .welcome-info-panel-container { display: none; }
 }
 @media (max-width: 768px) {
     #app {
@@ -249,19 +203,14 @@ header .subtitle {
         height: auto;
         overflow-y: visible;
     }
-
-    /* --- CORREZIONE SELETTORI --- */
-    /* Usiamo .main-header per matchare la specificità delle regole base */
     .main-header { gap: 4px; }
     .main-header h1 { font-size: 1.4rem; gap: 8px; }
-    .main-header h1::after { display: none; } /* Nasconde la linea ::after su mobile */
-    .main-header .subtitle { font-size: 0.85rem; }
-    /* --- FINE CORREZIONE --- */
-
+    .main-header h1::after { display: none; }
+    .main-header .subtitle { font-size: 0.85rem; display: none; }
     .footer { flex-direction: column; align-items: center; text-align: center; gap: 6px; }
     .list-controls-header { flex-direction: row; gap: 10px; align-items: center; }
+    input[type="email"], input[type="password"] {
+        min-width: 100%;
+        box-sizing: border-box;
+    }
 }
-
-/* --- ERRORE DI SINTASSI --- 
-   La parentesi graffa '}' extra che era qui è stata rimossa 
-*/
