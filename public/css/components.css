@@ -1512,7 +1512,7 @@ header .instructions-btn:hover {
         overflow-wrap: break-word;
     }
 
-    /* ================================== 
+/* ================================== 
    MEDIA QUERIES RESPONSIVE
    (Per smartphone < 600px)
    ================================== */
@@ -1567,39 +1567,10 @@ header .instructions-btn:hover {
         font-size: 0.9rem;
         white-space: normal;
     }
-
-    /* --- 3. FIX LAYOUT GRIGLIA (Il problema principale) --- */
-
-    /* 1. Forza la griglia principale a 1 colonna */
-    #app.not-logged-in {
-        display: grid;
-        grid-template-columns: 1fr; /* UNA SOLA colonna */
-        gap: 1rem;
-    }
-
-    /* 2. Pannello login (che era a sinistra) */
-    .main-content {
-        grid-column: 1 / -1; /* Occupa tutta la larghezza della colonna */
-        grid-row: 2;         /* Mettilo in seconda riga (dopo l'header) */
-        max-width: 100%;
-        padding: 0;
-    }
-
-    /* 3. Pannello benvenuto "Wow" (che era a destra) */
-    .welcome-info-panel-container {
-        grid-column: 1 / -1; /* Occupa tutta la larghezza */
-        grid-row: 3;         /* Mettilo in terza riga (SOTTO il login) */
-        position: static;    /* FONDAMENTALE: Rimuovi 'sticky' */
-        max-width: 100%;
-        padding: 0;
-        margin-top: 1rem;
-    }
-
-    /* 4. Adatta il pannello "Wow" */
-    .welcome-panel.super-wow {
-        max-width: 100%;     /* Permetti al pannello di usare tutta la larghezza */
-        padding: 1rem 1.2rem;
-    }
+    
+    /* NOTA: La sezione 3 (FIX LAYOUT GRIGLIA) è stata rimossa
+       perché gestita correttamente da layout.css @ 960px 
+    */
 
     /* --- 4. ADATTAMENTI COMPONENTI VARI --- */
 
