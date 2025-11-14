@@ -1586,3 +1586,7 @@ input,
 .import-preview-list {
     margin-top: 1rem;
 }
+
+/* --- ERRORE DI SINTASSI --- 
+   La parentesi graffa '}' extra che era qui è stata rimossa 
+*/
