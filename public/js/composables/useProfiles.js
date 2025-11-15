@@ -12,11 +12,11 @@ export function useProfiles(
     t
 ) {
     const savedProfiles = ref([]);
-    const selectedProfileId = ref(null);
-    
+    // const selectedProfileId = ref(null); // Rimosso perché non utilizzato
+
     // Funzioni che verranno iniettate dal setup principale
     // per evitare dipendenze circolari
-    let retrieveAddonsFromServerCallback = () => {};
+    let retrieveAddonsFromServerCallback = () => Promise.resolve(false); // Default a 'false'
     let logoutCallback = () => {};
     
     const setRetrieveAddons = (fn) => { retrieveAddonsFromServerCallback = fn; };
@@ -64,40 +64,41 @@ export function useProfiles(
         let profileName = newProfileName || profileEmail;
         if (!profileName) profileName = `User ${Date.now()}`;
 
+        const profileData = {
+            id: profileId,
+            name: profileName,
+            email: profileEmail, 
+            authKey: authKey.value,
+            isMonitoring: isMonitoring.value,
+            isEditing: false,
+            newName: profileName
+        };
+
         if (existingIndex !== -1) {
-            savedProfiles.value[existingIndex].name = profileName;
-            savedProfiles.value[existingIndex].email = profileEmail;
-            savedProfiles.value[existingIndex].authKey = authKey.value;
-            savedProfiles.value[existingIndex].isMonitoring = isMonitoring.value;
-            savedProfiles.value[existingIndex].newName = profileName;
+            savedProfiles.value[existingIndex] = {
+                ...savedProfiles.value[existingIndex], // Preserva stato 'isEditing'
+                ...profileData
+            };
         } else {
-            savedProfiles.value.push({
-                id: profileId,
-                name: profileName,
-                email: profileEmail, 
-                authKey: authKey.value,
-                isMonitoring: isMonitoring.value,
-                isEditing: false,
-                newName: profileName
-            });
+            savedProfiles.value.push(profileData);
         }
         saveProfiles();
         showToast(t.value('profiles.saveSuccess'), 'success');
     };
 
+    // *** MODIFICATO QUI ***
+    // Rimossa la logica di manipolazione del DOM.
+    // Questa funzione ora gestisce solo lo STATO.
     const startEditProfile = (profile) => {
+        // Chiudi altri input di modifica
         savedProfiles.value.forEach(p => {
             if (p.id !== profile.id && p.isEditing) p.isEditing = false;
         });
         profile.newName = profile.name || profile.email;
         profile.isEditing = true;
-        nextTick(() => {
-            const input = document.querySelector(`.profile-list-item[data-profile-id="${profile.id}"] .profile-name-edit-input`);
-            if (input) {
-                input.focus();
-                input.select();
-            }
-        });
+        
+        // La logica di focus/select deve essere gestita nel componente Vue
+        // usando 'watch' e 'nextTick'.
     };
 
     const finishEditProfile = (profile) => {
@@ -110,25 +111,40 @@ export function useProfiles(
         profile.isEditing = false;
     };
 
-    const loadProfile = (profileId) => {
+    // *** MODIFICATO QUI ***
+    // Resa la funzione 'async' e più robusta.
+    const loadProfile = async (profileId) => {
         const profile = savedProfiles.value.find(p => p.id === profileId);
         if (!profile) return;
 
-        sessionStorage.clear();
+        // 1. Esegui il logout per pulire lo stato e la sessione
+        logoutCallback(); 
         
-        authKey.value = profile.authKey;
-        email.value = profile.email;
-        isMonitoring.value = profile.isMonitoring;
-        isLoggedIn.value = true;
-        
-        sessionStorage.setItem('stremioAuthKey', profile.authKey);
-        sessionStorage.setItem('stremioEmail', profile.email);
-        sessionStorage.setItem('stremioIsMonitoring', profile.isMonitoring ? 'true' : 'false');
-        
-        // Chiama la funzione iniettata
-        retrieveAddonsFromServerCallback(profile.authKey, profile.email);
+        // 2. Tenta di caricare gli addon con il nuovo profilo
+        // 'retrieveAddonsFromServerCallback' viene da useAddons e
+        // gestirà il proprio stato 'isLoading' e i toast di errore.
+        const success = await retrieveAddonsFromServerCallback(profile.authKey, profile.email);
 
-        showToast(t.value('addon.sessionRestored'), 'success');
+        if (success) {
+            // 3. Se il caricamento riesce, imposta il nuovo stato di auth
+            authKey.value = profile.authKey;
+            email.value = profile.email;
+            isMonitoring.value = profile.isMonitoring;
+            isLoggedIn.value = true;
+            
+            // 4. Salva il nuovo stato in sessionStorage
+            sessionStorage.setItem('stremioAuthKey', profile.authKey);
+            sessionStorage.setItem('stremioEmail', profile.email);
+            sessionStorage.setItem('stremioIsMonitoring', profile.isMonitoring ? 'true' : 'false');
+            
+            // Nota: 'stremioAddonList' è già stato salvato da retrieveAddonsFromServer
+
+            showToast(t.value('addon.sessionRestored'), 'success');
+        } else {
+            // Il caricamento è fallito (es. authKey scaduto).
+            // L'utente rimane loggato fuori, che è lo stato corretto.
+            // 'retrieveAddonsFromServerCallback' ha già mostrato un toast di errore.
+        }
     };
 
     const deleteProfile = (profileId) => {
@@ -141,8 +157,9 @@ export function useProfiles(
             savedProfiles.value.splice(profileIndex, 1);
             saveProfiles();
             showToast(t.value('profiles.deleteSuccess', { name: profileName }), 'info');
+            
             if (profileId === authKey.value) {
-                // Chiama la funzione iniettata
+                // Chiama la funzione iniettata per un logout completo
                 logoutCallback();
             }
         }
@@ -150,7 +167,7 @@ export function useProfiles(
 
     return {
         savedProfiles,
-        selectedProfileId,
+        // selectedProfileId, // Rimosso
         loadProfiles,
         saveProfiles,
         saveProfile,
