@@ -34,13 +34,26 @@ export function useFiltersAndSelection(
 
     const toggleSearch = () => { 
         showSearchInput.value = !showSearchInput.value; 
-        if (showSearchInput.value) nextTick(() => searchInputRef.value?.focus()); 
+        if (showSearchInput.value) {
+            nextTick(() => searchInputRef.value?.focus()); 
+        } else {
+            // UX FIX: Resetta la ricerca quando si chiude l'input
+            searchQuery.value = ''; 
+        }
     };
     
+    // REFACTOR: Logica di blur semplificata e resa più robusta.
+    // Questa logica appartiene al componente (usando @focusout sul contenitore),
+    // ma questa versione è più pulita.
     const hideSearchOnBlur = (event) => { 
         const searchContainer = event.currentTarget.closest('.list-controls-header'); 
-        if (!searchContainer || (!searchContainer.contains(event.relatedTarget) && event.relatedTarget?.closest('.search-icon-btn') !== event.currentTarget.parentElement.querySelector('.search-icon-btn'))) 
-            showSearchInput.value = false; 
+        
+        // Se il focus si sposta su un elemento *al di fuori* del contenitore di ricerca,
+        // allora chiudiamo l'input.
+        if (searchContainer && !searchContainer.contains(event.relatedTarget)) {
+            showSearchInput.value = false;
+            searchQuery.value = ''; // Resetta anche qui
+        }
     };
 
     // --- Computed Lists ---
@@ -61,6 +74,8 @@ export function useFiltersAndSelection(
         set(reorderedFilteredList) { 
             if (isMonitoring.value) return; 
 
+            // Questa è un'ottima implementazione per mappare un
+            // riordinamento filtrato sull'elenco completo.
             const filteredUrlsMap = new Map(filteredAddons.value.map(a => [a.transportUrl, a]));
             let nextFilteredIndex = 0;
             const newAddonsList = [];
@@ -78,8 +93,8 @@ export function useFiltersAndSelection(
             
             if (JSON.stringify(addons.value.map(a => a.transportUrl)) !== JSON.stringify(newAddonsList.map(a => a.transportUrl))) {
                 addons.value = newAddonsList;
-                // recordAction è chiamato in onDragEnd
-                hasUnsavedChanges.value = true;
+                // hasUnsavedChanges è gestito da onDragEnd (da useAddons)
+                // che viene attivato nel template dopo questo 'set'.
             }
         } 
     });
@@ -106,11 +121,21 @@ export function useFiltersAndSelection(
     
     // --- Selection Logic ---
     const selectedAddons = computed(() => addons.value.filter(a => a.selected));
-    const allSelected = computed(() => addons.value.length > 0 && selectedAddons.value.length === addons.value.length);
 
+    // BUG FIX: 'allSelected' ora si basa sull'elenco VISIBILE (filtrato).
+    const allSelected = computed(() => {
+        // Non ci sono addon visibili, quindi la casella non può essere "selezionata"
+        if (filteredAddons.value.length === 0) return false;
+        // Controlla se OGNI addon visibile è attualmente selezionato
+        return filteredAddons.value.every(a => a.selected);
+    });
+
+    // BUG FIX: 'toggleSelectAll' ora opera sull'elenco VISIBILE (filtrato).
     const toggleSelectAll = () => { 
+        // Determina lo stato target in base a ciò che è visibile
         const targetState = !allSelected.value; 
-        addons.value.forEach(addon => addon.selected = targetState); 
+        // Applica lo stato solo agli addon visibili
+        filteredAddons.value.forEach(addon => addon.selected = targetState); 
     };
 
     const enableSelected = () => {
@@ -183,10 +208,10 @@ export function useFiltersAndSelection(
         disabledCount,
         errorCount,
         selectedAddons,
-        allSelected,
-        toggleSelectAll,
+        allSelected, // Corretto
+        toggleSelectAll, // Corretto
         enableSelected,
         disableSelected,
         removeSelected
     };
-}
+        }
