@@ -153,12 +153,6 @@ Accedi subito alla versione web:
 👉 <a href="https://stream-organizer.vercel.app" style="color:#7ee787;font-weight:bold;text-decoration:none;">StreamOrder Online su Vercel ⚡</a> </p> </td> </tr> </table> </div>
 
 ---
-## 🌌 Screenshot
-
-<p align="center">
-  <img src="https://github.com/Luca1234105/Provaaddon/blob/main/images/Gemini_Generated_Image_nx1h3lnx1h3lnx1h.png?raw=true" alt="Schermata StreamOrder" width="500">
-</p>
-
 ## 🧑‍💻 Crediti
 
 <p align="center">
