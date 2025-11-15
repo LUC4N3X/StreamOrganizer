@@ -14,7 +14,7 @@ export function useImportExport(
 
     // --- Refs ---
     const fileInput = ref(null);
-    const shareInput = ref(null);
+    const shareInput = ref(null); // Mantenuto per il .select() (feedback UI)
     const shareUrl = ref(null);
     const importedConfigFromUrl = ref(null);
     const showImportConfirm = ref(false);
@@ -82,7 +82,7 @@ export function useImportExport(
         };
         
         reader.readAsText(file); 
-        event.target.value = null;
+        event.target.value = null; // Ottimo!
     };
     
     const closeImportConfirm = () => { 
@@ -125,12 +125,22 @@ export function useImportExport(
         }
     };
     
-    const copyShareLink = () => {
-        if (!shareInput.value) return; 
+    // *** MODIFICATO QUI ***
+    const copyShareLink = async () => {
+        if (!shareUrl.value) {
+            showToast(t.value('addon.shareError', { message: 'No URL generated.' }), 'error');
+            return;
+        }
+        
         try { 
-            shareInput.value.select(); 
-            document.execCommand('copy'); 
+            // 1. Usa l'API moderna (asincrona)
+            await navigator.clipboard.writeText(shareUrl.value); 
             showToast(t.value('share.copySuccess'), 'success'); 
+            
+            // 2. (Opzionale) Fornisci feedback visivo selezionando il testo
+            if (shareInput.value) {
+                shareInput.value.select();
+            }
         } catch (err) { 
             showToast(t.value('addon.copyUrlError'), 'error'); 
         }
