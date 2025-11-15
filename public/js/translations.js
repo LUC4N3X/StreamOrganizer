@@ -9,6 +9,14 @@
             loggedIn: "Console rapida per gestire, ordinare e salvare gli addon",
             security: "Sicuro: la tua password non viene mai salvata." 
         },
+		
+		
+        core: {
+            themeLight: "Modalità Chiara Attiva! (Salvata)",
+            themeDark: "Modalità Scura Attiva! (Salvata)"
+        
+		
+		},
        welcome: {
             title: "Benvenuto nella Console Addon!",
             panel_p1: "Diventa il 'Root' dei tuoi addon. Ordine e controllo.",
@@ -305,8 +313,15 @@
             monitoring: "Monitoring Mode active",
             loggedIn: "Quick console to manage, order, and save addons",
             security: "Secure: Your password is never saved." // <-- AGGIUNGI QUESTA RIGA
+        
+       },
+
+      core: {
+            themeLight: "Light Mode Activated! (Saved)",
+            themeDark: "Dark Mode Activated! (Saved)"
         },
-       welcome: {
+      
+      welcome: {
             title: "Welcome to the Addon Console!",
             panel_p1: "Your Stremio addon control center.", 
             p1: "Quickly configure main options or go directly to manage your list.",
@@ -603,7 +618,13 @@
             loggedIn: "Console rapide pour gérer, ordonner et sauvegarder les addons",
             security: "Sécurisé : Votre mot de passe n'est jamais sauvegardé." // <-- AGGIUNGI QUESTA
         },
-       welcome: {
+       
+        core: {
+            themeLight: "Mode Clair Activé ! (Sauvegardé)",
+            themeDark: "Mode Sombre Activé ! (Sauvegardé)"
+        },
+      
+      welcome: {
             title: "Bienvenue sur la Console Addon!",
             panel_p1: "Votre centre de contrôle pour les addons Stremio.", 
             p1: "Configurez rapidement les options principales ou allez directement gérer votre liste.",
@@ -900,7 +921,13 @@
             loggedIn: "Schnellkonsole zum Verwalten, Sortieren und Speichern von Addons",
             security: "Sicher: Ihr Passwort wird niemals gespeichert." // <-- AGGIUNGI QUESTA
         },
-       welcome: {
+       
+      core: {
+            themeLight: "Hellmodus aktiviert! (Gespeichert)",
+            themeDark: "Dunkelmodus aktiviert! (Gespeichert)"
+        },
+      
+      welcome: {
             title: "Willkommen zur Addon-Konsole!",
             panel_p1: "Deine Kontrollzentrale für Stremio-Addons..", 
             p1: "Konfigurieren Sie schnell die wichtigsten Optionen oder gehen Sie direkt zur Verwaltung Ihrer Liste.",
@@ -1197,7 +1224,13 @@
             loggedIn: "Consola rápida para gestionar, ordenar y guardar addons",
             security: "Seguro: Tu contraseña nunca se guarda." // <-- AGGIUNGI QUESTA
         },
-        welcome: {
+        
+      core: {
+            themeLight: "¡Modo Claro Activado! (Guardado)",
+            themeDark: "¡Modo Oscuro Activado! (Guardado)"
+        },
+      
+      welcome: {
             title: "¡Bienvenido a la Consola de Addons!",
             panel_p1: "Tu centro de control para addons de Stremio.", 
             p1: "Configura rápidamente las opciones principales o ve directamente a gestionar tu lista.",
@@ -1494,7 +1527,13 @@
             loggedIn: "Швидка консоль для керування, сортування та збереження додатків",
             security: "Безпечно: Ваш пароль ніколи не зберігається." // <-- AGGIUNGI QUESTA
         },
-        welcome: {
+        
+      core: {
+            themeLight: "Світлий режим активовано! (Збережено)",
+            themeDark: "Темний режим активовано! (Збережено)"
+        },
+      
+      welcome: {
             title: "Ласкаво просимо до Консолі Додатків!",
             panel_p1: "Ваш центр керування додатками Stremio.",
             p1: "Швидко налаштуйте основні опції або перейдіть безпосередньо до керування списком.",
@@ -1791,7 +1830,13 @@
             loggedIn: "Console rápido para gerenciar, ordenar e salvar addons",
             security: "Seguro: Sua senha nunca é salva." // <-- AGGIUNGI QUESTA
         },
-        welcome: {
+        
+      core: {
+            themeLight: "Modo Claro Ativado! (Guardado)",
+            themeDark: "Modo Escuro Ativado! (Guardado)"
+        },
+      
+      welcome: {
             title: "Bem-vindo ao Console de Addons!",
             panel_p1: "Seu centro de controle para addons Stremio.",
             p1: "Configure rapidamente as opções principais ou vá direto para o gerenciamento da sua lista.",
