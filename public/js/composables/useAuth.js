@@ -1,7 +1,7 @@
 // public/js/composables/useAuth.js
 
 // 'ref' viene passato come primo argomento
-export function useAuth(ref, apiBaseUrl, showToast, t, mapAddon, isLoading, addons) { // Rimosso resetHistory da qui
+export function useAuth(ref, apiBaseUrl, showToast, t, mapAddon, isLoading, addons) {
 
     // --- Auth Refs ---
     const email = ref('');
@@ -21,8 +21,32 @@ export function useAuth(ref, apiBaseUrl, showToast, t, mapAddon, isLoading, addo
     const providedAuthKey = ref(''); // Per l'input del token
     
     // --- Callback per dipendenza circolare ---
-    let resetHistoryCallback = () => {};
+    let resetHistoryCallback = () => { console.error("resetHistoryCallback not set in useAuth"); };
     const setResetHistory = (fn) => { resetHistoryCallback = fn; };
+
+    // --- Helper interno per centralizzare la logica di successo login ---
+    const _handleLoginSuccess = (data, userEmail, isMon = false) => {
+        authKey.value = data.authKey;
+        email.value = userEmail;
+        isLoggedIn.value = true;
+        isMonitoring.value = isMon;
+        
+        const mappedAddons = data.addons.map(mapAddon);
+        addons.value = mappedAddons;
+        
+        // Salva tutto in sessione
+        sessionStorage.setItem('stremioAuthKey', authKey.value);
+        sessionStorage.setItem('stremioEmail', email.value);
+        sessionStorage.setItem('stremioIsMonitoring', String(isMon));
+        sessionStorage.setItem('stremioAddonList', JSON.stringify(mappedAddons));
+        
+        showToast(
+            isMon ? t.value('addon.monitorSuccess', { email: userEmail }) : t.value('addon.loginSuccess'),
+            isMon ? 'info' : 'success'
+        );
+        
+        resetHistoryCallback(); // Resetta la cronologia per qualsiasi tipo di login
+    };
 
     const login = async () => {
         isLoading.value = true;
@@ -40,33 +64,21 @@ export function useAuth(ref, apiBaseUrl, showToast, t, mapAddon, isLoading, addo
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            const data = await response.json();
+            const data = await response.json(); // Leggi sempre il JSON
             
             if (!response.ok) {
                 const errorMsg = data.error?.message || data.message || 'Login failed.';
                 throw new Error(errorMsg);
             }
 
-            authKey.value = data.authKey;
-            isLoggedIn.value = true;
-            isMonitoring.value = false;
+            // Gestisci placeholder per login con solo token
+            const userEmail = (loginMode.value === 'token' && !email.value) 
+                ? 'TokenAccessUser' 
+                : email.value;
             
-            if (loginMode.value === 'token' && !email.value) {
-                email.value = 'TokenAccessUser'; // Placeholder
-            }
+            _handleLoginSuccess(data, userEmail, false);
             
-            sessionStorage.setItem('stremioAuthKey', authKey.value);
-            sessionStorage.setItem('stremioEmail', email.value);
-            sessionStorage.setItem('stremioIsMonitoring', 'false');
-            sessionStorage.setItem('stremioAddonList', JSON.stringify(data.addons.map(mapAddon)));
-            
-            addons.value = data.addons.map(mapAddon);
-            showToast(t.value('addon.loginSuccess'), 'success');
-            
-            resetHistoryCallback(); // Usa il callback
-            
-            // Restituire true per segnalare al setup di mostrare la welcome screen
-            return true; 
+            return true; // Segnala successo al setup (per welcome screen)
             
         } catch (err) {
             showToast(err.message, 'error');
@@ -76,34 +88,31 @@ export function useAuth(ref, apiBaseUrl, showToast, t, mapAddon, isLoading, addo
         }
     };
 
-    const monitorLogin = async (showWelcomeScreenRef) => {
+    // 'showWelcomeScreenRef' è stato rimosso dai parametri.
+    // La funzione ora restituisce 'true' in caso di successo, come fa 'login'.
+    const monitorLogin = async () => {
         isLoading.value = true; 
-        isMonitoring.value = false;
         try {
             const response = await fetch(`${apiBaseUrl}/api/admin/monitor`, { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify({ adminKey: adminKey.value, targetEmail: targetEmail.value }) 
             });
-            if (!response.ok) throw new Error((await response.json()).error.message || 'Access Denied.');
-            const data = await response.json();
             
-            authKey.value = data.authKey; 
-            isLoggedIn.value = true; 
-            isMonitoring.value = true; 
-            email.value = targetEmail.value;
+            const data = await response.json(); // Leggi sempre il JSON all'inizio
             
-            showToast(t.value('addon.monitorSuccess', { email: targetEmail.value }), 'info');
-            sessionStorage.setItem('stremioAuthKey', authKey.value);
-            sessionStorage.setItem('stremioEmail', email.value);
-            sessionStorage.setItem('stremioIsMonitoring', 'true');
-            sessionStorage.setItem('stremioAddonList', JSON.stringify(data.addons.map(mapAddon)));
+            if (!response.ok) {
+                const errorMsg = data.error?.message || data.message || 'Access Denied.';
+                throw new Error(errorMsg);
+            }
             
-            addons.value = data.addons.map(mapAddon);
-            showWelcomeScreenRef.value = true; // Mostra la welcome screen
+            _handleLoginSuccess(data, targetEmail.value, true);
+            
+            return true; // Segnala successo al setup (per welcome screen)
 
         } catch (err) { 
             showToast(t.value('addon.monitorError', { message: err.message }), 'error'); 
+            return false; // Segnala fallimento
         } finally { 
             isLoading.value = false; 
         }
