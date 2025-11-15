@@ -1,63 +1,95 @@
-// public/js/composables/useHistory.js
-
-// 'ref' viene passato come primo argomento
-export function useHistory(ref, addons, isLoading, isMonitoring, showToast, t, deepClone) {
+export function useHistory(vueDeps, addons, deps, options = {}) {
     
-    const history = ref([]); 
+    // Estraiamo 'ref' e 'computed' dall'oggetto passato
+    const { ref, computed } = vueDeps;
+    
+    // Estraiamo le altre dipendenze
+    const { isLoading, isMonitoring, showToast, t, deepClone } = deps;
+    
+    const { historyLimit = 30 } = options;
+
+    const history = ref([]);
     const redoStack = ref([]);
     const actionLog = ref([]);
     const redoActionLog = ref([]);
-    const hasUnsavedChanges = ref(false); 
+    const hasUnsavedChanges = ref(false);
 
+    // --- Proprietà Reattive ---
+
+    // Usiamo 'computed' (passato come dipendenza) per esporre lo stato
+    const canUndo = computed(() => history.value.length > 0 && !isMonitoring.value);
+    const canRedo = computed(() => redoStack.value.length > 0 && !isMonitoring.value);
+
+    // --- Metodi ---
+
+    /**
+     * Registra lo stato *corrente* nello storico prima di una modifica.
+     * @param {String} description La descrizione dell'azione eseguita.
+     */
     const recordAction = (description) => {
-        if (isLoading.value || isMonitoring.value) return; 
-        
-        history.value.push(deepClone(addons.value)); 
+        if (isLoading.value || isMonitoring.value) return;
+
+        history.value.push(deepClone(addons.value));
         actionLog.value.push(description);
-        
-        redoStack.value = []; 
+
+        // Una nuova azione resetta sempre lo stack di redo.
+        redoStack.value = [];
         redoActionLog.value = [];
-        
-        if (history.value.length > 30) {
+
+        // Applica il limite dello storico.
+        if (history.value.length > historyLimit) {
             history.value.shift();
             actionLog.value.shift();
         }
-        
-        hasUnsavedChanges.value = true; 
+
+        hasUnsavedChanges.value = true;
     };
 
-    const undo = () => { 
-        if (history.value.length === 0 || isMonitoring.value) return; 
+    /**
+     * Annulla l'ultima azione.
+     */
+    const undo = () => {
+        if (!canUndo.value) return;
         if (actionLog.value.length === 0) { console.error("History state and action log out of sync."); return; }
 
-        redoStack.value.push(deepClone(addons.value)); 
+        // Salva lo stato corrente (prima di annullare) nello stack di redo.
+        redoStack.value.push(deepClone(addons.value));
         const lastActionUndone = actionLog.value.pop();
         redoActionLog.value.push(lastActionUndone);
-        
-        addons.value = history.value.pop();
-        
-        showToast(t.value('actions.undoPerformed', { action: lastActionUndone }), 'info');
 
-        if (history.value.length === 0) hasUnsavedChanges.value = false; 
-        addons.value.forEach(a => a.selected = false); 
+        // Ripristina lo stato precedente.
+        addons.value = history.value.pop();
+
+        // Usa t.value
+        showToast(t.value('actions.undoPerformed', { action: lastActionUndone }), 'info');
+        
+       
     };
     
-    const redo = () => { 
-        if (redoStack.value.length === 0 || isMonitoring.value) return; 
+    /**
+     * Ripete l'ultima azione annullata.
+     */
+    const redo = () => {
+        if (!canRedo.value) return;
         if (redoActionLog.value.length === 0) { console.error("Redo state and action log out of sync."); return; }
 
-        history.value.push(deepClone(addons.value)); 
+        // Salva lo stato corrente (prima di ripetere) nello stack di undo.
+        history.value.push(deepClone(addons.value));
         const lastActionRedone = redoActionLog.value.pop();
         actionLog.value.push(lastActionRedone);
 
-        addons.value = redoStack.value.pop(); 
+        // Ripristina lo stato "futuro".
+        addons.value = redoStack.value.pop();
 
+        
         showToast(t.value('actions.redoPerformed', { action: lastActionRedone }), 'info');
+        hasUnsavedChanges.value = true;
+    }
 
-        hasUnsavedChanges.value = true; 
-        addons.value.forEach(a => a.selected = false); 
-    };
-
+    /**
+     * Resetta completamente lo storico.
+     * Chiamare tipicamente dopo un salvataggio o al caricamento iniziale.
+     */
     const resetHistory = () => {
         history.value = [];
         redoStack.value = [];
@@ -66,12 +98,15 @@ export function useHistory(ref, addons, isLoading, isMonitoring, showToast, t, d
         hasUnsavedChanges.value = false;
     };
 
+    // Esponi le funzioni e le proprietà reattive.
     return {
         history,
         redoStack,
         actionLog,
         redoActionLog,
         hasUnsavedChanges,
+        canUndo, 
+        canRedo, 
         recordAction,
         undo,
         redo,
