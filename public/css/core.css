@@ -1,0 +1,144 @@
+/* ====== UNIVERSAL RESET ====== */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* ====== CSS VARIABLES (enhanced with more dynamic theming and effects) ====== */
+:root {
+    /* Dark Mode Colors - Enhanced neon palette for cyberpunk vibe */
+    --primary-color: #BB86FC; /* Purple Neon */
+    --secondary-color: #03DAC6; /* Cyan Neon */
+    --error-color: #CF6679; /* Pink/Red Neon */
+    --accent-color: #FF00FF; /* Magenta Neon for highlights */
+    --bg-dark-primary: #0c0311;
+    --bg-dark-secondary: #08020a;
+    --text-light: #e4e4e4;
+    --text-muted: rgba(230, 230, 230, 0.75);
+    --border-light: rgba(255, 255, 255, 0.05);
+    --shadow-dark: rgba(0, 0, 0, 0.6);
+    --neon-glow-primary: rgba(187, 134, 252, 0.25);
+    --neon-glow-secondary: rgba(3, 218, 198, 0.18);
+    --neon-glow-accent: rgba(255, 0, 255, 0.15);
+    
+    /* Variabili RGB per Canali Alpha Dinamici (Manutenibilità) */
+    --primary-rgb: 187, 134, 252;
+    --secondary-rgb: 3, 218, 198;
+    --error-rgb: 207, 102, 121;
+    
+    /* Light Mode Colors - Brighter, more vibrant for contrast */
+    --primary-light: #2979FF; /* Blue */
+    --secondary-light: #1DE9B6; /* Green/Cyan */
+    --error-light: #FF1744; /* Red */
+    --bg-light-primary: #fafafa;
+    --bg-light-secondary: #f4f4f4;
+    --text-dark: #1f1f1f;
+    --text-muted-light: rgba(51, 51, 51, 0.75);
+    --border-dark: rgba(0, 0, 0, 0.1);
+    --shadow-light: rgba(0, 0, 0, 0.1);
+    
+    /* Common - Added more transitions and fonts */
+    --font-main: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-title: 'Orbitron', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace; /* For code-like elements */
+    --transition-fast: 0.15s ease;
+    --transition-smooth: 0.28s cubic-bezier(0.4, 0.0, 0.2, 1); /* VELOCIZZATO */
+    --neon-blur: blur(1px);
+    --glitch-duration: 0.5s;
+}
+
+/* ====== BASE STYLES (Dark Mode Default with enhanced gradients) ====== */
+html,
+body {
+    min-height: 100vh;
+    height: 100%;
+    font-family: var(--font-main);
+    background: radial-gradient(circle at top left, var(--bg-dark-primary) 0%, var(--bg-dark-secondary) 80%);
+    color: var(--text-light);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    line-height: 1.6;
+    transition: background var(--transition-smooth), color var(--transition-smooth);
+}
+
+/* ====== TEXT SELECTION (added neon glow) ====== */
+::selection {
+    background: var(--primary-color);
+    color: #fff;
+    text-shadow: 0 0 5px var(--neon-glow-primary);
+}
+
+/* ====== SCROLLBAR (WebKit - Added hover effects and smoother transitions) ====== */
+::-webkit-scrollbar {
+    width: 10px;
+}
+::-webkit-scrollbar-track {
+    background: #0b040d;
+    border-radius: 5px;
+    transition: background var(--transition-fast);
+}
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #412452, #3a2a45);
+    border-radius: 6px;
+    border: 2px solid #0b040d;
+    transition: background var(--transition-smooth), transform var(--transition-fast);
+}
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #613c7d, #503a60);
+    transform: scale(1.1);
+}
+
+/* ====== SCROLLBAR (Firefox - Enhanced colors) ====== */
+html {
+    scrollbar-width: thin;
+    scrollbar-color: #3a2a45 #0b040d;
+}
+
+/* ====== OTTIMIZZAZIONE MOBILE ====== */
+button,
+a,
+input,
+[role="button"],
+.toggle-switch,
+.drag-handle {
+    touch-action: manipulation;
+}
+
+/* ====== GLOBAL ANIMATION UTILITIES (Vue Transitions & Generic Keyframes) ====== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes softMove {
+    0% { transform: translate(0, 0) skewX(0deg); }
+    20% { transform: translate(-0.5px, 0.5px) skewX(0.3deg); }
+    40% { transform: translate(0.5px, -0.5px) skewX(-0.3deg); }
+    60% { transform: translate(-0.2px, 0.2px) skewX(0.1deg); }
+    80% { transform: translate(0.2px, -0.2px) skewX(-0.1deg); }
+    100% { transform: translate(0, 0) skewX(0deg); }
+}
+
+@keyframes pulseGlow {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+}
+
+@keyframes glowLine {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+}
+
+.fade-enter-active, .fade-leave-active {
+    transition: opacity .3s ease;
+}
+
+.fade-enter-from, .fade-leave-to {
+    opacity: 0;
+}
