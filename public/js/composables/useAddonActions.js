@@ -1,5 +1,3 @@
-// public/js/composables/useAddonActions.js
-
 // 'ref' viene passato come argomento
 export function useAddonActions(
     ref,
@@ -10,7 +8,7 @@ export function useAddonActions(
     showToast,
     t,
     addons,
-    saveOrder // saveOrder viene da useAddons, ma è passato dal setup principale
+    saveOrder 
 ) {
     
     const isAutoUpdateEnabled = ref(false);
@@ -21,7 +19,7 @@ export function useAddonActions(
         isLoading.value = true;
         showToast(t.value('addon.statusCheck'), 'info');
         let errorCountLocal = 0;
-   
+    
         await Promise.allSettled(addons.value.map(async (addon) => {
             addon.status = 'checking';
             addon.errorDetails = null;
@@ -62,20 +60,21 @@ export function useAddonActions(
         
         const githubRepoRegex = /(https?:\/\/github\.com\/[\w-]+\/[\w-]+)/;
         const githubPagesRegex = /https?:\/\/([\w-]+)\.github\.io\/([\w-]+)/;
-        let repoUrl = null;
-        let match = null;
-
-        match = description.match(githubRepoRegex);
-        if (match) repoUrl = match[0];
-
-        if (!repoUrl) {
-            match = transportUrl.match(githubRepoRegex);
-            if (match) repoUrl = match[0];
-        }
         
-        if (!repoUrl) {
+        let repoUrl = null;
+        let match;
+
+        // Cerca prima un URL GitHub diretto (in descrizione o URL)
+        match = description.match(githubRepoRegex) || transportUrl.match(githubRepoRegex);
+        
+        if (match) {
+            repoUrl = match[0];
+        } else {
+            
             match = transportUrl.match(githubPagesRegex);
-            if (match) repoUrl = `https://github.com/${match[1]}/${match[2]}`;
+            if (match) {
+                repoUrl = `https://github.com/${match[1]}/${match[2]}`;
+            }
         }
 
         if (!repoUrl) {
@@ -137,12 +136,20 @@ export function useAddonActions(
             if (isManual) showToast(isMonitoring.value ? t.value('addon.monitorModeActive') : "Operazione già in corso o non loggato.", 'error'); 
             return; 
         }
+
         isLoading.value = true; 
         isUpdating.value = true; 
         showToast(t.value('autoUpdate.running'), 'info');
+        
         let updatedCount = 0; 
         let failedCount = 0; 
         let hasManifestChanges = false;
+
+        
+        const getComparableManifest = (m) => {
+            const { version, description, logo, types, resources, id, behaviorHints, configurable } = m;
+            return JSON.stringify({ version, description, logo, types, resources, id, behaviorHints, configurable });
+        };
         
         const fetchAndUpdateAddon = async (addon) => {
             const transportUrl = addon.transportUrl || '';
@@ -164,7 +171,6 @@ export function useAddonActions(
                 try { newManifest = JSON.parse(responseText); } catch (e) { throw new Error(`Invalid JSON response.`); }
                 if (!response.ok || newManifest.error) throw new Error(newManifest.error?.message || "Failed to fetch");
                 
-                const getComparableManifest = (m) => { const { version, description, logo, types, resources, id, behaviorHints, configurable } = m; return JSON.stringify({ version, description, logo, types, resources, id, behaviorHints, configurable }); };
                 const oldManifestComparable = getComparableManifest(addon.manifest);
                 const newManifestComparable = getComparableManifest(newManifest);
                 
@@ -184,26 +190,32 @@ export function useAddonActions(
             }
         }; 
 
-        const results = await Promise.allSettled(addons.value.map(fetchAndUpdateAddon));
-        
-        if (hasManifestChanges) { 
-            showToast(t.value('autoUpdate.foundChanges', { count: updatedCount, failed: failedCount }), 'info'); 
-            // hasUnsavedChanges è impostato nel setup principale
-            await saveOrder(isUpdating); // Passa isUpdating a saveOrder
-        } else { 
-            showToast(t.value('autoUpdate.noChanges', { failed: failedCount }), failedCount > 0 ? 'error' : 'success'); 
+        try {
+            const results = await Promise.allSettled(addons.value.map(fetchAndUpdateAddon));
+            
+            if (hasManifestChanges) { 
+                showToast(t.value('autoUpdate.foundChanges', { count: updatedCount, failed: failedCount }), 'info'); 
+                // hasUnsavedChanges è impostato nel setup principale
+                await saveOrder(); 
+            } else { 
+                showToast(t.value('autoUpdate.noChanges', { failed: failedCount }), failedCount > 0 ? 'error' : 'success'); 
+            }
+            
+            try { 
+                localStorage.setItem('stremioLastAutoUpdate', new Date().toISOString()); 
+                lastUpdateCheck.value = new Date().toISOString(); 
+            } catch (e) { 
+                console.warn("Cannot save last update time to localStorage.");
+            }
+        } catch (err) {
+            // Gestisce errori che potrebbero avvenire in saveOrder()
+            console.error("Errore durante il processo di salvataggio post-aggiornamento:", err);
+            showToast(t.value('autoUpdate.genericError', { message: err.message }), 'error');
+        } finally {
+           
             isLoading.value = false; 
-            isUpdating.value = false; // Resetta qui se saveOrder non è chiamato
+            isUpdating.value = false;
         }
-        
-        try { 
-            localStorage.setItem('stremioLastAutoUpdate', new Date().toISOString()); 
-            lastUpdateCheck.value = new Date().toISOString(); 
-        } catch (e) { 
-            console.warn("Cannot save last update time to localStorage.");
-        }
-        
-        // isUpdating.value è resettato da saveOrder o qui sopra
     }; 
 
     const scheduleUpdateCheck = () => {
@@ -218,7 +230,7 @@ export function useAddonActions(
             if (isLoggedIn.value && isAutoUpdateEnabled.value && !isMonitoring.value) { 
                 await runAutoUpdate(false); 
             } 
-            scheduleUpdateCheck(); // Riprogramma
+            scheduleUpdateCheck(); 
         }, timeToNextUpdate);
     };
 
@@ -238,7 +250,7 @@ export function useAddonActions(
 
     // Inizializza le preferenze di auto-update
     const initAutoUpdate = () => {
-         try {
+        try {
             isAutoUpdateEnabled.value = localStorage.getItem('stremioAutoUpdateEnabled') === 'true';
             lastUpdateCheck.value = localStorage.getItem('stremioLastAutoUpdate');
         } catch (e) { 
@@ -257,6 +269,6 @@ export function useAddonActions(
         runAutoUpdate,
         openConfiguration,
         copyManifestUrl,
-        initAutoUpdate // Esponi la funzione di inizializzazione
+        initAutoUpdate 
     };
 }
