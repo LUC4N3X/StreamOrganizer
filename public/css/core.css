@@ -8,30 +8,29 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-/* ====== CSS VARIABLES  ====== */
+/* ====== CSS VARIABLES (RGB-BASED DYNAMIC THEME) ====== */
+/* Default: Dark Mode */
 :root {
-    /* RGB Channels (tutto parte da qui – zero hex nel resto del file) */
-    --primary-rgb: 187, 134, 252;      /* #BB86FC Dark */
-    --secondary-rgb: 3, 218, 198;      /* #03DAC6 Dark */
+    --primary-rgb: 187, 134, 252;      /* #BB86FC */
+    --secondary-rgb: 3, 218, 198;        /* #03DAC6 */
     --accent-rgb: 255, 0, 255;         /* #FF00FF */
-    --error-rgb: 207, 102, 121;        /* #CF6679 */
+    --error-rgb: 207, 102, 121;      /* #CF6679 */
 
-    --bg-primary-rgb: 12, 3, 17;       /* #0c0311 */
-    --bg-secondary-rgb: 8, 2, 10;      /* #08020a */
-    --track-rgb: 11, 4, 13;            /* #0b040d  */
+    --bg-primary-rgb: 12, 3, 17;         /* #0c0311 */
+    --bg-secondary-rgb: 8, 2, 10;        /* #08020a */
+    --track-rgb: 11, 4, 13;          /* #0b040d */
 
     --text-primary-rgb: 228, 228, 228;
     --text-muted-rgb: 230, 230, 230;
     --border-rgb: 255, 255, 255;
     --shadow-rgb: 0, 0, 0;
 
-    /* Glow intensity */
     --glow-primary: 0.35;
     --glow-secondary: 0.22;
     --glow-accent: 0.28;
     --glow-soft: 0.15;
 
-    /* Colori finali  */
+    /* Colori finali */
     --primary-color: rgb(var(--primary-rgb));
     --secondary-color: rgb(var(--secondary-rgb));
     --accent-color: rgb(var(--accent-rgb));
@@ -43,32 +42,34 @@
 
     --text-light: rgb(var(--text-primary-rgb));
     --text-muted: rgba(var(--text-muted-rgb), 0.75);
-    --border-light: rgba(var(--border-rgb), 0.05);
+    --border-light: rgba(var(--border-rgb), 0.05); /* 5% opacità per bordi desktop */
     --shadow-dark: rgba(var(--shadow-rgb), 0.6);
 
     --neon-glow-primary: rgba(var(--primary-rgb), var(--glow-primary));
     --neon-glow-secondary: rgba(var(--secondary-rgb), var(--glow-secondary));
     --neon-glow-accent: rgba(var(--accent-rgb), var(--glow-accent));
 
-    /* Light Mode RGB (si attivano con prefers-color-scheme) */
-    --primary-light-rgb: 41, 121, 255;       /* #2979FF */
-    --secondary-light-rgb: 29, 233, 182;     /* #1DE9B6 */
-    --error-light-rgb: 255, 23, 68;          /* #FF1744 */
-    --bg-light-primary-rgb: 250, 250, 250;   /* #fafafa */
-    --bg-light-secondary-rgb: 244, 244, 244; /* #f4f4f4 */
+    /* Light mode RGB (per media query) */
+    --primary-light-rgb: 41, 121, 255;
+    --secondary-light-rgb: 29, 233, 182;
+    --error-light-rgb: 255, 23, 68;
+    --bg-light-primary-rgb: 250, 250, 250;
+    --bg-light-secondary-rgb: 244, 244, 244;
     --text-dark-rgb: 31, 31, 31;
 
-    /* Common */
+    /* Font stack */
     --font-main: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --font-title: 'Orbitron', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
+    
+    /* Utilities */
     --transition-fast: 0.15s ease;
-    --transition-smooth: 0.28s cubic-bezier(0.4, 0.0, 0.2, 1);
+    --transition-smooth: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     --neon-blur: blur(1px);
     --glitch-duration: 0.5s;
 }
 
-/* ====== LIGHT MODE PERFETTA  ====== */
+/* ====== LIGHT MODE (prefers-color-scheme) ====== */
 @media (prefers-color-scheme: light) {
     :root {
         --primary-rgb: var(--primary-light-rgb);
@@ -94,9 +95,14 @@
         --border-light: rgba(var(--border-rgb), 0.1);
         --shadow-dark: rgba(var(--shadow-rgb), 0.1);
     }
+
+    ::selection,
+    ::-moz-selection {
+        color: #000 !important;
+    }
 }
 
-/* ====== BASE STYLES  ====== */
+/* ====== BASE STYLES & BACKGROUND ====== */
 html,
 body {
     min-height: 100vh;
@@ -105,7 +111,7 @@ body {
     background: radial-gradient(circle at top left, var(--bg-primary) 0%, var(--bg-secondary) 80%);
     color: var(--text-light);
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    -moz-osx-font-smoothing: antialiased;
     overflow-x: hidden;
     scroll-behavior: smooth;
     line-height: 1.6;
@@ -113,13 +119,14 @@ body {
 }
 
 /* ====== TEXT SELECTION ====== */
-::selection {
+::selection,
+::-moz-selection {
     background: var(--primary-color);
-    color: #000;
+    color: #fff;
     text-shadow: 0 0 5px var(--neon-glow-primary);
 }
 
-/* ====== SCROLLBAR  ====== */
+/* ====== CUSTOM SCROLLBAR ====== */
 ::-webkit-scrollbar {
     width: 10px;
 }
@@ -138,17 +145,73 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
-    transform: scale(1.1);
     box-shadow: 0 0 16px var(--neon-glow-primary);
 }
-
-/* Firefox */
 html {
     scrollbar-width: thin;
     scrollbar-color: color-mix(in srgb, var(--primary-color) 85%, black) var(--track-color);
 }
 
-/* ====== OTTIMIZZAZIONE MOBILE ====== */
+/* ========================================================== */
+/* ====== MOBILE OVERRIDE (FORCED DARK MODE) ====== */
+/* ========================================================== */
+/*
+ * Forza il tema scuro su schermi < 768px per coerenza visiva.
+ * Questo previene conflitti con 'prefers-color-scheme: light' 
+ * (es. testo nero su sfondo scuro) e risolve problemi
+ * di 'black smearing' e contrasto (input/bordi).
+*/
+@media (max-width: 768px) {
+    :root {
+        /* 1. FORZA COLORI BASE DARK */
+        --primary-rgb: 187, 134, 252;
+        --secondary-rgb: 3, 218, 198;
+        --error-rgb: 207, 102, 121;
+
+        /* 2. FORZA SFONDO SCURO (con tuning per OLED) */
+        --bg-primary-rgb: 18, 8, 22;
+        --bg-secondary-rgb: 12, 4, 15;
+        --track-rgb: 11, 4, 13;
+
+        /* 3. FORZA TESTO CHIARO (Fix per light mode) */
+        --text-primary-rgb: 228, 228, 228;
+        --text-muted-rgb: 230, 230, 230;
+
+        /* 4. FORZA BORDI CHIARI */
+        --border-rgb: 255, 255, 255;
+        --shadow-rgb: 0, 0, 0;
+
+        /* 5. AGGIUSTA GLOW MOBILE */
+        --glow-primary: 0.28;
+
+        /* 6. RICOSTRUISCI VARIABILI FINALI */
+        --bg-primary: rgb(var(--bg-primary-rgb));
+        --bg-secondary: rgb(var(--bg-secondary-rgb));
+        --track-color: rgb(var(--track-rgb));
+        --text-light: rgb(var(--text-primary-rgb));
+        --text-muted: rgba(var(--text-muted-rgb), 0.75);
+        
+        /* Opacità 20% per input visibili su mobile */
+        --border-light: rgba(var(--border-rgb), 0.2);
+        --shadow-dark: rgba(var(--shadow-rgb), 0.6);
+
+        --neon-glow-primary: rgba(var(--primary-rgb), var(--glow-primary));
+    }
+
+    /* Applica il nuovo sfondo mobile */
+    html,
+    body {
+        background: radial-gradient(ellipse at 50% 20%, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    }
+
+    /* 7. FIX SELECTION (forza testo bianco) */
+    ::selection,
+    ::-moz-selection {
+        color: #fff !important;
+    }
+}
+
+/* ====== OTTIMIZZAZIONI TOUCH ====== */
 button,
 a,
 input,
@@ -158,7 +221,7 @@ input,
     touch-action: manipulation;
 }
 
-/* ====== ANIMATIONS  ====== */
+/* ====== KEYFRAME ANIMATIONS ====== */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
@@ -179,7 +242,6 @@ input,
     0% { filter: hue-rotate(0deg); }
     100% { filter: hue-rotate(360deg); }
 }
-
 .fade-enter-active, .fade-leave-active {
     transition: opacity .3s ease;
 }
