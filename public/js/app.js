@@ -4,7 +4,7 @@ const { createApp, ref, computed, onMounted, onBeforeUnmount, watch, nextTick } 
 // Importa utils
 import { debounce, mapAddon, deepClone, getResourceNames } from './utils.js';
 
-// Importa il fix per lo scroll (solo per side effects)
+// Importa il fix per lo scroll 
 import './mobile-scroll-fix.js';
 
 // Importa i Composables
