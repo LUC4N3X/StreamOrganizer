@@ -1,3 +1,4 @@
+/* ====== UNIVERSAL RESET ====== */
 *,
 *::before,
 *::after {
@@ -7,56 +8,101 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-/* ====== CSS VARIABLES (enhanced with more dynamic theming and effects) ====== */
+/* ====== CSS VARIABLES (TUTTO RGB 100% DINAMICO – LIGHT MODE PERFETTA) ====== */
 :root {
-    /* Dark Mode Colors - Enhanced neon palette for cyberpunk vibe */
-    --primary-color: #BB86FC; /* Purple Neon */
-    --secondary-color: #03DAC6; /* Cyan Neon */
-    --error-color: #CF6679; /* Pink/Red Neon */
-    --accent-color: #FF00FF; /* Magenta Neon for highlights */
-    --bg-dark-primary: #0c0311;
-    --bg-dark-secondary: #08020a;
-    --text-light: #e4e4e4;
-    --text-muted: rgba(230, 230, 230, 0.75);
-    --border-light: rgba(255, 255, 255, 0.05);
-    --shadow-dark: rgba(0, 0, 0, 0.6);
-    --neon-glow-primary: rgba(187, 134, 252, 0.25);
-    --neon-glow-secondary: rgba(3, 218, 198, 0.18);
-    --neon-glow-accent: rgba(255, 0, 255, 0.15);
-    
-    /* Variabili RGB per Canali Alpha Dinamici (Manutenibilità) */
-    --primary-rgb: 187, 134, 252;
-    --secondary-rgb: 3, 218, 198;
-    --error-rgb: 207, 102, 121;
-    
-    /* Light Mode Colors - Brighter, more vibrant for contrast */
-    --primary-light: #2979FF; /* Blue */
-    --secondary-light: #1DE9B6; /* Green/Cyan */
-    --error-light: #FF1744; /* Red */
-    --bg-light-primary: #fafafa;
-    --bg-light-secondary: #f4f4f4;
-    --text-dark: #1f1f1f;
-    --text-muted-light: rgba(51, 51, 51, 0.75);
-    --border-dark: rgba(0, 0, 0, 0.1);
-    --shadow-light: rgba(0, 0, 0, 0.1);
-    
-    /* Common - Added more transitions and fonts */
+    /* RGB Channels  */
+    --primary-rgb: 187, 134, 252;      /* #BB86FC Dark */
+    --secondary-rgb: 3, 218, 198;      /* #03DAC6 Dark */
+    --accent-rgb: 255, 0, 255;         /* #FF00FF */
+    --error-rgb: 207, 102, 121;        /* #CF6679 */
+
+    --bg-primary-rgb: 12, 3, 17;       /* #0c0311 */
+    --bg-secondary-rgb: 8, 2, 10;      /* #08020a */
+    --track-rgb: 11, 4, 13;            /* #0b040d */
+
+    --text-primary-rgb: 228, 228, 228;
+    --text-muted-rgb: 230, 230, 230;
+    --border-rgb: 255, 255, 255;
+    --shadow-rgb: 0, 0, 0;
+
+    /* Glow intensity */
+    --glow-primary: 0.35;
+    --glow-secondary: 0.22;
+    --glow-accent: 0.28;
+    --glow-soft: 0.15;
+
+    /* Colori finali  */
+    --primary-color: rgb(var(--primary-rgb));
+    --secondary-color: rgb(var(--secondary-rgb));
+    --accent-color: rgb(var(--accent-rgb));
+    --error-color: rgb(var(--error-rgb));
+
+    --bg-primary: rgb(var(--bg-primary-rgb));
+    --bg-secondary: rgb(var(--bg-secondary-rgb));
+    --track-color: rgb(var(--track-rgb));
+
+    --text-light: rgb(var(--text-primary-rgb));
+    --text-muted: rgba(var(--text-muted-rgb), 0.75);
+    --border-light: rgba(var(--border-rgb), 0.05);
+    --shadow-dark: rgba(var(--shadow-rgb), 0.6);
+
+    --neon-glow-primary: rgba(var(--primary-rgb), var(--glow-primary));
+    --neon-glow-secondary: rgba(var(--secondary-rgb), var(--glow-secondary));
+    --neon-glow-accent: rgba(var(--accent-rgb), var(--glow-accent));
+
+    /* Light Mode RGB  */
+    --primary-light-rgb: 41, 121, 255;       /* #2979FF */
+    --secondary-light-rgb: 29, 233, 182;     /* #1DE9B6 */
+    --error-light-rgb: 255, 23, 68;          /* #FF1744 */
+    --bg-light-primary-rgb: 250, 250, 250;   /* #fafafa */
+    --bg-light-secondary-rgb: 244, 244, 244; /* #f4f4f4 */
+    --text-dark-rgb: 31, 31, 31;
+
+    /* Common */
     --font-main: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --font-title: 'Orbitron', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace; 
+    --font-mono: 'JetBrains Mono', monospace;
     --transition-fast: 0.15s ease;
-    --transition-smooth: 0.28s cubic-bezier(0.4, 0.0, 0.2, 1); 
+    --transition-smooth: 0.28s cubic-bezier(0.4, 0.0, 0.2, 1);
     --neon-blur: blur(1px);
     --glitch-duration: 0.5s;
 }
 
-/* ====== BASE STYLES (Dark Mode Default with enhanced gradients) ====== */
+/* ====== LIGHT MODE PERFETTA  ====== */
+@media (prefers-color-scheme: light) {
+    :root {
+        --primary-rgb: var(--primary-light-rgb);
+        --secondary-rgb: var(--secondary-light-rgb);
+        --error-rgb: var(--error-light-rgb);
+        --bg-primary-rgb: var(--bg-light-primary-rgb);
+        --bg-secondary-rgb: var(--bg-light-secondary-rgb);
+        --text-primary-rgb: var(--text-dark-rgb);
+        --text-muted-rgb: 51, 51, 51;
+        --border-rgb: 0, 0, 0;
+        --track-rgb: 230, 230, 230;
+
+        --glow-primary: 0.16;
+        --glow-secondary: 0.10;
+        --glow-accent: 0.14;
+        --glow-soft: 0.08;
+
+        --bg-primary: rgb(var(--bg-primary-rgb));
+        --bg-secondary: rgb(var(--bg-secondary-rgb));
+        --track-color: rgb(var(--track-rgb));
+        --text-light: rgb(var(--text-primary-rgb));
+        --text-muted: rgba(var(--text-muted-rgb), 0.75);
+        --border-light: rgba(var(--border-rgb), 0.1);
+        --shadow-dark: rgba(var(--shadow-rgb), 0.1);
+    }
+}
+
+/* ====== BASE STYLES  ====== */
 html,
 body {
     min-height: 100vh;
     height: 100%;
     font-family: var(--font-main);
-    background: radial-gradient(circle at top left, var(--bg-dark-primary) 0%, var(--bg-dark-secondary) 80%);
+    background: radial-gradient(circle at top left, var(--bg-primary) 0%, var(--bg-secondary) 80%);
     color: var(--text-light);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -66,37 +112,40 @@ body {
     transition: background var(--transition-smooth), color var(--transition-smooth);
 }
 
-/* ====== TEXT SELECTION (added neon glow) ====== */
+/* ====== TEXT SELECTION ====== */
 ::selection {
     background: var(--primary-color);
-    color: #fff;
+    color: #000;
     text-shadow: 0 0 5px var(--neon-glow-primary);
 }
 
-/* ====== SCROLLBAR (WebKit - Added hover effects and smoother transitions) ====== */
+/* ====== SCROLLBAR  ====== */
 ::-webkit-scrollbar {
     width: 10px;
 }
 ::-webkit-scrollbar-track {
-    background: #0b040d;
+    background: var(--track-color);
     border-radius: 5px;
     transition: background var(--transition-fast);
 }
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #412452, #3a2a45);
+    background: linear-gradient(180deg, 
+        color-mix(in srgb, var(--primary-color) 90%, black), 
+        color-mix(in srgb, var(--secondary-color) 80%, black));
     border-radius: 6px;
-    border: 2px solid #0b040d;
+    border: 2px solid var(--track-color);
     transition: background var(--transition-smooth), transform var(--transition-fast);
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #613c7d, #503a60);
+    background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
     transform: scale(1.1);
+    box-shadow: 0 0 16px var(--neon-glow-primary);
 }
 
-/* ====== SCROLLBAR (Firefox - Enhanced colors) ====== */
+/* Firefox */
 html {
     scrollbar-width: thin;
-    scrollbar-color: #3a2a45 #0b040d;
+    scrollbar-color: color-mix(in srgb, var(--primary-color) 85%, black) var(--track-color);
 }
 
 /* ====== OTTIMIZZAZIONE MOBILE ====== */
@@ -109,12 +158,11 @@ input,
     touch-action: manipulation;
 }
 
-/* ====== GLOBAL ANIMATION UTILITIES (Vue Transitions & Generic Keyframes) ====== */
+/* ====== ANIMATIONS  ====== */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes softMove {
     0% { transform: translate(0, 0) skewX(0deg); }
     20% { transform: translate(-0.5px, 0.5px) skewX(0.3deg); }
@@ -123,12 +171,10 @@ input,
     80% { transform: translate(0.2px, -0.2px) skewX(-0.1deg); }
     100% { transform: translate(0, 0) skewX(0deg); }
 }
-
 @keyframes pulseGlow {
     0%, 100% { opacity: 0.3; }
     50% { opacity: 0.6; }
 }
-
 @keyframes glowLine {
     0% { filter: hue-rotate(0deg); }
     100% { filter: hue-rotate(360deg); }
@@ -137,7 +183,6 @@ input,
 .fade-enter-active, .fade-leave-active {
     transition: opacity .3s ease;
 }
-
 .fade-enter-from, .fade-leave-to {
     opacity: 0;
 }
