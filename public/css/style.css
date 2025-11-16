@@ -1,9 +1,3 @@
-/*
- * style.css
- * Questo è il file principale che importa tutti i moduli del tema Cyberpunk.
- * L'ordine di importazione è cruciale per il corretto funzionamento della cascata CSS.
- */
-
 /* 1. CORE: Reset, variabili globali, stili base e scrollbar. */
 @import url('core.css');
 
@@ -17,5 +11,5 @@
 @import url('vendor.css');
 
 /* 5. THEME-LIGHT: Tutti gli override del tema chiaro. 
-   DEVE ESSERE L'ULTIMO per assicurare la massima priorità di override. */
+   
 @import url('theme-light.css');
