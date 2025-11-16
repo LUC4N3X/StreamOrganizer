@@ -1,5 +1,4 @@
- // --- Translations ---
-    const translations = {
+const translations = {
     it: {
         meta: { title: "StreamOrder ⚡ Console di Comando Addon" },
         h1: "StreamOrder ⚡ Console di Comando Addon",
@@ -7,17 +6,13 @@
             login: "Controlla il caos. Domina i tuoi Addon.",
             monitoring: "Modalità Monitoraggio attiva",
             loggedIn: "Console rapida per gestire, ordinare e salvare gli addon",
-            security: "Sicuro: la tua password non viene mai salvata." 
+            security: "Sicuro: la tua password non viene mai salvata."
         },
-		
-		
         core: {
             themeLight: "Modalità Chiara Attiva! (Salvata)",
             themeDark: "Modalità Scura Attiva! (Salvata)"
-        
-		
-		},
-       welcome: {
+        },
+        welcome: {
             title: "Benvenuto nella Console Addon!",
             panel_p1: "Diventa il 'Root' dei tuoi addon. Ordine e controllo.",
             p1: "Configura rapidamente le opzioni principali o vai direttamente a gestire la tua lista.",
@@ -39,7 +34,14 @@
             selectButton: "Carica",
             deleteConfirm: "Sei sicuro di voler eliminare il profilo '{{name}}'?",
             deleteSuccess: "Profilo eliminato.",
-            renameSuccess: "Profilo rinominato."
+            renameSuccess: "Profilo rinominato.",
+            saveCancelled: "Salvataggio annullato.",
+            modalTitle: "Salva Profilo",
+            modalP1: "Assegna un nome facile da ricordare a questo profilo (account e lista addon).",
+            modalLabel: "Nome del profilo",
+            modalPlaceholder: "Es. Profilo Casa, Account Principale...",
+            modalSave: "Salva",
+            modalCancel: "Annulla"
         },
         tour: {
             welcome: {
@@ -62,15 +64,15 @@
             }
         },
         login: {
-    title: "Accesso Utente",
-    emailPlaceholder: "E-mail Stremio",
-    passwordPlaceholder: "Password Stremio",
-    tokenPlaceholder: "Il tuo AuthKey (Token) di Stremio", // <-- NUOVO
-    useToken: "Accedi con Token (AuthKey)",             // <-- NUOVO
-    usePassword: "Accedi con Email/Password",          // <-- NUOVO
-    button: "ACCEDI",
-    loading: "Accesso in corso..."
-},
+            title: "Accesso Utente",
+            emailPlaceholder: "E-mail Stremio",
+            passwordPlaceholder: "Password Stremio",
+            tokenPlaceholder: "Il tuo AuthKey (Token) di Stremio",
+            useToken: "Accedi con Token (AuthKey)",
+            usePassword: "Accedi con Email/Password",
+            button: "ACCEDI",
+            loading: "Accesso in corso..."
+        },
         monitor: {
             title: "Modalità Monitoraggio",
             keyPlaceholder: "La tua Chiave di Monitoraggio",
@@ -150,7 +152,7 @@
             disabled: "Disabilitati",
             errors: "Con Errori"
         },
-       addon: {
+        addon: {
             statusTitle: "Stato: {{status}}",
             errorDetailsTitle: "Dettaglio Errore: {{details}}",
             editTitle: "Modifica Nome",
@@ -166,8 +168,8 @@
             removeTitle: "Rimuovi",
             removeConfirm: "Sei sicuro di voler rimuovere \"{{name}}\"?",
             renameSuccess: "Nome aggiornato. Clicca SALVA.",
-            updateUrlSuccess: "URL e Manifesto aggiornati. Clicca SALVA.", // <-- RIGA AGGIUNTA
-            updateUrlError: "Nuovo URL non valido: {{message}}", // <-- RIGA AGGIUNTA
+            updateUrlSuccess: "URL e Manifesto aggiornati. Clicca SALVA.",
+            updateUrlError: "Nuovo URL non valido: {{message}}",
             addSuccess: "Addon \"{{name}}\" aggiunto! Clicca SALVA.",
             removeSuccess: "Addon rimosso. Clicca SALVA.",
             copyUrlSuccess: "URL copiato!",
@@ -312,18 +314,15 @@
             login: "Control the chaos. Dominate your Addons.",
             monitoring: "Monitoring Mode active",
             loggedIn: "Quick console to manage, order, and save addons",
-            security: "Secure: Your password is never saved." // <-- AGGIUNGI QUESTA RIGA
-        
-       },
-
-      core: {
+            security: "Secure: Your password is never saved."
+        },
+        core: {
             themeLight: "Light Mode Activated! (Saved)",
             themeDark: "Dark Mode Activated! (Saved)"
         },
-      
-      welcome: {
+        welcome: {
             title: "Welcome to the Addon Console!",
-            panel_p1: "Your Stremio addon control center.", 
+            panel_p1: "Your Stremio addon control center.",
             p1: "Quickly configure main options or go directly to manage your list.",
             autoUpdateTitle: "Nightly Automatic Updates",
             autoUpdateDesc: "Do you want the console to automatically check and install addon updates every night at 3:00 AM?",
@@ -343,7 +342,14 @@
             selectButton: "Load",
             deleteConfirm: "Are you sure you want to delete profile '{{name}}'?",
             deleteSuccess: "Profile deleted.",
-            renameSuccess: "Profile renamed."
+            renameSuccess: "Profile renamed.",
+            saveCancelled: "Save cancelled.",
+            modalTitle: "Save Profile",
+            modalP1: "Give this profile (account and addon list) an easy-to-remember name.",
+            modalLabel: "Profile name",
+            modalPlaceholder: "E.g. Home Profile, Main Account...",
+            modalSave: "Save",
+            modalCancel: "Cancel"
         },
         tour: {
             welcome: {
@@ -365,16 +371,16 @@
                 s8: "If you have unsaved changes, this button will also appear. It's a handy reminder!"
             }
         },
-      login: {
-    title: "User Login",
-    emailPlaceholder: "Stremio E-mail",
-    passwordPlaceholder: "Stremio Password",
-    tokenPlaceholder: "Your Stremio AuthKey (Token)", // <-- NUOVO
-    useToken: "Login with Token (AuthKey)",             // <-- NUOVO
-    usePassword: "Login with Email/Password",          // <-- NUOVO
-    button: "LOGIN",
-    loading: "Logging in..."
-},
+        login: {
+            title: "User Login",
+            emailPlaceholder: "Stremio E-mail",
+            passwordPlaceholder: "Stremio Password",
+            tokenPlaceholder: "Your Stremio AuthKey (Token)",
+            useToken: "Login with Token (AuthKey)",
+            usePassword: "Login with Email/Password",
+            button: "LOGIN",
+            loading: "Logging in..."
+        },
         monitor: {
             title: "Monitoring Mode",
             keyPlaceholder: "Your Monitoring Key",
@@ -470,8 +476,8 @@
             removeTitle: "Remove",
             removeConfirm: "Are you sure you want to remove \"{{name}}\"?",
             renameSuccess: "Name updated. Click SAVE.",
-            updateUrlSuccess: "URL and Manifest updated. Click SAVE.", // <-- RIGA AGGIUNTA
-            updateUrlError: "New URL invalid: {{message}}", // <-- RIGA AGGIUNTA
+            updateUrlSuccess: "URL and Manifest updated. Click SAVE.",
+            updateUrlError: "New URL invalid: {{message}}",
             addSuccess: "Addon \"{{name}}\" added! Click SAVE.",
             removeSuccess: "Addon removed. Click SAVE.",
             copyUrlSuccess: "URL copied!",
@@ -613,20 +619,18 @@
         meta: { title: "StreamOrder ⚡ Console de Commande des Addons" },
         h1: "StreamOrder ⚡ Console de Commande des Addons",
         subtitle: {
-            login: "Contrôlez le chaos. Dominez vos addons.", // 
+            login: "Contrôlez le chaos. Dominez vos addons.",
             monitoring: "Mode de surveillance actif",
             loggedIn: "Console rapide pour gérer, ordonner et sauvegarder les addons",
-            security: "Sécurisé : Votre mot de passe n'est jamais sauvegardé." // <-- AGGIUNGI QUESTA
+            security: "Sécurisé : Votre mot de passe n'est jamais sauvegardé."
         },
-       
         core: {
             themeLight: "Mode Clair Activé ! (Sauvegardé)",
             themeDark: "Mode Sombre Activé ! (Sauvegardé)"
         },
-      
-      welcome: {
+        welcome: {
             title: "Bienvenue sur la Console Addon!",
-            panel_p1: "Votre centre de contrôle pour les addons Stremio.", 
+            panel_p1: "Votre centre de contrôle pour les addons Stremio.",
             p1: "Configurez rapidement les options principales ou allez directement gérer votre liste.",
             autoUpdateTitle: "Mises à jour automatiques nocturnes",
             autoUpdateDesc: "Voulez-vous que la console vérifie et installe automatiquement les mises à jour des addons toutes les nuits à 3h00?",
@@ -646,7 +650,14 @@
             selectButton: "Charger",
             deleteConfirm: "Êtes-vous sûr de vouloir supprimer le profil '{{name}}'?",
             deleteSuccess: "Profil supprimé.",
-            renameSuccess: "Profil renommé."
+            renameSuccess: "Profil renommé.",
+            saveCancelled: "Sauvegarde annulée.",
+            modalTitle: "Sauvegarder le Profil",
+            modalP1: "Donnez à ce profil (compte et liste d'add-ons) un nom facile à retenir.",
+            modalLabel: "Nom du profil",
+            modalPlaceholder: "Ex: Profil Maison, Compte Principal...",
+            modalSave: "Sauvegarder",
+            modalCancel: "Annuler"
         },
         tour: {
             welcome: {
@@ -668,16 +679,16 @@
                 s8: "Si vous avez des modifications non sauvegardées, ce bouton apparaîtra également. C'est un rappel pratique!"
             }
         },
-      login: {
-    title: "Connexion Utilisateur",
-    emailPlaceholder: "E-mail Stremio",
-    passwordPlaceholder: "Mot de passe Stremio",
-    tokenPlaceholder: "Votre AuthKey (Token) Stremio", // <-- NUOVO
-    useToken: "Connexion avec Token (AuthKey)",       // <-- NUOVO
-    usePassword: "Connexion avec Email/Mot de passe", // <-- NUOVO
-    button: "CONNEXION",
-    loading: "Connexion en cours..."
-},
+        login: {
+            title: "Connexion Utilisateur",
+            emailPlaceholder: "E-mail Stremio",
+            passwordPlaceholder: "Mot de passe Stremio",
+            tokenPlaceholder: "Votre AuthKey (Token) Stremio",
+            useToken: "Connexion avec Token (AuthKey)",
+            usePassword: "Connexion avec Email/Mot de passe",
+            button: "CONNEXION",
+            loading: "Connexion en cours..."
+        },
         monitor: {
             title: "Mode de Surveillance",
             keyPlaceholder: "Votre Clé de Surveillance",
@@ -773,8 +784,8 @@
             removeTitle: "Supprimer",
             removeConfirm: "Êtes-vous sûr de vouloir supprimer \"{{name}}\"?",
             renameSuccess: "Nom mis à jour. Cliquez sur SAUVEGARDER.",
-            updateUrlSuccess: "URL et Manifeste mis à jour. Cliquez sur SAUVEGARDER.", // <-- RIGA AGGIUNTA
-            updateUrlError: "Nouvelle URL invalide : {{message}}", // <-- RIGA AGGIUNTA
+            updateUrlSuccess: "URL et Manifeste mis à jour. Cliquez sur SAUVEGARDER.",
+            updateUrlError: "Nouvelle URL invalide : {{message}}",
             addSuccess: "Addon \"{{name}}\" ajouté! Cliquez sur SAUVEGARDER.",
             removeSuccess: "Addon supprimé. Cliquez sur SAUVEGARDER.",
             copyUrlSuccess: "URL copiée!",
@@ -808,8 +819,8 @@
                 resources: "Ressources",
                 url: "URL du Manifeste"
             },
-            autoUpdateDisabled: "Exclu de la M.à.j Auto",
-            autoUpdateEnabled: "Inclus dans la M.à.j Auto",
+            autoUpdateDisabled: "Exclu de la MàJ Auto",
+            autoUpdateEnabled: "Inclus dans la MàJ Auto",
             disableAutoUpdateTitle: "Exclure de la Mise à jour automatique"
         },
         autoUpdate: {
@@ -856,7 +867,7 @@
             title: "Instructions",
             disclaimer: {
                 title: "AVERTISSEMENT (DISCLAIMER)",
-                p1: "CETTE APPLICATION EST UN OUTIL TIERS NON OFFICIEL. NOUS N'ASSUMONS AUCUNE RESPONSABILITÉ QUANT À VOTRE UTILISATION. L'UTILISATION DE CETTE APP PEUT POTENTIELLEMENT ENDOMMAGER VOTRE COMPTE STREMIO (par ex. perte de l'ordre des addons ou problèmes de synchronisation). UTILISEZ-LA À VOS PROPRES RISQUES. Nous ne sommes NI affiliés, ni approuvés, ni sponsorisés par Stremio."
+                p1: "CETTE APPLICATION EST UN OUTIL TIERS NON OFFICIEL. NOUS N'ASSUMONS AUCUNE RESPONSABILITÉ QUANT À VOTRE UTILISATION. L'UTILISATION DE CETTE APP PEUT POTENCIELLEMENT ENDOMMAGER VOTRE COMPTE STREMIO (par ex. perte de l'ordre des addons ou problèmes de synchronisation). UTILISEZ-LA À VOS PROPRES RISQUES. Nous ne sommes NI affiliés, ni approuvés, ni sponsorisés par Stremio."
             },
             login: {
                 title: "Connexion et Surveillance",
@@ -915,21 +926,19 @@
     de: {
         meta: { title: "StreamOrder ⚡ Addon-Befehlskonsole" },
         h1: "StreamOrder ⚡ Addon-Befehlskonsole",
-       subtitle: {
+        subtitle: {
             login: "Kontrolliere das Chaos. Beherrsche deine Addons.",
             monitoring: "Überwachungsmodus aktiv",
             loggedIn: "Schnellkonsole zum Verwalten, Sortieren und Speichern von Addons",
-            security: "Sicher: Ihr Passwort wird niemals gespeichert." // <-- AGGIUNGI QUESTA
+            security: "Sicher: Ihr Passwort wird niemals gespeichert."
         },
-       
-      core: {
+        core: {
             themeLight: "Hellmodus aktiviert! (Gespeichert)",
             themeDark: "Dunkelmodus aktiviert! (Gespeichert)"
         },
-      
-      welcome: {
+        welcome: {
             title: "Willkommen zur Addon-Konsole!",
-            panel_p1: "Deine Kontrollzentrale für Stremio-Addons..", 
+            panel_p1: "Deine Kontrollzentrale für Stremio-Addons.",
             p1: "Konfigurieren Sie schnell die wichtigsten Optionen oder gehen Sie direkt zur Verwaltung Ihrer Liste.",
             autoUpdateTitle: "Nächtliche automatische Updates",
             autoUpdateDesc: "Möchten Sie, dass die Konsole Addon-Updates jede Nacht um 3:00 Uhr automatisch prüft und installiert?",
@@ -949,7 +958,14 @@
             selectButton: "Laden",
             deleteConfirm: "Sind Sie sicher, dass Sie das Profil '{{name}}' löschen möchten?",
             deleteSuccess: "Profil gelöscht.",
-            renameSuccess: "Profil umbenannt."
+            renameSuccess: "Profil umbenannt.",
+            saveCancelled: "Speichern abgebrochen.",
+            modalTitle: "Profil speichern",
+            modalP1: "Geben Sie diesem Profil (Konto und Add-on-Liste) einen leicht zu merkenden Namen.",
+            modalLabel: "Profilname",
+            modalPlaceholder: "Z.B. Heim-Profil, Hauptkonto...",
+            modalSave: "Speichern",
+            modalCancel: "Abbrechen"
         },
         tour: {
             welcome: {
@@ -971,16 +987,16 @@
                 s8: "Wenn Sie ungespeicherte Änderungen haben, erscheint auch dieser Button. Eine nützliche Erinnerung!"
             }
         },
-       login: {
-    title: "Benutzer-Login",
-    emailPlaceholder: "Stremio E-Mail",
-    passwordPlaceholder: "Stremio Passwort",
-    tokenPlaceholder: "Dein Stremio AuthKey (Token)", // <-- NUOVO
-    useToken: "Mit Token (AuthKey) anmelden",         // <-- NUOVO
-    usePassword: "Mit E-Mail/Passwort anmelden",     // <-- NUOVO
-    button: "EINLOGGEN",
-    loading: "Wird eingeloggt..."
-},
+        login: {
+            title: "Benutzer-Login",
+            emailPlaceholder: "Stremio E-Mail",
+            passwordPlaceholder: "Stremio Passwort",
+            tokenPlaceholder: "Dein Stremio AuthKey (Token)",
+            useToken: "Mit Token (AuthKey) anmelden",
+            usePassword: "Mit E-Mail/Passwort anmelden",
+            button: "EINLOGGEN",
+            loading: "Wird eingeloggt..."
+        },
         monitor: {
             title: "Überwachungsmodus",
             keyPlaceholder: "Ihr Überwachungsschlüssel",
@@ -1076,8 +1092,8 @@
             removeTitle: "Entfernen",
             removeConfirm: "Sind Sie sicher, dass Sie \"{{name}}\" entfernen möchten?",
             renameSuccess: "Name aktualisiert. Klicken Sie auf SPEICHERN.",
-            updateUrlSuccess: "URL und Manifest aktualisiert. Klicken Sie auf SPEICHERN.", // <-- RIGA AGGIUNTA
-            updateUrlError: "Neue URL ungültig: {{message}}", // <-- RIGA AGGIUNTA
+            updateUrlSuccess: "URL und Manifest aktualisiert. Klicken Sie auf SPEICHERN.",
+            updateUrlError: "Neue URL ungültig: {{message}}",
             addSuccess: "Addon \"{{name}}\" hinzugefügt! Klicken Sie auf SPEICHERN.",
             removeSuccess: "Addon entfernt. Klicken Sie auf SPEICHERN.",
             copyUrlSuccess: "URL kopiert!",
@@ -1222,17 +1238,15 @@
             login: "Controla el caos. Domina tus addons.",
             monitoring: "Modo de monitorización activo",
             loggedIn: "Consola rápida para gestionar, ordenar y guardar addons",
-            security: "Seguro: Tu contraseña nunca se guarda." // <-- AGGIUNGI QUESTA
+            security: "Seguro: Tu contraseña nunca se guarda."
         },
-        
-      core: {
+        core: {
             themeLight: "¡Modo Claro Activado! (Guardado)",
             themeDark: "¡Modo Oscuro Activado! (Guardado)"
         },
-      
-      welcome: {
+        welcome: {
             title: "¡Bienvenido a la Consola de Addons!",
-            panel_p1: "Tu centro de control para addons de Stremio.", 
+            panel_p1: "Tu centro de control para addons de Stremio.",
             p1: "Configura rápidamente las opciones principales o ve directamente a gestionar tu lista.",
             autoUpdateTitle: "Actualizaciones Automáticas Nocturnas",
             autoUpdateDesc: "¿Quieres que la consola compruebe e instale automáticamente las actualizaciones de los addons cada noche a las 3:00?",
@@ -1252,7 +1266,14 @@
             selectButton: "Cargar",
             deleteConfirm: "¿Estás seguro de que quieres eliminar el perfil '{{name}}'?",
             deleteSuccess: "Perfil eliminado.",
-            renameSuccess: "Perfil renombrado."
+            renameSuccess: "Perfil renombrado.",
+            saveCancelled: "Guardado cancelado.",
+            modalTitle: "Guardar Perfil",
+            modalP1: "Dale a este perfil (cuenta y lista de addons) un nombre fácil de recordar.",
+            modalLabel: "Nombre del perfil",
+            modalPlaceholder: "Ej: Perfil de Casa, Cuenta Principal...",
+            modalSave: "Guardar",
+            modalCancel: "Cancelar"
         },
         tour: {
             welcome: {
@@ -1274,16 +1295,16 @@
                 s8: "Si tienes cambios sin guardar, este botón también aparecerá. ¡Es un recordatorio útil!"
             }
         },
-      login: {
-    title: "Inicio de Sesión de Usuario",
-    emailPlaceholder: "E-mail de Stremio",
-    passwordPlaceholder: "Contraseña de Stremio",
-    tokenPlaceholder: "Tu AuthKey (Token) de Stremio", // <-- NUOVO
-    useToken: "Iniciar sesión con Token (AuthKey)",   // <-- NUOVO
-    usePassword: "Iniciar sesión con Email/Contraseña", // <-- NUOVO
-    button: "INICIAR SESIÓN",
-    loading: "Iniciando sesión..."
-},
+        login: {
+            title: "Inicio de Sesión de Usuario",
+            emailPlaceholder: "E-mail de Stremio",
+            passwordPlaceholder: "Contraseña de Stremio",
+            tokenPlaceholder: "Tu AuthKey (Token) de Stremio",
+            useToken: "Iniciar sesión con Token (AuthKey)",
+            usePassword: "Iniciar sesión con Email/Contraseña",
+            button: "INICIAR SESIÓN",
+            loading: "Iniciando sesión..."
+        },
         monitor: {
             title: "Modo de Monitorización",
             keyPlaceholder: "Tu Clave de Monitorización",
@@ -1379,8 +1400,8 @@
             removeTitle: "Eliminar",
             removeConfirm: "¿Estás seguro de que quieres eliminar \"{{name}}\"?",
             renameSuccess: "Nombre actualizado. Haz clic en GUARDAR.",
-            updateUrlSuccess: "URL y Manifiesto actualizados. Haz clic en GUARDAR.", // <-- RIGA AGGIUNTA
-            updateUrlError: "Nueva URL no válida: {{message}}", // <-- RIGA AGGIUNTA
+            updateUrlSuccess: "URL y Manifiesto actualizados. Haz clic en GUARDAR.",
+            updateUrlError: "Nueva URL no válida: {{message}}",
             addSuccess: "¡Addon \"{{name}}\" añadido! Haz clic en GUARDAR.",
             removeSuccess: "Addon eliminado. Haz clic en GUARDAR.",
             copyUrlSuccess: "¡URL copiada!",
@@ -1525,15 +1546,13 @@
             login: "Контролюй хаос. Пануй над своїми додатками.",
             monitoring: "Режим моніторингу активний",
             loggedIn: "Швидка консоль для керування, сортування та збереження додатків",
-            security: "Безпечно: Ваш пароль ніколи не зберігається." // <-- AGGIUNGI QUESTA
+            security: "Безпечно: Ваш пароль ніколи не зберігається."
         },
-        
-      core: {
+        core: {
             themeLight: "Світлий режим активовано! (Збережено)",
             themeDark: "Темний режим активовано! (Збережено)"
         },
-      
-      welcome: {
+        welcome: {
             title: "Ласкаво просимо до Консолі Додатків!",
             panel_p1: "Ваш центр керування додатками Stremio.",
             p1: "Швидко налаштуйте основні опції або перейдіть безпосередньо до керування списком.",
@@ -1555,7 +1574,14 @@
             selectButton: "Завантажити",
             deleteConfirm: "Ви впевнені, що хочете видалити профіль '{{name}}'?",
             deleteSuccess: "Профіль видалено.",
-            renameSuccess: "Профіль перейменовано."
+            renameSuccess: "Профіль перейменовано.",
+            saveCancelled: "Збереження скасовано.",
+            modalTitle: "Зберегти профіль",
+            modalP1: "Дайте цьому профілю (обліковий запис і список доповнень) ім'я, яке легко запам'ятати.",
+            modalLabel: "Назва профілю",
+            modalPlaceholder: "Напр., Домашній профіль, Основний акаунт...",
+            modalSave: "Зберегти",
+            modalCancel: "Скасувати"
         },
         tour: {
             welcome: {
@@ -1577,16 +1603,16 @@
                 s8: "Якщо у вас є незбережені зміни, ця кнопка також з'явиться. Це зручне нагадування!"
             }
         },
-      login: {
-    title: "Вхід користувача",
-    emailPlaceholder: "E-mail Stremio",
-    passwordPlaceholder: "Пароль Stremio",
-    tokenPlaceholder: "Ваш AuthKey (Токен) Stremio", // <-- NUOVO
-    useToken: "Увійти з Токеном (AuthKey)",       // <-- NUOVO
-    usePassword: "Увійти з Email/Паролем",      // <-- NUOVO
-    button: "УВІЙТИ",
-    loading: "Вхід..."
-},
+        login: {
+            title: "Вхід користувача",
+            emailPlaceholder: "E-mail Stremio",
+            passwordPlaceholder: "Пароль Stremio",
+            tokenPlaceholder: "Ваш AuthKey (Токен) Stremio",
+            useToken: "Увійти з Токеном (AuthKey)",
+            usePassword: "Увійти з Email/Паролем",
+            button: "УВІЙТИ",
+            loading: "Вхід..."
+        },
         monitor: {
             title: "Режим моніторингу",
             keyPlaceholder: "Ваш ключ моніторингу",
@@ -1682,8 +1708,8 @@
             removeTitle: "Видалити",
             removeConfirm: "Ви впевнені, що хочете видалити \"{{name}}\"?",
             renameSuccess: "Назву оновлено. Натисніть ЗБЕРЕГТИ.",
-            updateUrlSuccess: "URL та Маніфест оновлено. Натисніть ЗБЕРЕГТИ.", // <-- RIGA AGGIUNTA
-            updateUrlError: "Нова URL-адреса недійсна: {{message}}", // <-- RIGA AGGIUNTA
+            updateUrlSuccess: "URL та Маніфест оновлено. Натисніть ЗБЕРЕГТИ.",
+            updateUrlError: "Нова URL-адреса недійсна: {{message}}",
             addSuccess: "Додаток \"{{name}}\" додано! Натисніть ЗБЕРЕГТИ.",
             removeSuccess: "Додаток видалено. Натисніть ЗБЕРЕГТИ.",
             copyUrlSuccess: "URL скопійовано!",
@@ -1824,19 +1850,17 @@
     pt: {
         meta: { title: "StreamOrder ⚡ Console de Comando de Addons" },
         h1: "StreamOrder ⚡ Console de Comando de Addons",
-       subtitle: {
+        subtitle: {
             login: "Controle o caos. Domine os seus addons.",
             monitoring: "Modo de Monitoramento Ativo",
             loggedIn: "Console rápido para gerenciar, ordenar e salvar addons",
-            security: "Seguro: Sua senha nunca é salva." // <-- AGGIUNGI QUESTA
+            security: "Seguro: Sua senha nunca é salva."
         },
-        
-      core: {
+        core: {
             themeLight: "Modo Claro Ativado! (Guardado)",
             themeDark: "Modo Escuro Ativado! (Guardado)"
         },
-      
-      welcome: {
+        welcome: {
             title: "Bem-vindo ao Console de Addons!",
             panel_p1: "Seu centro de controle para addons Stremio.",
             p1: "Configure rapidamente as opções principais ou vá direto para o gerenciamento da sua lista.",
@@ -1858,7 +1882,14 @@
             selectButton: "Carregar",
             deleteConfirm: "Tem certeza de que deseja excluir o perfil '{{name}}'?",
             deleteSuccess: "Perfil excluído.",
-            renameSuccess: "Perfil renomeado."
+            renameSuccess: "Perfil renomeado.",
+            saveCancelled: "Gravação cancelada.",
+            modalTitle: "Salvar Perfil",
+            modalP1: "Dê a este perfil (conta e lista de addons) um nome fácil de lembrar.",
+            modalLabel: "Nome do perfil",
+            modalPlaceholder: "Ex: Perfil de Casa, Conta Principal...",
+            modalSave: "Salvar",
+            modalCancel: "Cancelar"
         },
         tour: {
             welcome: {
@@ -1880,16 +1911,16 @@
                 s8: "Se você tiver alterações não salvas, este botão também aparecerá. É um lembrete útil!"
             }
         },
-     login: {
-    title: "Login de Usuário",
-    emailPlaceholder: "E-mail do Stremio",
-    passwordPlaceholder: "Senha do Stremio",
-    tokenPlaceholder: "Seu AuthKey (Token) do Stremio", // <-- NUOVO
-    useToken: "Login com Token (AuthKey)",             // <-- NUOVO
-    usePassword: "Login com Email/Senha",              // <-- NUOVO
-    button: "LOGIN",
-    loading: "Fazendo login..."
-},
+        login: {
+            title: "Login de Usuário",
+            emailPlaceholder: "E-mail do Stremio",
+            passwordPlaceholder: "Senha do Stremio",
+            tokenPlaceholder: "Seu AuthKey (Token) do Stremio",
+            useToken: "Login com Token (AuthKey)",
+            usePassword: "Login com Email/Senha",
+            button: "LOGIN",
+            loading: "Fazendo login..."
+        },
         monitor: {
             title: "Modo de Monitoramento",
             keyPlaceholder: "Sua Chave de Monitoramento",
@@ -1985,8 +2016,8 @@
             removeTitle: "Remover",
             removeConfirm: "Tem certeza de que deseja remover \"{{name}}\"?",
             renameSuccess: "Nome atualizado. Clique em SALVAR.",
-            updateUrlSuccess: "URL e Manifesto atualizados. Clique em SALVAR.", // <-- RIGA AGGIUNTA
-            updateUrlError: "Nova URL inválida: {{message}}", // <-- RIGA AGGIUNTA
+            updateUrlSuccess: "URL e Manifesto atualizados. Clique em SALVAR.",
+            updateUrlError: "Nova URL inválida: {{message}}",
             addSuccess: "Addon \"{{name}}\" adicionado! Clique em SALVAR.",
             removeSuccess: "Addon removido. Clique em SALVAR.",
             copyUrlSuccess: "URL copiada!",
