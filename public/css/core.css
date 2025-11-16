@@ -8,9 +8,9 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-/* ====== CSS VARIABLES (TUTTO RGB 100% DINAMICO – LIGHT MODE PERFETTA) ====== */
+/* ====== CSS VARIABLES  ====== */
 :root {
-    /* RGB Channels (tutto parte da qui – zero hex nel resto del file) */
+    /* RGB Channels  */
     --primary-rgb: 187, 134, 252;      /* #BB86FC Dark */
     --secondary-rgb: 3, 218, 198;      /* #03DAC6 Dark */
     --accent-rgb: 255, 0, 255;         /* #FF00FF */
@@ -18,7 +18,7 @@
 
     --bg-primary-rgb: 12, 3, 17;       /* #0c0311 */
     --bg-secondary-rgb: 8, 2, 10;      /* #08020a */
-    --track-rgb: 11, 4, 13;            /* #0b040d – leggermente più chiaro del bg per profondità */
+    --track-rgb: 11, 4, 13;            /* #0b040d 
 
     --text-primary-rgb: 228, 228, 228;
     --text-muted-rgb: 230, 230, 230;
@@ -31,7 +31,7 @@
     --glow-accent: 0.28;
     --glow-soft: 0.15;
 
-    /* Colori finali (sempre da RGB – si aggiornano automaticamente in light mode) */
+    /* Colori finali  */
     --primary-color: rgb(var(--primary-rgb));
     --secondary-color: rgb(var(--secondary-rgb));
     --accent-color: rgb(var(--accent-rgb));
@@ -50,7 +50,7 @@
     --neon-glow-secondary: rgba(var(--secondary-rgb), var(--glow-secondary));
     --neon-glow-accent: rgba(var(--accent-rgb), var(--glow-accent));
 
-    /* Light Mode RGB (si attivano con prefers-color-scheme) */
+    /* Light Mode RGB  */
     --primary-light-rgb: 41, 121, 255;       /* #2979FF */
     --secondary-light-rgb: 29, 233, 182;     /* #1DE9B6 */
     --error-light-rgb: 255, 23, 68;          /* #FF1744 */
@@ -68,7 +68,7 @@
     --glitch-duration: 0.5s;
 }
 
-/* ====== LIGHT MODE PERFETTA (quella che ti piace) ====== */
+/* ====== LIGHT MODE PERFETTA  ====== */
 @media (prefers-color-scheme: light) {
     :root {
         --primary-rgb: var(--primary-light-rgb);
@@ -96,7 +96,7 @@
     }
 }
 
-/* ====== BASE STYLES (ora usano solo variabili – struttura identica alla tua) ====== */
+/* ====== BASE STYLES  ====== */
 html,
 body {
     min-height: 100vh;
@@ -119,7 +119,7 @@ body {
     text-shadow: 0 0 5px var(--neon-glow-primary);
 }
 
-/* ====== SCROLLBAR (stessa struttura tua ma ora 100% dinamico con RGB) ====== */
+/* ====== SCROLLBAR  ====== */
 ::-webkit-scrollbar {
     width: 10px;
 }
@@ -158,7 +158,7 @@ input,
     touch-action: manipulation;
 }
 
-/* ====== ANIMATIONS (identiche alle tue) ====== */
+/* ====== ANIMATIONS  ====== */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
