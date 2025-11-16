@@ -8,7 +8,7 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-/* ====== CSS VARIABLES (TUTTO RGB 100% DINAMICO – LIGHT MODE PERFETTA) ====== */
+/* ====== CSS VARIABLES  ====== */
 :root {
     /* RGB Channels (tutto parte da qui – zero hex nel resto del file) */
     --primary-rgb: 187, 134, 252;      /* #BB86FC Dark */
