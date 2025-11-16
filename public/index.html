@@ -52,7 +52,7 @@
           {{ t('subtitle.login') }}
         </div>
         <div v-else-if="isMonitoring" class="subtitle monitoring">
-          {{ t('subtitle.monitoring') }}
+        {{ t('subtitle.monitoring') }}
         </div>
         <div v-else-if="isLoggedIn && (showWelcomeScreen || showWelcomeTourModal)" class="subtitle welcome">
           {{ t('welcome.title') }}
@@ -484,7 +484,7 @@
     </div>
 
         <div :class="['modal-overlay', { visible: showImportConfirm }]" @click.self="closeImportConfirm">
-      <div class="modal-content" style="max-width:500px;">
+      <div class="modal-content">
         <button @click="closeImportConfirm" class="modal-close-btn">&times;</button>
         <h2>{{ t('importConfirm.title') }}</h2>
         <p>{{ t('importConfirm.p1') }}</p>
@@ -506,7 +506,7 @@
     </div>
 
         <div :class="['modal-overlay', { visible: showWelcomeTourModal }]" style="z-index:2000;">
-      <div class="modal-content" style="max-width:500px;">
+      <div class="modal-content modal-tour-wow">
         <h2>{{ t('tour.welcome.title') }}</h2>
         <p>{{ t('tour.welcome.p1') }}</p>
         <p>{{ t('tour.welcome.p2') }}</p>
@@ -524,7 +524,7 @@
     </div>
 
     <div :class="['modal-overlay', { visible: showSaveProfileModal }]" @click.self="cancelSaveProfile" style="z-index: 1001;">
-      <div class="modal-content" style="max-width:450px;">
+      <div class="modal-content">
         <button @click="cancelSaveProfile" class="modal-close-btn">&times;</button>
         
         <h2 style="margin-top:0; color:#BB86FC; font-family:'Orbitron',sans-serif;">
