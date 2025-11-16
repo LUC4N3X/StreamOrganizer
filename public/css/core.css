@@ -1,4 +1,3 @@
-/* ====== UNIVERSAL RESET ====== */
 *,
 *::before,
 *::after {
@@ -44,9 +43,9 @@
     /* Common - Added more transitions and fonts */
     --font-main: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --font-title: 'Orbitron', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace; /* For code-like elements */
+    --font-mono: 'JetBrains Mono', monospace; 
     --transition-fast: 0.15s ease;
-    --transition-smooth: 0.28s cubic-bezier(0.4, 0.0, 0.2, 1); /* VELOCIZZATO */
+    --transition-smooth: 0.28s cubic-bezier(0.4, 0.0, 0.2, 1); 
     --neon-blur: blur(1px);
     --glitch-duration: 0.5s;
 }
