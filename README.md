@@ -1,29 +1,16 @@
-<div align="center" <!-- =================== HEADER README CYBERPUNK 2.0 =================== -->
+<!-- =================== HEADER README CYBERPUNK GITHUB =================== -->
 <div align="center" style="margin-bottom:40px;">
 
-  <!-- Titolo principale neon animato -->
-  <h1 style="
-    font-family: 'Segoe UI', Arial, sans-serif;
-    font-size: 3.5em;
-    color: #ff00ff;
-    text-shadow:
-      0 0 5px #ff00ff,
-      0 0 10px #ff00ff,
-      0 0 20px #ff66ff,
-      0 0 30px #ff66ff,
-      0 0 40px #ff99ff;
-    animation: flicker 1.5s infinite alternate;
-    margin-bottom:5px;">
-    ⚡ STREAMORDER ⬢ <span style="color:#00ffff;">[ Cyberdeck Addon Console ]</span>
-  </h1>
+  <!-- Titolo principale come GIF animata -->
+  <img src="https://i.ibb.co/2y0YwZL/streamorder-neon.gif" alt="STREAMORDER Neon" width="800" style="border-radius:12px;box-shadow:0 0 20px rgba(255,0,255,0.3);"/>
 
-  <!-- Sottotitolo neon -->
+  <!-- Sottotitolo neon statico -->
   <p style="
     color:#e0d4ff;
     font-size:1.3em;
     font-weight:600;
     text-shadow: 0 0 3px #00ffff;
-    margin-top:0;">
+    margin-top:10px;">
     Master your Stremio Addons with style & precision
   </p>
 
@@ -53,24 +40,6 @@
   </blockquote>
 
 </div>
-
-<!-- Animazione flicker neon -->
-<style>
-@keyframes flicker {
-  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
-    text-shadow: 
-      0 0 5px #ff00ff,
-      0 0 10px #ff00ff,
-      0 0 20px #ff66ff,
-      0 0 30px #ff66ff,
-      0 0 40px #ff99ff;
-  }
-  20%, 22%, 24%, 55% {
-    text-shadow: none;
-    color: #ff33ff;
-  }
-}
-</style>
 
 <!-- =================== /HEADER README CYBERPUNK =================== -->
 
