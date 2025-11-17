@@ -62,44 +62,49 @@
 - 📜 **Realtime Logs** – Log in tempo reale con colori neon
 - 📡 **Diagnostica Addon** (Ping Test) – Controlla la latency e la disponibilità dei tuoi addon in tempo reale ⚡
 ---
-<ul style="
-  text-align: left;
-  color: #e6d8ff;
-  font-size: 1.05em;
-  line-height: 1.55em;
-  margin-top: 15px;
-">
-
-  <li><strong>Sanificazione input (XSS):</strong> Tutti i nomi degli addon vengono filtrati con sanitize-html (Stored XSS bloccato).</li>
-
-  <li><strong>Rate Limiting migliorato:</strong> Protezione contro abusi e brute-force su tutti gli endpoint sensibili.</li>
-
-  <li><strong>Helmet + CSP avanzata:</strong> Nessun <code>unsafe-eval</code>, controllo rigoroso di script, stili e font.</li>
-
-  <li><strong>Validazione Joi:</strong> Tutti gli input (login, URL, liste addon) validati prima dell'elaborazione.</li>
-
-  <li>
-    <strong>Protezione SSRF:</strong>
-    <ul style="margin-left:15px; margin-top:5px;">
-      <li>Controllo hostname con <code>isSafeUrl()</code></li>
-      <li>Redirect disattivati (<code>redirect: 'error'</code>)</li>
-      <li>Blocco degli IP interni (127.x, 10.x, 172.x, 192.168.x…)</li>
-    </ul>
-  </li>
-
-  <li><strong>Timeout di rete:</strong> Ogni fetch è protetto da timeout + AbortController.</li>
-
-  <li><strong>Rimozione campi sensibili:</strong> I campi temporanei (<code>isEditing</code>, <code>newLocalName</code>) vengono eliminati prima del salvataggio.</li>
-
-  <li><strong>Token e password al sicuro:</strong> Mai esposti al client; tutto rimane lato server.</li>
-
-  <li><strong>Admin monitor disattivato:</strong> Endpoint limitato e sempre bloccato per privacy.</li>
-
-  <li><strong>HTTPS enforcement:</strong> In produzione il server forza automaticamente HTTPS.</li>
-
-  <li><strong>Logging pulito:</strong> Nessun dato sensibile memorizzato.</li>
-
-</ul>
+<div align="center" style="background:linear-gradient(135deg,#0a0014,#130022);border-radius:12px;padding:25px;margin:20px 0;box-shadow:0 0 25px rgba(255,0,255,0.4), 0 0 10px rgba(100,0,255,0.2) inset;">
+  <h1 style="font-size:2.8em;color:#ff00ff;margin:0;font-family:'Orbitron', sans-serif;text-shadow:0 0 8px #ff00ff;">
+    <span style="display:inline-block;transform:rotate(-10deg);margin-right:10px;">🛡️</span> Sicurezza Cibernetica Avanzata <span style="display:inline-block;transform:rotate(10deg);margin-left:10px;">🔒</span>
+  </h1>
+  <p style="color:#e0d4ff;font-size:1.2em;margin:15px 0 0 0;font-family:'Roboto Mono', monospace;">
+    "Blindiamo il tuo accesso, proteggiamo il tuo flusso." 🚀
+  </p>
+  <p style="margin-top:20px;">
+    <img src="https://img.shields.io/badge/Secure-Fortified-green?style=for-the-badge&logo=shield" alt="Security Status: Fortified" />
+    <img src="https://img.shields.io/badge/Privacy-Enhanced-blueviolet?style=for-the-badge&logo=spyder" alt="Privacy Status: Enhanced" />
+    <img src="https://img.shields.io/badge/Compliance-Strict-red?style=for-the-badge&logo=gitea" alt="Compliance: Strict" />
+  </p>
+  <ul style="text-align:left;color:#e0d4ff;font-size:1.05em;list-style-type:none;padding:0;margin-top:25px;line-height:1.6;">
+    <li style="margin-bottom:10px;">
+      ✨ <strong>Cookie Ultra-Sicuri:</strong> La tua AuthKey è blindata in cookie HttpOnly, crittografati e con <code style="background-color:#330055;padding:3px 6px;border-radius:4px;font-family:monospace;">SameSite=Strict</code>, garantendo che non possano essere letti o inviati da script malevoli esterni.
+    </li>
+    <li style="margin-bottom:10px;">
+      ⚡ <strong>Anti-DDoS & Rate Limiting:</strong> Difese avanzate contro attacchi brute-force e DoS. Login e API sensibili sono protetti da limiti di richieste per salvaguardare la disponibilità del servizio.
+    </li>
+    <li style="margin-bottom:10px;">
+      ⚙️ <strong>Hardening degli Header HTTP (Helmet + CSP):</strong> Un set robusto di header HTTP, inclusa una <code style="background-color:#330055;padding:3px 6px;border-radius:4px;font-family:monospace;">Content Security Policy (CSP)</code> senza compromessi, per protezione attiva da XSS, clickjacking e altre injection.
+    </li>
+    <li style="margin-bottom:10px;">
+      🔐 <strong>Sanificazione Profonda Input:</strong> Ogni dato in ingresso viene scrupolosamente validato e sanificato (con limiti di dimensione e profondità) per prevenire XSS, injection e sovraccarichi ricorsivi.
+    </li>
+    <li style="margin-bottom:10px;">
+      🚫 <strong>Protezione SSRF Avanzata:</strong> Gli URL esterni vengono risolti e validati con rigore anti-SSRF, bloccando richieste a indirizzi IP privati o server interni, con verifica di Content-Type e Content-Length per prevenire attacchi TOCTOU DNS.
+    </li>
+    <li style="margin-bottom:10px;">
+      🛡️ <strong>Difesa CSRF Aggiuntiva:</strong> Per le operazioni critiche, oltre ai cookie <code style="background-color:#330055;padding:3px 6px;border-radius:4px;font-family:monospace;">SameSite=Strict</code>, viene verificato l'header <code style="background-color:#330055;padding:3px 6px;border-radius:4px;font-family:monospace;">Origin</code> (o <code style="background-color:#330055;padding:3px 6px;border-radius:4px;font-family:monospace;">Referer</code>) per garantire che le richieste provengano solo da origini autorizzate.
+    </li>
+    <li style="margin-bottom:10px;">
+      👻 <strong>Zero Data Leak:</strong> Token e credenziali restano sul server, mai esposti al client. Il logging è stato minimizzato per registrare solo errori essenziali e stack trace (in dev), garantendo che nessun dato sensibile finisca nei log pubblici.
+    </li>
+    <li style="margin-bottom:10px;">
+      🔑 <strong>Validazione Manifesto Esterno:</strong> I manifest degli addon esterni sono validati tramite uno schema Joi dettagliato, assicurando integrità e formato atteso prima di essere processati.
+    </li>
+  </ul>
+  <p style="color:#ff66ff;font-weight:bold;margin-top:20px;font-size:1.1em;text-shadow:0 0 5px rgba(255,102,255,0.5);">
+    ⚠️ <strong>Raccomandazione Critica:</strong> Utilizza StreamOrder <u>esclusivamente</u> su connessioni HTTPS sicure o in ambienti di sviluppo locali completamente affidabili.
+  </p>
+</div>
+```http://googleusercontent.com/image_generation_content/0
 
 
 ---
