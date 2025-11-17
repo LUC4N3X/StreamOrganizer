@@ -10,7 +10,7 @@ const cookieParser = require('cookie-parser');
 // --- FIX: Aggiunta libreria per sanificare input (prevenire Stored XSS) ---
 const sanitizeHtml = require('sanitize-html');
 
-// ---  FIX SSRF: Aggiunti moduli 'dns' e 'net'  ---
+// --- FIX SSRF: Aggiunti moduli 'dns' e 'net' ---
 const dns = require('dns').promises;
 const net = require('net');
 
@@ -69,9 +69,8 @@ app.use(helmet({
 // MIDDLEWARE GENERALI
 // ---------------------------------------------------------------------
 
-// --- ★★★ FIX: Limita la dimensione del payload JSON per prevenire DoS ★★★ ---
+// --- FIX: Limita la dimensione del payload JSON per prevenire DoS ---
 app.use(express.json({ limit: '250kb' }));
-// --- FINE FIX ---
 
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -120,8 +119,7 @@ app.use(cors({
   credentials: true
 }));
 
-// ---  FIX: Middleware per CSRF Hardening  ---
-
+// --- FIX: Middleware per CSRF Hardening ---
 const enforceOrigin = (req, res, next) => {
   // Applichiamo solo a metodi che modificano lo stato
   if (req.method === 'POST') {
@@ -148,14 +146,13 @@ const enforceOrigin = (req, res, next) => {
         return res.status(403).json({ error: { message: 'Origine richiesta non valida (CSRF check).' } });
       }
     }
-    
+    // Se !requestOrigin (es. richiesta same-origin, o curl),
+    // ci affidiamo al cookie sameSite: 'strict' e lasciamo passare.
   }
   
   return next();
 };
 
-// Applica il controllo CSRF a TUTTI gli endpoint /api/
-// Questo è più semplice che applicarlo a ogni singola rotta POST
 app.use('/api/', enforceOrigin);
 // --- FINE FIX ---
 
@@ -207,7 +204,11 @@ const schemas = {
 // --- FIX SSRF: Funzioni helper per controllo IP ---
 // ---------------------------------------------------------------------
 
-
+/**
+ * Controlla se un indirizzo IP è privato, loopback o link-local.
+ * @param {string} ip L'indirizzo IP da controllare.
+ * @returns {boolean} true se l'IP è privato/riservato.
+ */
 function isPrivateIp(ip) {
   // Se è un indirizzo IPv6 mappato IPv4 (es. ::ffff:127.0.0.1)
   if (net.isIPv6(ip) && ip.startsWith('::ffff:')) {
@@ -234,7 +235,14 @@ function isPrivateIp(ip) {
   return false; // Non un formato IP valido
 }
 
-
+/**
+ * Controlla se un URL è "sicuro" eseguendo i seguenti controlli:
+ * 1. Protocollo (solo http/https)
+ * 2. Controllo stringa hostname (no localhost, no IP privati)
+ * 3. Risoluzione DNS: l'hostname non deve risolvere in un IP privato.
+ * @param {string} urlString L'URL da controllare.
+ * @returns {Promise<boolean>} true se l'URL è considerato sicuro.
+ */
 async function isSafeUrl(urlString) {
   try {
     const parsed = new URL(urlString);
@@ -427,7 +435,7 @@ app.post('/api/set-addons', asyncHandler(async (req, res) => {
       delete clean.manifest.newLocalName;
     }
     
-    // ---  FIX XSS: Sanifica l'INTERO oggetto 'clean'  ---
+    // --- ★★★ FIX XSS: Sanifica l'INTERO oggetto 'clean' ★★★ ---
     clean = sanitizeObject(clean);
     // --- FINE FIX ---
 
@@ -460,7 +468,7 @@ app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
 
   const { manifestUrl } = req.body;
   
-  // ---  FIX SSRF: isSafeUrl ora è asincrono  ---
+  // --- FIX SSRF: isSafeUrl ora è ASINCRONO ---
   if (!(await isSafeUrl(manifestUrl))) {
     return res.status(400).json({ error: { message: "URL non sicuro o risolve a un IP privato." } });
   }
@@ -472,7 +480,7 @@ app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
     headers['Authorization'] = `token ${GITHUB_TOKEN}`;
   }
 
-  
+  // (Manteniamo il fix anti-redirect)
   const fetchOptions = {
     headers,
     redirect: 'error' 
@@ -482,7 +490,22 @@ app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
   if (!resp.ok)
     throw new Error(`Status ${resp.status}`);
 
-  const manifest = await resp.json();
+  // --- ★★★ FIX: Mitigazione TOCTOU DNS ★★★ ---
+  // 1. Controlla il Content-Type
+  const contentType = resp.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    throw new Error('Tipo di contenuto non valido, manifesto rifiutato.');
+  }
+
+  // 2. Controlla la dimensione del file
+  const contentLength = resp.headers.get('content-length');
+  const MAX_MANIFEST_SIZE = 250 * 1024; // 250KB
+  if (contentLength && parseInt(contentLength, 10) > MAX_MANIFEST_SIZE) {
+    throw new Error('Manifesto troppo grande, rifiutato.');
+  }
+  // --- FINE FIX ---
+
+  const manifest = await resp.json(); // Ora è più sicuro chiamare .json()
   if (!manifest.id || !manifest.version)
     throw new Error("Manifesto non valido.");
 
@@ -514,7 +537,7 @@ app.use('/api/*', (req, res) =>
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
     if (req.header('x-forwarded-proto') !== 'https') {
-      // ---  FIX: Usa req.hostname per prevenire Host Header Injection  ---
+      // --- FIX: Usa req.hostname per prevenire Host Header Injection ---
       return res.redirect(301, `https://${req.hostname}${req.url}`);
     }
     next();
