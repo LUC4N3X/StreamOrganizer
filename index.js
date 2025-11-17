@@ -36,15 +36,13 @@ app.use(helmet({
         "'self'",
         "https://unpkg.com",
         "https://cdnjs.cloudflare.com"
-        // --- 'unsafe-eval' RIMOSSO ---
-        // Questo è uno dei punti che potrebbe "rompere" il frontend
-        // se usa eval() o librerie che ne dipendono.
+        
       ],
       "style-src": [
         "'self'",
         "https://fonts.googleapis.com",
         "https://cdnjs.cloudflare.com"
-       
+        
       ],
       "font-src": ["'self'", "https://fonts.gstatic.com"],
       "connect-src": [
@@ -57,7 +55,7 @@ app.use(helmet({
         "https://cdnjs.cloudflare.com",
         "https://stream-organizer.vercel.app",
         "https://*.vercel.app", // Per le preview di Vercel
-        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ''
+        process.env.VERCEL_URL ? `https://://${process.env.VERCEL_URL}` : ''
       ].filter(Boolean), 
       "img-src": ["'self'", "data:", "https:"]
     }
@@ -316,7 +314,15 @@ app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
     headers['Authorization'] = `token ${GITHUB_TOKEN}`;
   }
 
-  const resp = await fetchWithTimeout(manifestUrl, { headers });
+  // --- ★★★ FIX DI SICUREZZA SSRF ★★★ ---
+ 
+  const fetchOptions = {
+    headers,
+    redirect: 'error' 
+  };
+  // --- FINE FIX ---
+
+  const resp = await fetchWithTimeout(manifestUrl, fetchOptions); 
   if (!resp.ok)
     throw new Error(`Status ${resp.status}`);
 
@@ -358,12 +364,23 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // ERRORE GLOBALE
+// --- ★★★ FIX: Gestore errori aggiornato per SSRF ★★★ ---
 app.use((err, req, res, next) => {
   console.error(err);
   const status = err.status || 500;
   let message = 'Errore interno del server.';
-  if (err.message.includes('timeout')) message = 'Richiesta al server scaduta (timeout).';
-  else if (status < 500) message = err.message;
+
+  // Se l'errore è causato dal redirect bloccato, dai un messaggio generico
+  if (err.message.includes('redirect')) {
+      message = 'Recupero del manifesto non riuscito (redirect bloccato).';
+  } 
+  else if (err.message.includes('timeout')) {
+      message = 'Richiesta al server scaduta (timeout).';
+  }
+  else if (status < 500) {
+      message = err.message;
+  }
+  
   res.status(status).json({ error: { message } });
 });
 
