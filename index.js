@@ -10,6 +10,10 @@ const cookieParser = require('cookie-parser');
 // --- FIX: Aggiunta libreria per sanificare input (prevenire Stored XSS) ---
 const sanitizeHtml = require('sanitize-html');
 
+// --- ★★★ FIX SSRF: Aggiunti moduli 'dns' e 'net' ★★★ ---
+const dns = require('dns').promises;
+const net = require('net');
+
 const app = express();
 const PORT = process.env.PORT || 7860;
 
@@ -36,7 +40,6 @@ app.use(helmet({
         "'self'",
         "https://unpkg.com",
         "https://cdnjs.cloudflare.com"
-        
       ],
       "style-src": [
         "'self'",
@@ -55,7 +58,7 @@ app.use(helmet({
         "https://cdnjs.cloudflare.com",
         "https://stream-organizer.vercel.app",
         "https://*.vercel.app", // Per le preview di Vercel
-        process.env.VERCEL_URL ? `https://://${process.env.VERCEL_URL}` : ''
+        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ''
       ].filter(Boolean), 
       "img-src": ["'self'", "data:", "https:"]
     }
@@ -156,29 +159,91 @@ const schemas = {
 };
 
 // ---------------------------------------------------------------------
-// FUNZIONE isSafeUrl — ANTI-SSRF
+// --- ★★★ FIX SSRF: Funzioni helper per controllo IP ★★★ ---
 // ---------------------------------------------------------------------
-function isSafeUrl(urlString) {
+
+/**
+ * Controlla se un indirizzo IP è privato, loopback o link-local.
+ * @param {string} ip L'indirizzo IP da controllare.
+ * @returns {boolean} true se l'IP è privato/riservato.
+ */
+function isPrivateIp(ip) {
+  // Se è un indirizzo IPv6 mappato IPv4 (es. ::ffff:127.0.0.1)
+  if (net.isIPv6(ip) && ip.startsWith('::ffff:')) {
+    ip = ip.substring(7); // Estrai l'IPv4
+  }
+
+  if (net.isIPv4(ip)) {
+    const parts = ip.split('.').map(Number);
+    return parts[0] === 10 || // 10.0.0.0/8
+           parts[0] === 127 || // 127.0.0.0/8 (Loopback)
+           (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) || // 172.16.0.0/12
+           (parts[0] === 192 && parts[1] === 168) || // 192.168.0.0/16
+           (parts[0] === 169 && parts[1] === 254) || // 169.254.0.0/16 (Link-local)
+           parts[0] === 0; // 0.0.0.0/8
+  }
+
+  if (net.isIPv6(ip)) {
+    const lowerIp = ip.toLowerCase();
+    return lowerIp === '::1' || // Loopback IPv6
+           lowerIp.startsWith('fc') || lowerIp.startsWith('fd') || // Unique Local (fc00::/7)
+           lowerIp.startsWith('fe80'); // Link-local (fe80::/10)
+  }
+  
+  return false; // Non un formato IP valido
+}
+
+
+async function isSafeUrl(urlString) {
   try {
     const parsed = new URL(urlString);
-    if (!['http:', 'https:'].includes(parsed.protocol)) return false;
+    
+    // 1. Controllo protocollo
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return false;
+    }
+    
     const hostname = parsed.hostname;
-    if (hostname === 'localhost') return false;
-    const forbidden = [
-      /^127\./, /^10\./,
-      /^172\.(1[6-9]|2[0-9]|3[01])\./,
-      /^192\.168\./,
-      /^169\.254\./,
-      /^0\./,
-      /^::1$/,
-      /^[fF][cCdD]00:/,
-      /^[fF][eE]80:/
-    ];
-    return !forbidden.some(r => r.test(hostname));
-  } catch {
-    return false;
+
+    // 2. Controllo stringa hostname
+    if (hostname.toLowerCase() === 'localhost') {
+      return false;
+    }
+    
+    // Se l'hostname è esso stesso un IP, controllalo
+    if (net.isIP(hostname)) {
+      return !isPrivateIp(hostname);
+    }
+
+    // 3. Controllo risoluzione DNS
+    let ips = [];
+    try {
+      // Usiamo lookup per ottenere sia IPv4 che IPv6
+      const addressesInfo = await dns.lookup(hostname, { all: true });
+      ips = addressesInfo.map(info => info.address);
+    } catch (dnsErr) {
+      // Se il DNS non risolve, consideralo non sicuro
+      console.error(`Errore DNS per ${hostname}:`, dnsErr.message);
+      return false;
+    }
+
+    if (ips.length === 0) {
+      return false; // Nessun IP trovato
+    }
+    
+    // Se *uno qualsiasi* degli IP risolti è privato, blocca.
+    if (ips.some(isPrivateIp)) {
+      return false;
+    }
+
+    // Se supera tutti i controlli, è sicuro
+    return true;
+
+  } catch (err) {
+    return false; // URL non valido o altro errore
   }
 }
+// --- ★★★ FINE BLOCCO FIX SSRF ★★★ ---
 
 // ---------------------------------------------------------------------
 // WRAPPER ASYNC
@@ -304,8 +369,11 @@ app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: { message: "URL manifesto non valido." } });
 
   const { manifestUrl } = req.body;
-  if (!isSafeUrl(manifestUrl))
-    return res.status(400).json({ error: { message: "URL non sicuro." } });
+  
+  // ---  FIX SSRF  ---
+  if (!(await isSafeUrl(manifestUrl))) {
+    return res.status(400).json({ error: { message: "URL non sicuro o risolve a un IP privato." } });
+  }
 
   const headers = {};
   const parsedUrl = new URL(manifestUrl);
@@ -314,15 +382,13 @@ app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
     headers['Authorization'] = `token ${GITHUB_TOKEN}`;
   }
 
-  // --- ★★★ FIX DI SICUREZZA SSRF ★★★ ---
- 
+  
   const fetchOptions = {
     headers,
     redirect: 'error' 
   };
-  // --- FINE FIX ---
 
-  const resp = await fetchWithTimeout(manifestUrl, fetchOptions); 
+  const resp = await fetchWithTimeout(manifestUrl, fetchOptions);
   if (!resp.ok)
     throw new Error(`Status ${resp.status}`);
 
@@ -364,13 +430,12 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // ERRORE GLOBALE
-// --- ★★★ FIX: Gestore errori aggiornato per SSRF ★★★ ---
 app.use((err, req, res, next) => {
   console.error(err);
   const status = err.status || 500;
   let message = 'Errore interno del server.';
 
-  // Se l'errore è causato dal redirect bloccato, dai un messaggio generico
+  // Se l'errore è causato dal redirect bloccato
   if (err.message.includes('redirect')) {
       message = 'Recupero del manifesto non riuscito (redirect bloccato).';
   } 
