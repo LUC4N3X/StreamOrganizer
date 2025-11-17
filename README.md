@@ -1,7 +1,6 @@
-<!-- =================== HEADER README CYBERPUNK GITHUB =================== -->
-<div align="center" style="margin-bottom:40px;">
 
-  <!-- Titolo principale completo come GIF animata -->
+
+<!-- Titolo principale completo come GIF animata -->
   <img src="https://i.ibb.co/fSgJxvQ/streamorder-cyberdeck.gif" 
        alt="⚡ STREAMORDER ⬢ [ Cyberdeck Addon Console ] Neon" 
        width="900" 
