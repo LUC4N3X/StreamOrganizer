@@ -63,9 +63,9 @@
 - 📡 **Diagnostica Addon** (Ping Test) – Controlla la latency e la disponibilità dei tuoi addon in tempo reale ⚡
 ---
 <div align="center" style="background:linear-gradient(135deg,#0a0014,#130022);border-radius:12px;padding:25px;margin:20px 0;box-shadow:0 0 25px rgba(255,0,255,0.4), 0 0 10px rgba(100,0,255,0.2) inset;">
-  <h1 style="font-size:2.8em;color:#ff00ff;margin:0;font-family:'Orbitron', sans-serif;text-shadow:0 0 8px #ff00ff;">
-    <span style="display:inline-block;transform:rotate(-10deg);margin-right:10px;">🛡️</span> Sicurezza Cibernetica Avanzata <span style="display:inline-block;transform:rotate(10deg);margin-left:10px;">🔒</span>
-  </h1>
+<h1 style="font-size:2.8em;color:#ff00ff;margin:0;font-family:'Orbitron', sans-serif;text-shadow:0 0 8px #ff00ff;">
+    <span style="display:inline-block;transform:rotate(-10deg);margin-right:10px;">🛡️</span> Architettura di Sicurezza <span style="display:inline-block;transform:rotate(10deg);margin-left:10px;">🔒</span>
+</h1>
   <p style="color:#e0d4ff;font-size:1.2em;margin:15px 0 0 0;font-family:'Roboto Mono', monospace;">
     "Blindiamo il tuo accesso, proteggiamo il tuo flusso." 🚀
   </p>
