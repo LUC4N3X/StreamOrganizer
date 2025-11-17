@@ -108,13 +108,19 @@
 ---
 
 ## 🧠 Tech Stack
+## 🧠 Tech Stack Futuristico
 
 | 🔧 Tecnologia | Descrizione |
 | :--- | :--- |
-| ⚡ Node.js | Backend modulare e veloce |
-| 🧩 Stremio API | Connessione diretta al tuo ecosistema addon |
-| 🎨 HTML / CSS / JS | Frontend Cyberpunk con animazioni |
-| ☁️ LocalStorage / CloudSync | Salvataggio persistente e sincronizzazione cloud |
+| ⚡ **Node.js** | Backend modulare, veloce e scalabile, con runtime event-driven ad alte prestazioni |
+| 🧩 **Stremio API** | Connessione diretta al tuo ecosistema addon, gestione flussi e contenuti in tempo reale |
+| 🎨 **HTML / CSS / JS** | Frontend Cyberpunk con animazioni, neon effects e design responsive |
+| ☁️ **LocalStorage / CloudSync** | Salvataggio persistente lato client + sincronizzazione cloud sicura |
+| 🛡️ **JWT / Auth Security** | Protezione login e sessioni con token crittografati e autorizzazioni granulari |
+| 🚀 **WebSockets / SSE** | Aggiornamenti live, notifiche istantanee e interazioni realtime |
+| 🔍 **Elasticsearch / Indexing** | Ricerca rapida e filtraggio intelligente dei contenuti |
+| 📦 **NPM / Yarn** | Gestione pacchetti, dipendenze e automazione build moderna |
+| 🛠️ **DevTools & Debug** | Debug avanzato, hot reload e monitoraggio performance in tempo reale |
 
 ---
 
