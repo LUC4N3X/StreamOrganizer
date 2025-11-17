@@ -29,9 +29,17 @@ const ADDONS_SET_URL = `${STREMIO_API_BASE}addonCollectionSet`;
 
 const FETCH_TIMEOUT = 10000;
 
+// Costanti per i limiti
+const MAX_JSON_PAYLOAD = '250kb'; // Limite per il body parser
+const MAX_MANIFEST_SIZE_BYTES = 250 * 1024; // 250KB per manifest
+const MAX_API_RESPONSE_BYTES = 5 * 1024 * 1024; // 5MB per risposte API (lista addon)
+const MAX_LOGIN_RESPONSE_BYTES = 1 * 1024 * 1024; // 1MB per login/set
+const SANITIZE_MAX_DEPTH = 6;
+const SANITIZE_MAX_STRING = 2000;
+const SANITIZE_MAX_ARRAY = 200;
+
 
 // Helmet + CSP 
-
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -70,7 +78,7 @@ app.use(helmet({
 // ---------------------------------------------------------------------
 
 // --- FIX: Limita la dimensione del payload JSON per prevenire DoS ---
-app.use(express.json({ limit: '250kb' }));
+app.use(express.json({ limit: MAX_JSON_PAYLOAD }));
 
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -121,35 +129,24 @@ app.use(cors({
 
 // --- FIX: Middleware per CSRF Hardening ---
 const enforceOrigin = (req, res, next) => {
-  // Applichiamo solo a metodi che modificano lo stato
   if (req.method === 'POST') {
     const origin = req.header('Origin');
     const referer = req.header('Referer');
     let requestOrigin = origin;
 
-    // Se Origin è assente (es. form POST tradizionale), usa Referer
     if (!requestOrigin && referer) {
-      try {
-        requestOrigin = new URL(referer).origin;
-      } catch (e) {
-        requestOrigin = undefined;
-      }
+      try { requestOrigin = new URL(referer).origin; } catch (e) { requestOrigin = undefined; }
     }
 
-    // Se l'origine esiste (ovvero, è una richiesta cross-site)
     if (requestOrigin) {
       const isAllowed = allowedOrigins.includes(requestOrigin) ||
                       (process.env.VERCEL_ENV === 'preview' && requestOrigin.endsWith('.vercel.app'));
 
-      // Se l'origine è presente ma non è nella whitelist, blocca.
       if (!isAllowed) {
         return res.status(403).json({ error: { message: 'Origine richiesta non valida (CSRF check).' } });
       }
     }
-    // Se !requestOrigin (es. richiesta same-origin, o curl),
-    // ci affidiamo al cookie sameSite: 'strict' e lasciamo passare.
   }
-  
   return next();
 };
 
@@ -182,7 +179,8 @@ async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
 // ---------------------------------------------------------------------
 const cookieOptions = {
   httpOnly: true,
-  secure: true,
+  // --- ★★★ FIX: Cookie sicuri solo in produzione (per dev locale) ★★★ ---
+  secure: process.env.NODE_ENV === 'production',
   sameSite: 'strict',
   maxAge: 30 * 24 * 60 * 60 * 1000
 };
@@ -197,151 +195,98 @@ const schemas = {
   setAddons: Joi.object({
     addons: Joi.array().min(1).required(),
     email: Joi.string().email().allow(null)
-  })
+  }),
+  // --- ★★★ FIX: Schema Joi per validazione Manifest ★★★ ---
+  manifestCore: Joi.object({
+    id: Joi.string().max(100).required(),
+    version: Joi.string().max(50).required(),
+    name: Joi.string().max(250).required(),
+    description: Joi.string().max(5000).allow('').optional(),
+    resources: Joi.array().max(50),
+    types: Joi.array().max(50),
+  }).unknown(true) // Permetti altri campi non definiti
 };
 
 // ---------------------------------------------------------------------
 // --- FIX SSRF: Funzioni helper per controllo IP ---
 // ---------------------------------------------------------------------
-
-/**
- * Controlla se un indirizzo IP è privato, loopback o link-local.
- * @param {string} ip L'indirizzo IP da controllare.
- * @returns {boolean} true se l'IP è privato/riservato.
- */
 function isPrivateIp(ip) {
-  // Se è un indirizzo IPv6 mappato IPv4 (es. ::ffff:127.0.0.1)
-  if (net.isIPv6(ip) && ip.startsWith('::ffff:')) {
-    ip = ip.substring(7); // Estrai l'IPv4
-  }
-
+  if (net.isIPv6(ip) && ip.startsWith('::ffff:')) { ip = ip.substring(7); }
   if (net.isIPv4(ip)) {
     const parts = ip.split('.').map(Number);
-    return parts[0] === 10 || // 10.0.0.0/8
-           parts[0] === 127 || // 127.0.0.0/8 (Loopback)
-           (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) || // 172.16.0.0/12
-           (parts[0] === 192 && parts[1] === 168) || // 192.168.0.0/16
-           (parts[0] === 169 && parts[1] === 254) || // 169.254.0.0/16 (Link-local)
-           parts[0] === 0; // 0.0.0.0/8
+    return parts[0] === 10 || parts[0] === 127 ||
+           (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
+           (parts[0] === 192 && parts[1] === 168) ||
+           (parts[0] === 169 && parts[1] === 254) || parts[0] === 0;
   }
-
   if (net.isIPv6(ip)) {
     const lowerIp = ip.toLowerCase();
-    return lowerIp === '::1' || // Loopback IPv6
-           lowerIp.startsWith('fc') || lowerIp.startsWith('fd') || // Unique Local (fc00::/7)
-           lowerIp.startsWith('fe80'); // Link-local (fe80::/10)
+    return lowerIp === '::1' || lowerIp.startsWith('fc') || lowerIp.startsWith('fd') || lowerIp.startsWith('fe80');
   }
-  
-  return false; // Non un formato IP valido
+  return false;
 }
-
-/**
- * Controlla se un URL è "sicuro" eseguendo i seguenti controlli:
- * 1. Protocollo (solo http/https)
- * 2. Controllo stringa hostname (no localhost, no IP privati)
- * 3. Risoluzione DNS: l'hostname non deve risolvere in un IP privato.
- * @param {string} urlString L'URL da controllare.
- * @returns {Promise<boolean>} true se l'URL è considerato sicuro.
- */
 async function isSafeUrl(urlString) {
   try {
     const parsed = new URL(urlString);
-    
-    // 1. Controllo protocollo
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
-      return false;
-    }
-    
+    if (!['http:', 'https:'].includes(parsed.protocol)) { return false; }
     const hostname = parsed.hostname;
-
-    // 2. Controllo stringa hostname
-    if (hostname.toLowerCase() === 'localhost') {
-      return false;
-    }
-    
-    // Se l'hostname è esso stesso un IP, controllalo
-    if (net.isIP(hostname)) {
-      return !isPrivateIp(hostname);
-    }
-
-    // 3. Controllo risoluzione DNS
+    if (hostname.toLowerCase() === 'localhost') { return false; }
+    if (net.isIP(hostname)) { return !isPrivateIp(hostname); }
     let ips = [];
     try {
-      // Usiamo lookup per ottenere sia IPv4 che IPv6
       const addressesInfo = await dns.lookup(hostname, { all: true });
       ips = addressesInfo.map(info => info.address);
-    } catch (dnsErr) {
-      // Se il DNS non risolve, consideralo non sicuro
-      console.error(`Errore DNS per ${hostname}:`, dnsErr.message);
-      return false;
-    }
-
-    if (ips.length === 0) {
-      return false; // Nessun IP trovato
-    }
-    
-    // Se *uno qualsiasi* degli IP risolti è privato, blocca.
-    if (ips.some(isPrivateIp)) {
-      return false;
-    }
-
-    // Se supera tutti i controlli, è sicuro
+    } catch (dnsErr) { return false; }
+    if (ips.length === 0) { return false; }
+    if (ips.some(isPrivateIp)) { return false; }
     return true;
-
-  } catch (err) {
-    return false; // URL non valido o altro errore
-  }
+  } catch (err) { return false; }
 }
 
 // ---------------------------------------------------------------------
-// --- FIX XSS: Funzioni helper per sanificazione ricorsiva ---
+// --- ★★★ FIX XSS: Funzioni helper per sanificazione ricorsiva (con limiti) ★★★ ---
 // ---------------------------------------------------------------------
+const sanitizeOptions = { allowedTags: [], allowedAttributes: {} };
 
-/**
- * Opzioni di sanificazione: ammetti solo testo puro, nessun tag HTML.
- */
-const sanitizeOptions = {
-  allowedTags: [],
-  allowedAttributes: {}
-};
-
-/**
- * Sanifica una singola stringa, rimuovendo tutti i tag HTML.
- * @param {string} text La stringa da sanificare.
- * @returns {string} La stringa sanificata.
- */
 const sanitize = (text) => text ? sanitizeHtml(text.trim(), sanitizeOptions) : '';
 
-/**
- * Sanifica ricorsivamente tutte le proprietà stringa di un oggetto o array.
- * @param {any} data L'entità (oggetto, array, stringa, ecc.) da sanificare.
- * @returns {any} L'entità con tutte le stringhe sanificate.
- */
-function sanitizeObject(data) {
-  if (typeof data === 'string') {
-    return sanitize(data); // Caso base: sanifica la stringa
+function sanitizeObject(data, currentDepth = 0) {
+  // 1. Limite di profondità
+  if (currentDepth > SANITIZE_MAX_DEPTH) {
+    return "[Profondità oggetto eccessiva]";
   }
 
+  // 2. Caso base: stringa (con limite di lunghezza)
+  if (typeof data === 'string') {
+    if (data.length > SANITIZE_MAX_STRING) {
+      data = data.substring(0, SANITIZE_MAX_STRING) + "... [troncato]";
+    }
+    return sanitize(data);
+  }
+
+  // 3. Caso Array (con limite di lunghezza)
   if (Array.isArray(data)) {
-    // Se è un array, itera e sanifica ogni elemento
-    return data.map(item => sanitizeObject(item));
+    if (data.length > SANITIZE_MAX_ARRAY) {
+      data = data.slice(0, SANITIZE_MAX_ARRAY);
+    }
+    return data.map(item => sanitizeObject(item, currentDepth + 1));
   }
   
+  // 4. Caso Oggetto
   if (data && typeof data === 'object' && data.constructor === Object) {
-    // Se è un oggetto letterale, itera su ogni chiave
     const newObj = {};
     for (const key in data) {
       if (Object.prototype.hasOwnProperty.call(data, key)) {
-        // Chiamata ricorsiva per il valore
-        newObj[key] = sanitizeObject(data[key]);
+        newObj[key] = sanitizeObject(data[key], currentDepth + 1);
       }
     }
     return newObj;
   }
   
-  // Se è un numero, booleano, null, undefined, ecc., restituiscilo com'è
+  // 5. Altri tipi (numeri, booleani, null)
   return data; 
 }
+// --- FINE FIX ---
 
 
 // ---------------------------------------------------------------------
@@ -353,6 +298,19 @@ const asyncHandler = fn => (req, res, next) =>
 // ---------------------------------------------------------------------
 // FUNZIONI STREMIO
 // ---------------------------------------------------------------------
+
+// --- ★★★ FIX: Funzione helper per validare risposte API ★★★ ---
+function validateApiResponse(res, maxSize = MAX_API_RESPONSE_BYTES) {
+  const contentType = res.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    throw new Error('Risposta API non valida (Content-Type non JSON).');
+  }
+  const contentLength = res.headers.get('content-length');
+  if (contentLength && parseInt(contentLength, 10) > maxSize) {
+    throw new Error('Risposta API troppo grande.');
+  }
+}
+
 async function getAddonsByAuthKey(authKey) {
   const { error } = schemas.authKey.validate({ authKey });
   if (error) throw new Error("AuthKey non valida.");
@@ -361,6 +319,9 @@ async function getAddonsByAuthKey(authKey) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ authKey: authKey.trim() })
   });
+
+  validateApiResponse(res, MAX_API_RESPONSE_BYTES); // FIX: Valida risposta
+
   const data = await res.json();
   if (!data.result || data.error)
     throw new Error(data.error?.message || "Errore recupero addon.");
@@ -375,6 +336,9 @@ async function getStremioData(email, password) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: email.trim(), password })
   });
+
+  validateApiResponse(res, MAX_LOGIN_RESPONSE_BYTES); // FIX: Valida risposta
+  
   const data = await res.json();
   if (!data.result?.authKey || data.error)
     throw new Error(data.error?.message || "Credenziali non valide.");
@@ -391,7 +355,6 @@ app.post('/api/login', asyncHandler(async (req, res) => {
   const { email, password, authKey: providedAuthKey } = req.body;
   let data;
   if (email && password) data = await getStremioData(email, password);
-  // --- FIX: Aggiunto trim() per coerenza ---
   else if (providedAuthKey) {
     const trimmedAuthKey = providedAuthKey.trim();
     data = { addons: await getAddonsByAuthKey(trimmedAuthKey), authKey: trimmedAuthKey };
@@ -423,23 +386,18 @@ app.post('/api/set-addons', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: { message: error.details[0].message } });
 
   const addonsToSave = req.body.addons.map(a => {
-    // 1. Clona l'oggetto per evitare di modificare l'originale
     let clean = JSON.parse(JSON.stringify(a));
     
-    // 2. Rimuovi le chiavi "di stato" del frontend
     delete clean.isEditing;
     delete clean.newLocalName;
-
     if (clean.manifest) {
       delete clean.manifest.isEditing;
       delete clean.manifest.newLocalName;
     }
     
-    // --- ★★★ FIX XSS: Sanifica l'INTERO oggetto 'clean' ★★★ ---
+    // --- FIX XSS: Sanifica l'INTERO oggetto 'clean' con limiti ---
     clean = sanitizeObject(clean);
-    // --- FINE FIX ---
 
-    // 3. Aggiungi un ID se manca (dopo la sanificazione)
     if (clean.manifest && !clean.manifest.id) {
       clean.manifest.id = `external-${Math.random().toString(36).substring(2, 9)}`;
     }
@@ -452,6 +410,8 @@ app.post('/api/set-addons', asyncHandler(async (req, res) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ authKey: authKey.trim(), addons: addonsToSave })
   });
+
+  validateApiResponse(resSet, MAX_LOGIN_RESPONSE_BYTES); // FIX: Valida risposta
 
   const dataSet = await resSet.json();
   if (dataSet.error)
@@ -490,24 +450,17 @@ app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
   if (!resp.ok)
     throw new Error(`Status ${resp.status}`);
 
-  // --- ★★★ FIX: Mitigazione TOCTOU DNS ★★★ ---
-  // 1. Controlla il Content-Type
-  const contentType = resp.headers.get('content-type');
-  if (!contentType || !contentType.includes('application/json')) {
-    throw new Error('Tipo di contenuto non valido, manifesto rifiutato.');
-  }
+  // --- FIX: Mitigazione TOCTOU DNS ---
+  validateApiResponse(resp, MAX_MANIFEST_SIZE_BYTES);
 
-  // 2. Controlla la dimensione del file
-  const contentLength = resp.headers.get('content-length');
-  const MAX_MANIFEST_SIZE = 250 * 1024; // 250KB
-  if (contentLength && parseInt(contentLength, 10) > MAX_MANIFEST_SIZE) {
-    throw new Error('Manifesto troppo grande, rifiutato.');
+  const manifest = await resp.json(); 
+  
+  // --- ★★★ FIX: Validazione schema Joi del manifest ★★★ ---
+  const { error: manifestError } = schemas.manifestCore.validate(manifest);
+  if (manifestError) {
+    throw new Error(`Manifesto non valido: ${manifestError.details[0].message}`);
   }
   // --- FINE FIX ---
-
-  const manifest = await resp.json(); // Ora è più sicuro chiamare .json()
-  if (!manifest.id || !manifest.version)
-    throw new Error("Manifesto non valido.");
 
   res.json(manifest);
 }));
