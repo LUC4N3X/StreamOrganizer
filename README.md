@@ -1,26 +1,20 @@
-<p style="
-  color:#e0d4ff;
-  font-size:1.3em;
-  font-weight:600;
-  text-shadow: 0 0 3px #00ffff;
-  margin-top:10px;">
-  Navigate the addon matrix. Command with precision.
-</p>
+<!-- =================== HEADER README CYBERPUNK GITHUB =================== -->
+<div align="center" style="margin-bottom:40px;">
 
-<!-- Titolo principale completo come GIF animata -->
+  <!-- Titolo principale completo come GIF animata -->
   <img src="https://i.ibb.co/fSgJxvQ/streamorder-cyberdeck.gif" 
        alt="⚡ STREAMORDER ⬢ [ Cyberdeck Addon Console ] Neon" 
        width="900" 
        style="border-radius:12px;box-shadow:0 0 25px rgba(255,0,255,0.4);"/>
 
-  <!-- Sottotitolo neon statico -->
+  <!-- Sottotitolo cyberpunk hacker -->
   <p style="
     color:#e0d4ff;
     font-size:1.3em;
     font-weight:600;
     text-shadow: 0 0 3px #00ffff;
     margin-top:10px;">
-    Control your Stremio Addons with style & precision
+    Navigate the addon matrix. Command with precision.
   </p>
 
   <!-- Banner grafico cyberpunk -->
