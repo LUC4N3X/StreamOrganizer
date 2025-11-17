@@ -25,9 +25,9 @@ const ADDONS_SET_URL = `${STREMIO_API_BASE}addonCollectionSet`;
 
 const FETCH_TIMEOUT = 10000;
 
-// ---------------------------------------------------------------------
-// Helmet + CSP (FIX: RESA PIÙ STRINGENTE)
-// ---------------------------------------------------------------------
+
+// Helmet + CSP 
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -44,9 +44,7 @@ app.use(helmet({
         "'self'",
         "https://fonts.googleapis.com",
         "https://cdnjs.cloudflare.com"
-        // --- 'unsafe-inline' RIMOSSO ---
-        // Questo è il secondo punto: vieta stili <style>...</style> 
-        // o style="..." direttamente nell'HTML.
+       
       ],
       "font-src": ["'self'", "https://fonts.gstatic.com"],
       "connect-src": [
@@ -251,7 +249,7 @@ app.post('/api/get-addons', asyncHandler(async (req, res) => {
   res.json({ addons: await getAddonsByAuthKey(authKey) });
 }));
 
-// --- FIX: Definizione opzioni di sanificazione (permetti solo testo) ---
+// ---  Definizione opzioni di sanificazione (permetti solo testo) ---
 const sanitizeOptions = {
   allowedTags: [],
   allowedAttributes: {}
