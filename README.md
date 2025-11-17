@@ -1,44 +1,76 @@
-<div align="center" style="margin-bottom:30px;">
+<div align="center" <!-- =================== HEADER README CYBERPUNK 2.0 =================== -->
+<div align="center" style="margin-bottom:40px;">
 
-  <!-- Titolo principale neon -->
+  <!-- Titolo principale neon animato -->
   <h1 style="
-    font-family: 'Segoe UI', Arial, sans-serif; 
-    font-size: 3em; 
-    color: #ff00ff; 
-    text-shadow: 
-      0 0 5px #ff00ff, 
-      0 0 10px #ff00ff, 
-      0 0 15px #ff00ff, 
-      0 0 25px #ff66ff;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 3.5em;
+    color: #ff00ff;
+    text-shadow:
+      0 0 5px #ff00ff,
+      0 0 10px #ff00ff,
+      0 0 20px #ff66ff,
+      0 0 30px #ff66ff,
+      0 0 40px #ff99ff;
+    animation: flicker 1.5s infinite alternate;
     margin-bottom:5px;">
-    ⚡ STREAMORDER ⬢ [ Cyberdeck Addon Console ]
+    ⚡ STREAMORDER ⬢ <span style="color:#00ffff;">[ Cyberdeck Addon Console ]</span>
   </h1>
 
-  <!-- Sottotitolo -->
-  <p style="color:#e0d4ff; font-size:1.2em; margin-top:0;">
-    Control your Stremio Addons with style & precision
+  <!-- Sottotitolo neon -->
+  <p style="
+    color:#e0d4ff;
+    font-size:1.3em;
+    font-weight:600;
+    text-shadow: 0 0 3px #00ffff;
+    margin-top:0;">
+    Master your Stremio Addons with style & precision
   </p>
 
-  <!-- Banner grafico -->
-  <img src="https://capsule-render.vercel.app/api?type=rect&color=0:ff00cc,100:3333ff&height=120&section=header&text=STREAMORDER&fontSize=45&fontAlignY=55&fontColor=ffffff&desc=The%20Cyberpunk%20Stremio%20Addon%20Console&descAlignY=80" 
+  <!-- Banner grafico cyberpunk -->
+  <img src="https://capsule-render.vercel.app/api?type=rect&color=0:ff00cc,100:3333ff&height=140&section=header&text=STREAMORDER&fontSize=50&fontAlignY=55&fontColor=ffffff&desc=Cyberpunk%20Stremio%20Addon%20Console&descAlignY=85" 
        alt="Cyberpunk Neon Banner" 
-       style="border-radius:12px;margin-top:15px;box-shadow:0 0 20px rgba(255,0,255,0.2);" />
+       style="border-radius:15px;margin-top:20px;box-shadow:0 0 25px rgba(255,0,255,0.3);" />
 
-  <!-- Badges -->
-  <p style="margin-top:15px;">
+  <!-- Badge dinamici -->
+  <p style="margin-top:20px;">
     <img src="https://img.shields.io/badge/Version-1.0.0-purple?style=for-the-badge&logo=stremio" />
     <img src="https://img.shields.io/badge/Build-Stable-cyan?style=for-the-badge" />
     <img src="https://img.shields.io/badge/Theme-Cyberpunk-ff00ff?style=for-the-badge&logoColor=white" />
     <img src="https://img.shields.io/badge/Secure-Yes-green?style=for-the-badge" />
+    <img src="https://img.shields.io/badge/Speed-Lightning-blue?style=for-the-badge&logo=zap" />
+    <img src="https://img.shields.io/badge/Style-Neon-pink?style=for-the-badge" />
   </p>
 
   <!-- Motto -->
-  <blockquote style="color:#ff99ff; font-style:italic; font-size:1em; margin-top:10px;">
-    "Control the chaos. Rule your Addons."
+  <blockquote style="
+    color:#ff99ff;
+    font-style:italic;
+    font-size:1.1em;
+    margin-top:15px;
+    text-shadow:0 0 5px #ff66ff;">
+    "Control the chaos. Rule your Addons. 🔥"
   </blockquote>
 
 </div>
 
+<!-- Animazione flicker neon -->
+<style>
+@keyframes flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    text-shadow: 
+      0 0 5px #ff00ff,
+      0 0 10px #ff00ff,
+      0 0 20px #ff66ff,
+      0 0 30px #ff66ff,
+      0 0 40px #ff99ff;
+  }
+  20%, 22%, 24%, 55% {
+    text-shadow: none;
+    color: #ff33ff;
+  }
+}
+</style>
 
 <!-- =================== /HEADER README CYBERPUNK =================== -->
 
