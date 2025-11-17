@@ -1,8 +1,11 @@
 <!-- =================== HEADER README CYBERPUNK GITHUB =================== -->
 <div align="center" style="margin-bottom:40px;">
 
-  <!-- Titolo principale come GIF animata -->
-  <img src="https://i.ibb.co/2y0YwZL/streamorder-neon.gif" alt="STREAMORDER Neon" width="800" style="border-radius:12px;box-shadow:0 0 20px rgba(255,0,255,0.3);"/>
+  <!-- Titolo principale completo come GIF animata -->
+  <img src="https://i.ibb.co/fSgJxvQ/streamorder-cyberdeck.gif" 
+       alt="⚡ STREAMORDER ⬢ [ Cyberdeck Addon Console ] Neon" 
+       width="900" 
+       style="border-radius:12px;box-shadow:0 0 25px rgba(255,0,255,0.4);"/>
 
   <!-- Sottotitolo neon statico -->
   <p style="
@@ -11,7 +14,7 @@
     font-weight:600;
     text-shadow: 0 0 3px #00ffff;
     margin-top:10px;">
-    Master your Stremio Addons with style & precision
+    Control your Stremio Addons with style & precision
   </p>
 
   <!-- Banner grafico cyberpunk -->
@@ -40,7 +43,6 @@
   </blockquote>
 
 </div>
-
 <!-- =================== /HEADER README CYBERPUNK =================== -->
 
 ---
