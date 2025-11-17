@@ -1,4 +1,11 @@
-
+<p style="
+  color:#e0d4ff;
+  font-size:1.3em;
+  font-weight:600;
+  text-shadow: 0 0 3px #00ffff;
+  margin-top:10px;">
+  Navigate the addon matrix. Command with precision.
+</p>
 
 <!-- Titolo principale completo come GIF animata -->
   <img src="https://i.ibb.co/fSgJxvQ/streamorder-cyberdeck.gif" 
