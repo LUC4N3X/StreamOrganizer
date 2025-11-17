@@ -179,7 +179,7 @@ async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
 // ---------------------------------------------------------------------
 const cookieOptions = {
   httpOnly: true,
-  // --- ★★★ FIX: Cookie sicuri solo in produzione (per dev locale) ★★★ ---
+  // --- FIX: Cookie sicuri solo in produzione (per dev locale) ---
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'strict',
   maxAge: 30 * 24 * 60 * 60 * 1000
@@ -196,7 +196,7 @@ const schemas = {
     addons: Joi.array().min(1).required(),
     email: Joi.string().email().allow(null)
   }),
-  // --- ★★★ FIX: Schema Joi per validazione Manifest ★★★ ---
+  // --- FIX: Schema Joi per validazione Manifest ---
   manifestCore: Joi.object({
     id: Joi.string().max(100).required(),
     version: Joi.string().max(50).required(),
@@ -244,7 +244,7 @@ async function isSafeUrl(urlString) {
 }
 
 // ---------------------------------------------------------------------
-// --- ★★★ FIX XSS: Funzioni helper per sanificazione ricorsiva (con limiti) ★★★ ---
+// --- FIX XSS: Funzioni helper per sanificazione ricorsiva (con limiti) ---
 // ---------------------------------------------------------------------
 const sanitizeOptions = { allowedTags: [], allowedAttributes: {} };
 
@@ -299,7 +299,7 @@ const asyncHandler = fn => (req, res, next) =>
 // FUNZIONI STREMIO
 // ---------------------------------------------------------------------
 
-// --- ★★★ FIX: Funzione helper per validare risposte API ★★★ ---
+// --- FIX: Funzione helper per validare risposte API ---
 function validateApiResponse(res, maxSize = MAX_API_RESPONSE_BYTES) {
   const contentType = res.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
@@ -455,7 +455,7 @@ app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
 
   const manifest = await resp.json(); 
   
-  // --- ★★★ FIX: Validazione schema Joi del manifest ★★★ ---
+  // --- FIX: Validazione schema Joi del manifest ---
   const { error: manifestError } = schemas.manifestCore.validate(manifest);
   if (manifestError) {
     throw new Error(`Manifesto non valido: ${manifestError.details[0].message}`);
@@ -499,7 +499,14 @@ if (process.env.NODE_ENV === 'production') {
 
 // ERRORE GLOBALE
 app.use((err, req, res, next) => {
-  console.error(err);
+  // --- ★★★ FIX: Logging sicuro per evitare leak di dati ★★★ ---
+  // Logga solo il messaggio e lo stack, non l'intero oggetto 'err'
+  console.error(`ERRORE: ${err.message}`);
+  if (process.env.NODE_ENV !== 'production' && err.stack) {
+    console.error(err.stack);
+  }
+  // --- FINE FIX ---
+  
   const status = err.status || 500;
   let message = 'Errore interno del server.';
 
