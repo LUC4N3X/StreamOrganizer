@@ -1,4 +1,3 @@
-=================== HEADER README CYBERPUNK =================== -->
 <div align="center" style="margin-bottom:30px;">
 
   <!-- Titolo principale neon -->
