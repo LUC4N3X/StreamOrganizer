@@ -10,7 +10,7 @@ const cookieParser = require('cookie-parser');
 // --- FIX: Aggiunta libreria per sanificare input (prevenire Stored XSS) ---
 const sanitizeHtml = require('sanitize-html');
 
-// ---  SSRF: Aggiunti moduli 'dns' e 'net'  ---
+// --- ★★★ FIX SSRF: Aggiunti moduli 'dns' e 'net' ★★★ ---
 const dns = require('dns').promises;
 const net = require('net');
 
@@ -252,7 +252,7 @@ async function isSafeUrl(urlString) {
 }
 
 // ---------------------------------------------------------------------
-// --- ★★★ FIX XSS: Funzioni helper per sanificazione ricorsiva ★★★ ---
+// --- FIX XSS: Funzioni helper per sanificazione ricorsiva ---
 // ---------------------------------------------------------------------
 
 /**
@@ -300,7 +300,6 @@ function sanitizeObject(data) {
   // Se è un numero, booleano, null, undefined, ecc., restituiscilo com'è
   return data; 
 }
-// --- ★★★ FINE BLOCCO FIX XSS ★★★ ---
 
 
 // ---------------------------------------------------------------------
@@ -394,10 +393,9 @@ app.post('/api/set-addons', asyncHandler(async (req, res) => {
       delete clean.manifest.newLocalName;
     }
     
-    // ---   XSS: Sanifica l'INTERO oggetto 'clean' 
-   
+    // --- ★★★ FIX XSS: Sanifica l'INTERO oggetto 'clean' ★★★ ---
     clean = sanitizeObject(clean);
-   
+    // --- FINE FIX ---
 
     // 3. Aggiungi un ID se manca (dopo la sanificazione)
     if (clean.manifest && !clean.manifest.id) {
@@ -481,8 +479,10 @@ app.use('/api/*', (req, res) =>
 // HTTPS REDIRECT IN PRODUZIONE
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
-    if (req.header('x-forwarded-proto') !== 'https')
-      return res.redirect(301, `https://${req.header('host')}${req.url}`);
+    if (req.header('x-forwarded-proto') !== 'https') {
+      // --- ★★★ FIX: Usa req.hostname per prevenire Host Header Injection ★★★ ---
+      return res.redirect(301, `https://${req.hostname}${req.url}`);
+    }
     next();
   });
 }
