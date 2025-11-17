@@ -62,30 +62,83 @@
 - 📜 **Realtime Logs** – Log in tempo reale con colori neon
 - 📡 **Diagnostica Addon** (Ping Test) – Controlla la latency e la disponibilità dei tuoi addon in tempo reale ⚡
 ---
-<div align="center" style="background:linear-gradient(135deg,#0a0014,#130022);border-radius:12px;padding:20px;margin:20px 0;box-shadow:0 0 20px rgba(255,0,255,0.3);">
-  <h1 style="font-size:2.5em;color:#ff00ff;margin:0;font-family:Segoe UI,Arial,sans-serif;">
-    🛡️ Sicurezza & Privacy 
+<div align="center" style="
+  background: linear-gradient(135deg,#0a0014,#130022);
+  border-radius: 14px;
+  padding: 25px;
+  margin: 30px 0;
+  box-shadow: 0 0 25px rgba(255,0,255,0.35);
+  font-family: 'Segoe UI', Arial, sans-serif;
+">
+  <h1 style="
+    font-size: 2.4em;
+    color: #ff00ff;
+    margin: 0;
+    text-shadow: 0 0 8px rgba(255,0,255,0.6);
+  ">
+    🛡️ Sicurezza & Privacy
   </h1>
-  <p style="color:#e0d4ff;font-size:1.1em;margin:10px 0 0 0;">
+
+  <p style="
+    color: #e6d8ff;
+    font-size: 1.15em;
+    margin: 12px 0 15px 0;
+  ">
     "Proteggi i tuoi dati come proteggeresti il tuo impianto neurale." ⚡
   </p>
+
   <p>
     <img src="https://img.shields.io/badge/Secure-Yes-green?style=for-the-badge" />
-    <img src="https://img.shields.io/badge/Encrypted-Cookies-blue?style=for-the-badge" />
+    <img src="https://img.shields.io/badge/Encrypted_Cookies-Enabled-blue?style=for-the-badge" />
     <img src="https://img.shields.io/badge/HTTPS-Recommended-purple?style=for-the-badge" />
   </p>
-  <ul style="text-align:left;color:#e0d4ff;font-size:1em;">
-    <li><strong>Cookie sicuri:</strong> AuthKey salvata solo in cookie HttpOnly, crittografati e SameSite strict.</li>
-    <li><strong>Rate Limiting:</strong> Difesa da attacchi brute-force su login e API sensibili.</li>
-    <li><strong>Helmet + CSP:</strong> Header HTTP avanzati per protezione XSS e injection.</li>
-    <li><strong>Dati sensibili al sicuro:</strong> Token e credenziali restano sul server, mai esposti al client.</li>
-    <li><strong>Logging minimale:</strong> Solo errori e info di sistema, niente dati sensibili.</li>
-    <li><strong>Uso responsabile:</strong> Non condividere credenziali o authKey; StreamOrder non salva password in chiaro.</li>
+
+  <ul style="
+    text-align: left;
+    color: #e6d8ff;
+    font-size: 1.05em;
+    line-height: 1.55em;
+    margin-top: 15px;
+  ">
+    <li><strong>Cookie sicuri:</strong> AuthKey solo in cookie HttpOnly, Secure e SameSite=Strict (mitigazione CSRF).</li>
+
+    <li><strong>Sanificazione input (XSS):</strong> Tutti i nomi degli addon vengono filtrati con sanitize-html (Stored XSS bloccato).</li>
+
+    <li><strong>Rate Limiting migliorato:</strong> Protezione contro abusi e brute-force su tutti gli endpoint sensibili.</li>
+
+    <li><strong>Helmet + CSP avanzata:</strong> Nessun <code>unsafe-eval</code>, controllo rigoroso di script, stili e font.</li>
+
+    <li><strong>Validazione Joi:</strong> Tutti gli input (login, URL, liste addon) validati prima dell'elaborazione.</li>
+
+    <li><strong>Protezione SSRF:</strong> 
+      - Controllo hostname con <code>isSafeUrl()</code><br>
+      - Redirect disattivati (<code>redirect: 'error'</code>)<br>
+      - Block degli IP interni (127.x, 10.x, 172.x, 192.168.x…)
+    </li>
+
+    <li><strong>Timeout di rete:</strong> Ogni fetch è protetto da timeout + AbortController.</li>
+
+    <li><strong>Rimozione campi sensibili:</strong> I campi temporanei (<code>isEditing</code>, <code>newLocalName</code>) vengono eliminati prima del salvataggio.</li>
+
+    <li><strong>Token e password al sicuro:</strong> Mai esposti al client; tutto rimane lato server.</li>
+
+    <li><strong>Admin monitor disattivato:</strong> Endpoint limitato e sempre bloccato per privacy.</li>
+
+    <li><strong>HTTPS enforcement:</strong> In produzione il server forza automaticamente HTTPS.</li>
+
+    <li><strong>Logging pulito:</strong> Nessun dato sensibile memorizzato.</li>
   </ul>
-  <p style="color:#ff66ff;font-weight:bold;margin-top:10px;">
-    ⚠️ Nota: usa StreamOrder solo su HTTPS o ambiente locale affidabile.
+
+  <p style="
+    color: #ff66ff;
+    font-weight: bold;
+    margin-top: 20px;
+    font-size: 1.1em;
+  ">
+    ⚠️ Consiglio: utilizza StreamOrder sempre su HTTPS o rete locale affidabile.
   </p>
 </div>
+
 
 ---
 
