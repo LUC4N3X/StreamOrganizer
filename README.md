@@ -108,7 +108,6 @@
 ---
 
 ## 🧠 Tech Stack
-## 🧠 Tech Stack Futuristico
 
 | 🔧 Tecnologia | Descrizione |
 | :--- | :--- |
