@@ -107,8 +107,7 @@
 
 ---
 
-## 🧠 Tech Stack
-## 🧬 Cybernetic Core Stack 🧬
+## 🧬 ​Modern Application Architecture 🧬
 
 | Componente | Manifesto Tecnico |
 | :--- | :--- |
