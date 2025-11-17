@@ -10,7 +10,7 @@ const cookieParser = require('cookie-parser');
 // --- FIX: Aggiunta libreria per sanificare input (prevenire Stored XSS) ---
 const sanitizeHtml = require('sanitize-html');
 
-// --- ★★★ FIX SSRF: Aggiunti moduli 'dns' e 'net' ★★★ ---
+// ---  SSRF: Aggiunti moduli 'dns' e 'net'  ---
 const dns = require('dns').promises;
 const net = require('net');
 
@@ -159,7 +159,7 @@ const schemas = {
 };
 
 // ---------------------------------------------------------------------
-// --- ★★★ FIX SSRF: Funzioni helper per controllo IP ★★★ ---
+// --- FIX SSRF: Funzioni helper per controllo IP ---
 // ---------------------------------------------------------------------
 
 /**
@@ -193,7 +193,14 @@ function isPrivateIp(ip) {
   return false; // Non un formato IP valido
 }
 
-
+/**
+ * Controlla se un URL è "sicuro" eseguendo i seguenti controlli:
+ * 1. Protocollo (solo http/https)
+ * 2. Controllo stringa hostname (no localhost, no IP privati)
+ * 3. Risoluzione DNS: l'hostname non deve risolvere in un IP privato.
+ * @param {string} urlString L'URL da controllare.
+ * @returns {Promise<boolean>} true se l'URL è considerato sicuro.
+ */
 async function isSafeUrl(urlString) {
   try {
     const parsed = new URL(urlString);
@@ -243,7 +250,58 @@ async function isSafeUrl(urlString) {
     return false; // URL non valido o altro errore
   }
 }
-// --- ★★★ FINE BLOCCO FIX SSRF ★★★ ---
+
+// ---------------------------------------------------------------------
+// --- ★★★ FIX XSS: Funzioni helper per sanificazione ricorsiva ★★★ ---
+// ---------------------------------------------------------------------
+
+/**
+ * Opzioni di sanificazione: ammetti solo testo puro, nessun tag HTML.
+ */
+const sanitizeOptions = {
+  allowedTags: [],
+  allowedAttributes: {}
+};
+
+/**
+ * Sanifica una singola stringa, rimuovendo tutti i tag HTML.
+ * @param {string} text La stringa da sanificare.
+ * @returns {string} La stringa sanificata.
+ */
+const sanitize = (text) => text ? sanitizeHtml(text.trim(), sanitizeOptions) : '';
+
+/**
+ * Sanifica ricorsivamente tutte le proprietà stringa di un oggetto o array.
+ * @param {any} data L'entità (oggetto, array, stringa, ecc.) da sanificare.
+ * @returns {any} L'entità con tutte le stringhe sanificate.
+ */
+function sanitizeObject(data) {
+  if (typeof data === 'string') {
+    return sanitize(data); // Caso base: sanifica la stringa
+  }
+
+  if (Array.isArray(data)) {
+    // Se è un array, itera e sanifica ogni elemento
+    return data.map(item => sanitizeObject(item));
+  }
+  
+  if (data && typeof data === 'object' && data.constructor === Object) {
+    // Se è un oggetto letterale, itera su ogni chiave
+    const newObj = {};
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        // Chiamata ricorsiva per il valore
+        newObj[key] = sanitizeObject(data[key]);
+      }
+    }
+    return newObj;
+  }
+  
+  // Se è un numero, booleano, null, undefined, ecc., restituiscilo com'è
+  return data; 
+}
+// --- ★★★ FINE BLOCCO FIX XSS ★★★ ---
+
 
 // ---------------------------------------------------------------------
 // WRAPPER ASYNC
@@ -312,13 +370,6 @@ app.post('/api/get-addons', asyncHandler(async (req, res) => {
   res.json({ addons: await getAddonsByAuthKey(authKey) });
 }));
 
-// ---  Definizione opzioni di sanificazione (permetti solo testo) ---
-const sanitizeOptions = {
-  allowedTags: [],
-  allowedAttributes: {}
-};
-const sanitize = (text) => text ? sanitizeHtml(text.trim(), sanitizeOptions) : '';
-
 
 // SET ADDONS
 app.post('/api/set-addons', asyncHandler(async (req, res) => {
@@ -331,20 +382,27 @@ app.post('/api/set-addons', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: { message: error.details[0].message } });
 
   const addonsToSave = req.body.addons.map(a => {
-    const clean = JSON.parse(JSON.stringify(a));
+    // 1. Clona l'oggetto per evitare di modificare l'originale
+    let clean = JSON.parse(JSON.stringify(a));
+    
+    // 2. Rimuovi le chiavi "di stato" del frontend
     delete clean.isEditing;
     delete clean.newLocalName;
 
     if (clean.manifest) {
       delete clean.manifest.isEditing;
       delete clean.manifest.newLocalName;
-      
-      // --- FIX: Sanificazione dell'input per prevenire Stored XSS ---
-      clean.manifest.name = sanitize(a.manifest.name);
     }
+    
+    // ---   XSS: Sanifica l'INTERO oggetto 'clean' 
+   
+    clean = sanitizeObject(clean);
+   
 
-    if (!clean.manifest.id)
+    // 3. Aggiungi un ID se manca (dopo la sanificazione)
+    if (clean.manifest && !clean.manifest.id) {
       clean.manifest.id = `external-${Math.random().toString(36).substring(2, 9)}`;
+    }
 
     return clean;
   });
@@ -370,7 +428,7 @@ app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
 
   const { manifestUrl } = req.body;
   
-  // ---  FIX SSRF  ---
+  // --- ★★★ FIX SSRF: isSafeUrl ora è ASINCRONO ★★★ ---
   if (!(await isSafeUrl(manifestUrl))) {
     return res.status(400).json({ error: { message: "URL non sicuro o risolve a un IP privato." } });
   }
@@ -382,7 +440,7 @@ app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
     headers['Authorization'] = `token ${GITHUB_TOKEN}`;
   }
 
-  
+  // (Manteniamo il fix anti-redirect)
   const fetchOptions = {
     headers,
     redirect: 'error' 
