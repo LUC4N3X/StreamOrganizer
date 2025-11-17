@@ -104,8 +104,6 @@
     ⚠️ <strong>Raccomandazione Critica:</strong> Utilizza StreamOrder <u>esclusivamente</u> su connessioni HTTPS sicure o in ambienti di sviluppo locali completamente affidabili.
   </p>
 </div>
-```http://googleusercontent.com/image_generation_content/0
-
 
 ---
 
