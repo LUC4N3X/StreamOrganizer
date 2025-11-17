@@ -124,14 +124,50 @@ const schemas = {
 };
 
 // --- Helper ---
-function isSafeUrl(url) {
+
+// ===================================================================
+// FUNZIONE isSafeUrl CORRETTA (FIX PER SSRF)
+// ===================================================================
+function isSafeUrl(urlString) {
   try {
-    const parsed = new URL(url);
-    if (!['http:', 'https:'].includes(parsed.protocol)) return false;
-    const privateIPs = [/^10\./, /^172\.(1[6-9]|2[0-9]|3[01])\./, /^192\.168\./];
-    return !privateIPs.some(r => r.test(parsed.hostname));
-  } catch { return false; }
+    const parsed = new URL(urlString);
+    
+    // 1. Solo protocolli http/https
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return false;
+    }
+    
+    const hostname = parsed.hostname;
+
+    // 2. Blocca 'localhost'
+    if (hostname.toLowerCase() === 'localhost') {
+      return false;
+    }
+
+    // 3. Blacklist di pattern IP (IPv4 e IPv6)
+    const forbiddenPatterns = [
+      /^127\./,                            // Loopback IPv4 (127.0.0.0/8)
+      /^10\./,                             // Private IPv4 (10.0.0.0/8)
+      /^172\.(1[6-9]|2[0-9]|3[01])\./,      // Private IPv4 (172.16.0.0/12)
+      /^192\.168\./,                       // Private IPv4 (192.168.0.0/16)
+      /^169\.254\./,                       // Link-local & Metadata (169.254.0.0/16)
+      /^0\./,                              // Reserved (0.0.0.0/8)
+      /^::1$/,                             // Loopback IPv6
+      /^[fF][cCdD]00:/,                    // IPv6 Unique Local (fc00::/7)
+      /^[fF][eE]80:/                       // IPv6 Link-local (fe80::/10)
+    ];
+
+    if (forbiddenPatterns.some(regex => regex.test(hostname))) {
+      return false;
+    }
+
+    return true;
+
+  } catch {
+    return false;
+  }
 }
+// ===================================================================
 
 // --- Async wrapper ---
 const asyncHandler = fn => (req,res,next) => Promise.resolve(fn(req,res,next)).catch(next);
@@ -208,24 +244,47 @@ app.post('/api/set-addons', asyncHandler(async(req,res)=>{
   res.json({ success:true, message:"Addon salvati con successo." });
 }));
 
+// ===================================================================
+// ENDPOINT /api/fetch-manifest CORRETTO (FIX PER TOKEN LEAK)
+// ===================================================================
 app.post('/api/fetch-manifest', asyncHandler(async(req,res)=>{
   const { error } = schemas.manifestUrl.validate(req.body);
   if(error) return res.status(400).json({ error:{ message: "URL manifesto non valido." } });
+  
   const { manifestUrl } = req.body;
-  if(!isSafeUrl(manifestUrl)) return res.status(400).json({ error:{ message:'URL non sicuro.' } });
+  
+  // 1. Controlla se l'URL è sicuro (blacklist SSRF)
+  if(!isSafeUrl(manifestUrl)) {
+    return res.status(400).json({ error:{ message:'URL non sicuro.' } });
+  }
 
-  const headers = GITHUB_TOKEN ? { Authorization:`token ${GITHUB_TOKEN}` } : {};
+  // 2. Prepara gli header
+  const headers = {};
+  const parsedUrl = new URL(manifestUrl);
+  
+  // Whitelist dei domini a cui inviare il token
+  const allowedTokenHosts = ['api.github.com', 'raw.githubusercontent.com'];
+
+  // 3. Aggiungi il token SOLO se l'hostname è nella whitelist
+  if (GITHUB_TOKEN && allowedTokenHosts.includes(parsedUrl.hostname)) {
+    headers['Authorization'] = `token ${GITHUB_TOKEN}`;
+  }
+
+  // 4. Esegui il fetch con gli header sicuri (vuoti o con token)
   const resp = await fetchWithTimeout(manifestUrl,{ headers });
   if(!resp.ok) throw new Error(`Status ${resp.status}`);
+  
   const manifest = await resp.json();
   if(!manifest.id || !manifest.version) throw new Error("Manifesto non valido.");
   res.json(manifest);
 }));
+// ===================================================================
 
 app.post('/api/admin/monitor', asyncHandler(async(req,res)=>{
   const { adminKey, targetEmail } = req.body;
   if(!MONITOR_KEY_SECRET || adminKey!==MONITOR_KEY_SECRET) return res.status(401).json({ error:{ message:"Chiave di monitoraggio non corretta." } });
   if(!targetEmail) return res.status(400).json({ error:{ message:"Email target richiesta." } });
+  // Logica disabilitata per sicurezza
   return res.status(403).json({ error:{ message:`Accesso ai dati di ${targetEmail} non consentito.` } });
 }));
 
@@ -247,8 +306,20 @@ if(process.env.NODE_ENV==='production'){
 
 // --- Error handler globale ---
 app.use((err, req, res, next)=>{
-  console.error(err);
-  res.status(err.status || 500).json({ error:{ message: err.message || 'Errore interno del server.' } });
+  console.error(err); // Logga l'errore in console
+  
+  // Risposta generica per evitare di esporre dettagli
+  const status = err.status || 500;
+  let message = 'Errore interno del server.';
+  
+  // Invia messaggi specifici solo se "sicuri" (es. timeout)
+  if (err.message.includes('timeout')) {
+    message = 'Richiesta al server scaduta (timeout).';
+  } else if (status < 500) {
+    message = err.message; // Errore del client (4xx)
+  }
+
+  res.status(status).json({ error:{ message } });
 });
 
 // --- Avvio server locale ---
