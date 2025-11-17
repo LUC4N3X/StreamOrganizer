@@ -108,18 +108,20 @@
 ---
 
 ## 🧠 Tech Stack
+## 🧬 Cybernetic Core Stack 🧬
 
-| 🔧 Tecnologia | Descrizione |
+| Componente | Manifesto Tecnico |
 | :--- | :--- |
-| ⚡ **Node.js** | Backend modulare, veloce e scalabile, con runtime event-driven ad alte prestazioni |
-| 🧩 **Stremio API** | Connessione diretta al tuo ecosistema addon, gestione flussi e contenuti in tempo reale |
-| 🎨 **HTML / CSS / JS** | Frontend Cyberpunk con animazioni, neon effects e design responsive |
-| ☁️ **LocalStorage / CloudSync** | Salvataggio persistente lato client + sincronizzazione cloud sicura |
-| 🛡️ **JWT / Auth Security** | Protezione login e sessioni con token crittografati e autorizzazioni granulari |
-| 🚀 **WebSockets / SSE** | Aggiornamenti live, notifiche istantanee e interazioni realtime |
-| 🔍 **Elasticsearch / Indexing** | Ricerca rapida e filtraggio intelligente dei contenuti |
-| 📦 **NPM / Yarn** | Gestione pacchetti, dipendenze e automazione build moderna |
-| 🛠️ **DevTools & Debug** | Debug avanzato, hot reload e monitoraggio performance in tempo reale |
+| ⚡ **Node.js (Bionic Core)** | Il cuore asincrono. Runtime V8 ultra-ottimizzato per I/O non bloccante, scalabilità neurale e API a latenza zero. |
+| 🌌 **Stremio Data Hub** | Gateway diretto alla matrice di contenuti. Gestione dinamica dei flussi e integrazione totale dell'ecosistema addon in *true real-time*. |
+| 🔮 **Holo-Interface (HTML/CSS/JS)**| UI Cyberpunk reattiva. Effetti *neon-glitch*, animazioni "liquid metal" e DOM manipolato per un'esperienza olografica. |
+| 🛰️ **Sync-Core (Edge/Cloud)** | Persistenza dati *always-on*. Sincronizzazione atomica tra il client (LocalStorage) e il cloud. La tua sessione è immortale. |
+| 🔑 **Quantum-Lock (JWT)** | Sicurezza di livello militare. Sessioni stateless con token crittografati. Autorizzazioni granulari e protocolli anti-intrusione attivi H24. |
+| 📡 **Neural Link (WebSockets/SSE)**| Flusso dati bidirezionale persistente. Interazioni live, notifiche *push* istantanee e data-streaming continuo. Latenza? Un concetto obsoleto. |
+| 🧠 **Cognitive Search (Elastic)** | Indicizzazione neurale. Ricerca *instant-match* con filtri contestuali e IA predittiva. Trova prima ancora di aver cercato. |
+| 📦 **Cyber-Factory (NPM/Yarn)** | L'arsenale del costruttore. Gestione atomica delle dipendenze, script di build automatizzati e *packaging* ottimizzato per il deployment. |
+| 🔬 **Hyper-Debug Suite (DevTools)**| Debugging a livello molecolare. *Hot Module Replacement* (HMR) istantaneo, performance profiling in real-time e *time-travel debugging*. |
+
 
 ---
 
