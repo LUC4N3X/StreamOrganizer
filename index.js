@@ -10,7 +10,7 @@ const cookieParser = require('cookie-parser');
 // --- FIX: Aggiunta libreria per sanificare input (prevenire Stored XSS) ---
 const sanitizeHtml = require('sanitize-html');
 
-// --- ★★★ FIX SSRF: Aggiunti moduli 'dns' e 'net' ★★★ ---
+// ---  FIX SSRF: Aggiunti moduli 'dns' e 'net'  ---
 const dns = require('dns').promises;
 const net = require('net');
 
@@ -68,7 +68,11 @@ app.use(helmet({
 // ---------------------------------------------------------------------
 // MIDDLEWARE GENERALI
 // ---------------------------------------------------------------------
-app.use(express.json());
+
+// --- ★★★ FIX: Limita la dimensione del payload JSON per prevenire DoS ★★★ ---
+app.use(express.json({ limit: '250kb' }));
+// --- FINE FIX ---
+
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -103,6 +107,7 @@ if (process.env.VERCEL_URL)
 
 app.use(cors({
   origin: (origin, callback) => {
+    // La logica CORS permette !origin (per server-to-server o test locali)
     if (!origin) return callback(null, true);
     if (
       allowedOrigins.includes(origin) ||
@@ -114,6 +119,46 @@ app.use(cors({
   },
   credentials: true
 }));
+
+// ---  FIX: Middleware per CSRF Hardening  ---
+
+const enforceOrigin = (req, res, next) => {
+  // Applichiamo solo a metodi che modificano lo stato
+  if (req.method === 'POST') {
+    const origin = req.header('Origin');
+    const referer = req.header('Referer');
+    let requestOrigin = origin;
+
+    // Se Origin è assente (es. form POST tradizionale), usa Referer
+    if (!requestOrigin && referer) {
+      try {
+        requestOrigin = new URL(referer).origin;
+      } catch (e) {
+        requestOrigin = undefined;
+      }
+    }
+
+    // Se l'origine esiste (ovvero, è una richiesta cross-site)
+    if (requestOrigin) {
+      const isAllowed = allowedOrigins.includes(requestOrigin) ||
+                      (process.env.VERCEL_ENV === 'preview' && requestOrigin.endsWith('.vercel.app'));
+
+      // Se l'origine è presente ma non è nella whitelist, blocca.
+      if (!isAllowed) {
+        return res.status(403).json({ error: { message: 'Origine richiesta non valida (CSRF check).' } });
+      }
+    }
+    
+  }
+  
+  return next();
+};
+
+// Applica il controllo CSRF a TUTTI gli endpoint /api/
+// Questo è più semplice che applicarlo a ogni singola rotta POST
+app.use('/api/', enforceOrigin);
+// --- FINE FIX ---
+
 
 // ---------------------------------------------------------------------
 // FETCH CON TIMEOUT
@@ -162,11 +207,7 @@ const schemas = {
 // --- FIX SSRF: Funzioni helper per controllo IP ---
 // ---------------------------------------------------------------------
 
-/**
- * Controlla se un indirizzo IP è privato, loopback o link-local.
- * @param {string} ip L'indirizzo IP da controllare.
- * @returns {boolean} true se l'IP è privato/riservato.
- */
+
 function isPrivateIp(ip) {
   // Se è un indirizzo IPv6 mappato IPv4 (es. ::ffff:127.0.0.1)
   if (net.isIPv6(ip) && ip.startsWith('::ffff:')) {
@@ -193,14 +234,7 @@ function isPrivateIp(ip) {
   return false; // Non un formato IP valido
 }
 
-/**
- * Controlla se un URL è "sicuro" eseguendo i seguenti controlli:
- * 1. Protocollo (solo http/https)
- * 2. Controllo stringa hostname (no localhost, no IP privati)
- * 3. Risoluzione DNS: l'hostname non deve risolvere in un IP privato.
- * @param {string} urlString L'URL da controllare.
- * @returns {Promise<boolean>} true se l'URL è considerato sicuro.
- */
+
 async function isSafeUrl(urlString) {
   try {
     const parsed = new URL(urlString);
@@ -393,7 +427,7 @@ app.post('/api/set-addons', asyncHandler(async (req, res) => {
       delete clean.manifest.newLocalName;
     }
     
-    // --- ★★★ FIX XSS: Sanifica l'INTERO oggetto 'clean' ★★★ ---
+    // ---  FIX XSS: Sanifica l'INTERO oggetto 'clean'  ---
     clean = sanitizeObject(clean);
     // --- FINE FIX ---
 
@@ -426,7 +460,7 @@ app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
 
   const { manifestUrl } = req.body;
   
-  // --- ★★★ FIX SSRF: isSafeUrl ora è ASINCRONO ★★★ ---
+  // ---  FIX SSRF: isSafeUrl ora è asincrono  ---
   if (!(await isSafeUrl(manifestUrl))) {
     return res.status(400).json({ error: { message: "URL non sicuro o risolve a un IP privato." } });
   }
@@ -438,7 +472,7 @@ app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
     headers['Authorization'] = `token ${GITHUB_TOKEN}`;
   }
 
-  // (Manteniamo il fix anti-redirect)
+  
   const fetchOptions = {
     headers,
     redirect: 'error' 
@@ -480,7 +514,7 @@ app.use('/api/*', (req, res) =>
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
     if (req.header('x-forwarded-proto') !== 'https') {
-      // --- ★★★ FIX: Usa req.hostname per prevenire Host Header Injection ★★★ ---
+      // ---  FIX: Usa req.hostname per prevenire Host Header Injection  ---
       return res.redirect(301, `https://${req.hostname}${req.url}`);
     }
     next();
