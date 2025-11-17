@@ -101,31 +101,31 @@
     margin-top: 15px;
   ">
     <li><strong>Cookie sicuri:</strong> AuthKey solo in cookie HttpOnly, Secure e SameSite=Strict (mitigazione CSRF).</li>
-
+     ```
     <li><strong>Sanificazione input (XSS):</strong> Tutti i nomi degli addon vengono filtrati con sanitize-html (Stored XSS bloccato).</li>
-
+     ```
     <li><strong>Rate Limiting migliorato:</strong> Protezione contro abusi e brute-force su tutti gli endpoint sensibili.</li>
-
+     ```
     <li><strong>Helmet + CSP avanzata:</strong> Nessun <code>unsafe-eval</code>, controllo rigoroso di script, stili e font.</li>
-
+     ```
     <li><strong>Validazione Joi:</strong> Tutti gli input (login, URL, liste addon) validati prima dell'elaborazione.</li>
-
+```
     <li><strong>Protezione SSRF:</strong> 
       - Controllo hostname con <code>isSafeUrl()</code><br>
       - Redirect disattivati (<code>redirect: 'error'</code>)<br>
       - Block degli IP interni (127.x, 10.x, 172.x, 192.168.x…)
     </li>
-
+```
     <li><strong>Timeout di rete:</strong> Ogni fetch è protetto da timeout + AbortController.</li>
-
+```
     <li><strong>Rimozione campi sensibili:</strong> I campi temporanei (<code>isEditing</code>, <code>newLocalName</code>) vengono eliminati prima del salvataggio.</li>
-
+```
     <li><strong>Token e password al sicuro:</strong> Mai esposti al client; tutto rimane lato server.</li>
-
+```
     <li><strong>Admin monitor disattivato:</strong> Endpoint limitato e sempre bloccato per privacy.</li>
-
+```
     <li><strong>HTTPS enforcement:</strong> In produzione il server forza automaticamente HTTPS.</li>
-
+```
     <li><strong>Logging pulito:</strong> Nessun dato sensibile memorizzato.</li>
   </ul>
 
