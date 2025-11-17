@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const fetch = require('node-fetch');
 const cors = require('cors');
@@ -8,8 +6,6 @@ const rateLimit = require('express-rate-limit');
 const Joi = require('joi');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
-const dns = require('dns').promises;
-const net = require('net');
 
 const app = express();
 const PORT = process.env.PORT || 7860;
@@ -28,16 +24,12 @@ const ADDONS_GET_URL = `${STREMIO_API_BASE}addonCollectionGet`;
 const ADDONS_SET_URL = `${STREMIO_API_BASE}addonCollectionSet`;
 const FETCH_TIMEOUT = 10000;
 
-// --- Parametri sicurezza fetch-manifest ---
-const MAX_MANIFEST_BYTES = Number(process.env.MAX_MANIFEST_BYTES) || (2 * 1024 * 1024); // 2MB
-const MAX_REDIRECTS = Number(process.env.MAX_MANIFEST_REDIRECTS) || 3;
-
-// --- Helmet + CSP (consigliata riduzione unsafe se possibile) ---
+// --- Helmet + CSP ---
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "https://unpkg.com", "https://cdnjs.cloudflare.com"], // rimosso 'unsafe-eval'
+      "script-src": ["'self'", "'unsafe-eval'", "https://unpkg.com", "https://cdnjs.cloudflare.com"],
       "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
       "font-src": ["'self'", "https://fonts.gstatic.com"],
       "connect-src": [
@@ -49,7 +41,7 @@ app.use(helmet({
         "https://unpkg.com",
         "https://cdnjs.cloudflare.com",
         "https://stream-organizer.vercel.app",
-        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ''
+        process.env.VERCEL_URL || ''
       ],
       "img-src": ["'self'", "data:", "https:"]
     }
@@ -57,31 +49,29 @@ app.use(helmet({
 }));
 
 // --- Middleware generali ---
-app.use(express.json({ limit: '1mb' })); // body limit per JSON generico
+app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- Rate Limiter ---
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: Number(process.env.RATE_LIMIT_MAX) || 100,
+  max: process.env.RATE_LIMIT_MAX || 100,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: { message: 'Troppe richieste. Riprova più tardi.' } }
+  message: { error: { message: 'Troppi richieste. Riprova tra 15 minuti.' } }
 });
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: Number(process.env.LOGIN_RATE_LIMIT_MAX) || 20,
+  max: process.env.LOGIN_RATE_LIMIT_MAX || 20,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: { message: 'Troppi tentativi di login. Riprova più tardi.' } }
+  message: { error: { message: 'Troppi tentativi di login. Riprova tra 15 minuti.' } }
 });
 app.use('/api/', apiLimiter);
 app.use('/api/login', loginLimiter);
 
-// --- CORS (più restrittivo) ---
-// Nota: richiediamo Origin per le chiamate browser. Se vuoi permettere richieste CLI senza Origin,
-// modifica la policy (ma attenzione).
+// --- CORS ---
 const allowedOrigins = [
   'http://localhost:7860',
   'https://stream-organizer.vercel.app'
@@ -90,8 +80,7 @@ if (process.env.VERCEL_URL) allowedOrigins.push(`https://${process.env.VERCEL_UR
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Nota: rifiutiamo le richieste senza Origin per maggiore sicurezza (es. curl senza origin)
-    if (!origin) return callback(new Error('Origin header richiesto.'), false);
+    if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin) || (process.env.VERCEL_ENV === 'preview' && origin.endsWith('.vercel.app'))) {
       return callback(null, true);
     }
@@ -100,7 +89,7 @@ app.use(cors({
   credentials: true
 }));
 
-// --- AbortController Node <18 polyfill (lo lasciamo) ---
+// --- AbortController Node <18 ---
 if (!global.AbortController) global.AbortController = require('abort-controller').AbortController;
 
 // --- Fetch con timeout ---
@@ -121,7 +110,7 @@ async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
 // --- Opzioni cookie sicure ---
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: true,
   sameSite: 'strict',
   maxAge: 30 * 24 * 60 * 60 * 1000
 };
@@ -130,112 +119,55 @@ const cookieOptions = {
 const schemas = {
   authKey: Joi.object({ authKey: Joi.string().min(1).required() }),
   login: Joi.object({ email: Joi.string().email().required(), password: Joi.string().min(6).required() }),
-  manifestUrl: Joi.object({ manifestUrl: Joi.string().uri({ scheme: ['http','https'] }).required() }),
-  // Manifest schema: restrittivo, estendi se necessario
-  manifest: Joi.object({
-    id: Joi.string().pattern(/^[a-zA-Z0-9\-\_:.]{1,200}$/).required(),
-    version: Joi.string().pattern(/^\d+\.\d+\.\d+(-.*)?$/).required(),
-    name: Joi.string().max(200).required()
-    // aggiungi altri campi consentiti qui
-  }).required(),
-  addonManifest: Joi.object({
-    id: Joi.string().max(200).required(),
-    name: Joi.string().max(200).required(),
-    version: Joi.string().required(),
-    resources: Joi.array().items(Joi.string()).optional()
-  }).required(),
-  addon: Joi.object({
-    manifest: Joi.object().required(),
-    // altri campi controllati opzionali
-  }),
-  setAddons: Joi.object({ addons: Joi.array().min(1).items(Joi.object()).required(), email: Joi.string().email().allow(null) })
+  manifestUrl: Joi.object({ manifestUrl: Joi.string().uri().required() }),
+  setAddons: Joi.object({ addons: Joi.array().min(1).required(), email: Joi.string().email().allow(null) })
 };
 
+// --- Helper ---
 
-// ----------------------
-// FUNZIONI DI SICUREZZA
-// ----------------------
-
-// Indirizzi privati/riservati IPv4 CIDR checks (usiamo check semplice convertendo IPv4 in integer)
-function ipv4ToInt(ip) {
-  return ip.split('.').reduce((acc,oct)=> (acc << 8) + parseInt(oct,10), 0) >>> 0;
-}
-function inCidr(ip, network, bits) {
-  const mask = bits === 0 ? 0 : (~0 << (32 - bits)) >>> 0;
-  const ipInt = ipv4ToInt(ip);
-  const netInt = ipv4ToInt(network);
-  return (ipInt & mask) === (netInt & mask);
-}
-function isPrivateIPv4(ip) {
-  // 10.0.0.0/8
-  if (inCidr(ip, '10.0.0.0', 8)) return true;
-  // 172.16.0.0/12
-  if (inCidr(ip, '172.16.0.0', 12)) return true;
-  // 192.168.0.0/16
-  if (inCidr(ip, '192.168.0.0', 16)) return true;
-  // 127.0.0.0/8 loopback
-  if (inCidr(ip, '127.0.0.0', 8)) return true;
-  // 169.254.0.0/16 link-local / metadata
-  if (inCidr(ip, '169.254.0.0', 16)) return true;
-  // 0.0.0.0/8 reserved
-  if (inCidr(ip, '0.0.0.0', 8)) return true;
-  return false;
-}
-function isPrivateIPv6(ip) {
-  const low = ip.toLowerCase();
-  // loopback
-  if (low === '::1' || low === '0:0:0:0:0:0:0:1') return true;
-  // Unique local fc00::/7 => starts with fc or fd
-  if (low.startsWith('fc') || low.startsWith('fd')) return true;
-  // Link-local fe80::/10
-  if (low.startsWith('fe80') || low.startsWith('fe8')) return true;
-  return false;
-}
-
-// isSafeUrlStrict: risolve il nome e verifica che nessun IP sia privato / loopback / link-local
-async function isSafeUrlStrict(urlString) {
+// ===================================================================
+// FUNZIONE isSafeUrl CORRETTA (FIX PER SSRF)
+// ===================================================================
+function isSafeUrl(urlString) {
   try {
     const parsed = new URL(urlString);
-
+    
+    // 1. Solo protocolli http/https
     if (!['http:', 'https:'].includes(parsed.protocol)) {
       return false;
     }
-
+    
     const hostname = parsed.hostname;
 
-    // Blocca nomi ovvi di loopback / host locali
-    if (/^localhost(\.|$)/i.test(hostname)) return false;
-    if (/^127\./.test(hostname)) return false;
-    if (/^0\.0\.0\.0$/.test(hostname)) return false;
-
-    // Prova a risolvere il nome (se fallisce, rifiuta per sicurezza)
-    let addresses;
-    try {
-      addresses = await dns.lookup(hostname, { all: true });
-    } catch (e) {
-      // Non riesce a risolvere -> rifiuta
+    // 2. Blocca 'localhost'
+    if (hostname.toLowerCase() === 'localhost') {
       return false;
     }
 
-    // Controlla ogni address risolto
-    for (const entry of addresses) {
-      const addr = entry.address;
-      if (net.isIPv4(addr)) {
-        if (isPrivateIPv4(addr)) return false;
-      } else if (net.isIPv6(addr)) {
-        if (isPrivateIPv6(addr)) return false;
-      } else {
-        // indirizzo non riconosciuto
-        return false;
-      }
+    // 3. Blacklist di pattern IP (IPv4 e IPv6)
+    const forbiddenPatterns = [
+      /^127\./,                            // Loopback IPv4 (127.0.0.0/8)
+      /^10\./,                             // Private IPv4 (10.0.0.0/8)
+      /^172\.(1[6-9]|2[0-9]|3[01])\./,      // Private IPv4 (172.16.0.0/12)
+      /^192\.168\./,                       // Private IPv4 (192.168.0.0/16)
+      /^169\.254\./,                       // Link-local & Metadata (169.254.0.0/16)
+      /^0\./,                              // Reserved (0.0.0.0/8)
+      /^::1$/,                             // Loopback IPv6
+      /^[fF][cCdD]00:/,                    // IPv6 Unique Local (fc00::/7)
+      /^[fF][eE]80:/                       // IPv6 Link-local (fe80::/10)
+    ];
+
+    if (forbiddenPatterns.some(regex => regex.test(hostname))) {
+      return false;
     }
 
     return true;
-  } catch (e) {
+
+  } catch {
     return false;
   }
 }
-
+// ===================================================================
 
 // --- Async wrapper ---
 const asyncHandler = fn => (req,res,next) => Promise.resolve(fn(req,res,next)).catch(next);
@@ -243,29 +175,27 @@ const asyncHandler = fn => (req,res,next) => Promise.resolve(fn(req,res,next)).c
 // --- Funzioni principali ---
 async function getAddonsByAuthKey(authKey) {
   const { error } = schemas.authKey.validate({ authKey });
-  if (error) throw Object.assign(new Error("AuthKey non valida."), { status: 400 });
-
+  if (error) throw new Error("AuthKey non valida.");
   const res = await fetchWithTimeout(ADDONS_GET_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ authKey: authKey.trim() })
   });
   const data = await res.json();
-  if (!data.result || data.error) throw Object.assign(new Error(data.error?.message || 'Errore recupero addon.'), { status: 502 });
+  if (!data.result || data.error) throw new Error(data.error?.message || 'Errore recupero addon.');
   return data.result.addons || [];
 }
 
 async function getStremioData(email, password) {
   const { error } = schemas.login.validate({ email, password });
-  if (error) throw Object.assign(new Error("Email o password non valide."), { status: 400 });
-
+  if (error) throw new Error("Email o password non valide.");
   const res = await fetchWithTimeout(LOGIN_API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: email.trim(), password })
   });
   const data = await res.json();
-  if (!data.result?.authKey || data.error) throw Object.assign(new Error(data.error?.message || 'Credenziali non valide.'), { status: 401 });
+  if (!data.result?.authKey || data.error) throw new Error(data.error?.message || 'Credenziali non valide.');
   const addons = await getAddonsByAuthKey(data.result.authKey);
   return { addons, authKey: data.result.authKey };
 }
@@ -274,11 +204,10 @@ async function getStremioData(email, password) {
 app.post('/api/login', asyncHandler(async (req, res) => {
   const { email, password, authKey: providedAuthKey } = req.body;
   let data;
-  if (email && password) data = await getStremioData(email, password);
-  else if (providedAuthKey) data = { addons: await getAddonsByAuthKey(providedAuthKey), authKey: providedAuthKey };
+  if(email && password) data = await getStremioData(email,password);
+  else if(providedAuthKey) data = { addons: await getAddonsByAuthKey(providedAuthKey), authKey: providedAuthKey };
   else return res.status(400).json({ error: { message: "Email/password o authKey richiesti." } });
 
-  // Nota: per migliori sicurezza, valuta di salvare solo un session id nel cookie e tenere authKey in store server-side.
   res.cookie('authKey', data.authKey, cookieOptions);
   res.json({ addons: data.addons });
 }));
@@ -297,118 +226,57 @@ app.post('/api/set-addons', asyncHandler(async(req,res)=>{
   const { error } = schemas.setAddons.validate(req.body);
   if(error) return res.status(400).json({ error:{ message: error.details[0].message } });
 
-  // Validazione e sanitizzazione più rigorosa per ogni addon
-  const addonSchema = Joi.object({
-    manifest: Joi.object({
-      id: Joi.string().max(200).optional(),
-      name: Joi.string().max(200).required(),
-      version: Joi.string().max(50).required()
-    }).required()
-    // aggiungi altri campi consentiti qui
+  const addonsToSave = req.body.addons.map(a=>{
+    const clean = JSON.parse(JSON.stringify(a));
+    delete clean.isEditing; delete clean.newLocalName;
+    if(clean.manifest) delete clean.manifest.isEditing, delete clean.manifest.newLocalName;
+    clean.manifest.name = a.manifest.name.trim();
+    if(!clean.manifest.id) clean.manifest.id = `external-${Math.random().toString(36).substring(2,9)}`;
+    return clean;
   });
-
-  const addonsToSave = [];
-  for (const a of req.body.addons) {
-    const validated = addonSchema.validate(a, { stripUnknown: true });
-    if (validated.error) throw Object.assign(new Error('Addon malformato: ' + validated.error.details[0].message), { status: 400 });
-    const clean = validated.value;
-    // Normalizzazioni
-    clean.manifest.name = clean.manifest.name.trim();
-    if (!clean.manifest.id) clean.manifest.id = `external-${Math.random().toString(36).substring(2,9)}`;
-    addonsToSave.push(clean);
-  }
 
   const resSet = await fetchWithTimeout(ADDONS_SET_URL,{
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ authKey: authKey.trim(), addons: addonsToSave })
   });
   const dataSet = await resSet.json();
-  if(dataSet.error) throw Object.assign(new Error(dataSet.error.message || 'Errore salvataggio addon.'), { status: 502 });
+  if(dataSet.error) throw new Error(dataSet.error.message || 'Errore salvataggio addon.');
   res.json({ success:true, message:"Addon salvati con successo." });
 }));
 
 // ===================================================================
-// ENDPOINT /api/fetch-manifest (hardening: SSRF, redirect, size, content-type, schema)
+// ENDPOINT /api/fetch-manifest CORRETTO (FIX PER TOKEN LEAK)
 // ===================================================================
 app.post('/api/fetch-manifest', asyncHandler(async(req,res)=>{
   const { error } = schemas.manifestUrl.validate(req.body);
   if(error) return res.status(400).json({ error:{ message: "URL manifesto non valido." } });
-
+  
   const { manifestUrl } = req.body;
-
-  // 1. Controllo URL "strict" risolvendo DNS e bloccando IP interni
-  if(!await isSafeUrlStrict(manifestUrl)) {
+  
+  // 1. Controlla se l'URL è sicuro (blacklist SSRF)
+  if(!isSafeUrl(manifestUrl)) {
     return res.status(400).json({ error:{ message:'URL non sicuro.' } });
   }
 
-  // 2. Preparare headers in modo sicuro; aggiungere token SOLO se hostname è nella whitelist
+  // 2. Prepara gli header
   const headers = {};
   const parsedUrl = new URL(manifestUrl);
+  
+  // Whitelist dei domini a cui inviare il token
   const allowedTokenHosts = ['api.github.com', 'raw.githubusercontent.com'];
+
+  // 3. Aggiungi il token SOLO se l'hostname è nella whitelist
   if (GITHUB_TOKEN && allowedTokenHosts.includes(parsedUrl.hostname)) {
     headers['Authorization'] = `token ${GITHUB_TOKEN}`;
   }
 
-  // 3. Fetch manuale con gestione redirect (non segui automaticamente)
-  let currentUrl = manifestUrl;
-  for (let i=0;i<=MAX_REDIRECTS;i++) {
-    // Prima di ogni fetch: ricontrolla che target sia sicuro (in caso di redirect relativi)
-    if (!await isSafeUrlStrict(currentUrl)) throw Object.assign(new Error('Redirect non sicuro.'), { status: 400 });
-
-    const resp = await fetchWithTimeout(currentUrl, { headers, redirect: 'manual' });
-
-    // Gestione redirect
-    if (resp.status >= 300 && resp.status < 400) {
-      const loc = resp.headers.get('location');
-      if (!loc) throw Object.assign(new Error('Redirect senza Location.'), { status: 400 });
-      // Risolvi relative -> absolute
-      currentUrl = new URL(loc, currentUrl).toString();
-      // Loop: verrà verificato nella prossima iterazione
-      if (i === MAX_REDIRECTS) throw Object.assign(new Error('Troppi redirect.'), { status: 400 });
-      continue;
-    }
-
-    // Non-redirect => processa risposta
-    if (!resp.ok) throw Object.assign(new Error(`Status ${resp.status}`), { status: 502 });
-
-    // Verifica Content-Type
-    const ct = (resp.headers.get('content-type') || '').toLowerCase();
-    if (!ct.includes('application/json')) throw Object.assign(new Error('Content-Type non JSON.'), { status: 400 });
-
-    // Leggi stream limitando la dimensione
-    const reader = resp.body[Symbol.asyncIterator]();
-    const chunks = [];
-    let received = 0;
-    while (true) {
-      const { done, value } = await reader.next();
-      if (done) break;
-      const chunk = Buffer.from(value);
-      received += chunk.length;
-      if (received > MAX_MANIFEST_BYTES) {
-        // Se superiamo la soglia, interrompi e rifiuta
-        if (resp.body && typeof resp.body.destroy === 'function') resp.body.destroy();
-        throw Object.assign(new Error('Manifesto troppo grande.'), { status: 413 });
-      }
-      chunks.push(chunk);
-    }
-
-    const buffer = Buffer.concat(chunks);
-    let manifest;
-    try {
-      manifest = JSON.parse(buffer.toString('utf8'));
-    } catch (e) {
-      throw Object.assign(new Error('JSON manifesto non valido.'), { status: 400 });
-    }
-
-    // Validazione schema del manifesto con Joi (schema restrittivo definito sopra)
-    const { error: mErr } = schemas.manifest.validate(manifest);
-    if (mErr) throw Object.assign(new Error('Manifesto non conforme: ' + mErr.details[0].message), { status: 400 });
-
-    // Se tutto ok, ritorna manifesto (ma non includere headers sensibili)
-    return res.json(manifest);
-  }
-
-  throw Object.assign(new Error('Errore durante il recupero manifesto.'), { status: 500 });
+  // 4. Esegui il fetch con gli header sicuri (vuoti o con token)
+  const resp = await fetchWithTimeout(manifestUrl,{ headers });
+  if(!resp.ok) throw new Error(`Status ${resp.status}`);
+  
+  const manifest = await resp.json();
+  if(!manifest.id || !manifest.version) throw new Error("Manifesto non valido.");
+  res.json(manifest);
 }));
 // ===================================================================
 
@@ -428,32 +296,27 @@ app.post('/api/logout',(req,res)=>{
 // --- 404 ---
 app.use('/api/*',(req,res)=>res.status(404).json({ error:{ message:'Endpoint non trovato.' }}));
 
-// --- HTTPS forzato in produzione (più sicuro: usa req.hostname) ---
+// --- HTTPS forzato in produzione ---
 if(process.env.NODE_ENV==='production'){
   app.use((req,res,next)=>{
-    if(req.header('x-forwarded-proto')!=='https') {
-      // usa req.hostname (Express pulisce il valore basandosi su trust proxy)
-      const host = req.hostname;
-      // opzionale: verifica host in whitelist prima di redirect
-      return res.redirect(301, `https://${host}${req.originalUrl}`);
-    }
+    if(req.header('x-forwarded-proto')!=='https') return res.redirect(301,`https://${req.header('host')}${req.url}`);
     next();
   });
 }
 
-// --- Error handler globale (più cauto) ---
+// --- Error handler globale ---
 app.use((err, req, res, next)=>{
-  // In produzione: logga con logger strutturato e non esporre dettagli al client
-  console.error(err && err.stack ? err.stack : err);
-
+  console.error(err); // Logga l'errore in console
+  
+  // Risposta generica per evitare di esporre dettagli
   const status = err.status || 500;
   let message = 'Errore interno del server.';
-
-  // Messaggi più specifici per client errors
-  if (status < 500 && err.message) {
-    message = err.message;
-  } else if (err.message && /timeout/i.test(err.message)) {
+  
+  // Invia messaggi specifici solo se "sicuri" (es. timeout)
+  if (err.message.includes('timeout')) {
     message = 'Richiesta al server scaduta (timeout).';
+  } else if (status < 500) {
+    message = err.message; // Errore del client (4xx)
   }
 
   res.status(status).json({ error:{ message } });
