@@ -1,46 +1,42 @@
 <!-- =================== HEADER README CYBERPUNK GITHUB =================== -->
-<div align="center" style="margin-bottom:40px;">
+<div align="center" style="margin-bottom:45px;">
 
-  <!-- Titolo principale completo come GIF animata -->
-  <img src="https://i.ibb.co/fSgJxvQ/streamorder-cyberdeck.gif" 
-       alt="⚡ STREAMORDER ⬢ [ Cyberdeck Addon Console ] Neon" 
-       width="900" 
-       style="border-radius:12px;box-shadow:0 0 25px rgba(255,0,255,0.4);"/>
+  <!-- TITOLONE ANIMATO (GIF) -->
+  <img src="https://i.ibb.co/fSgJxvQ/streamorder-cyberdeck.gif"
+       alt="⚡ STREAMORDER ⬢ Cyberdeck Addon Console"
+       width="920"
+       style="border-radius:14px;
+              margin-bottom:18px;
+              box-shadow:
+                0 0 25px rgba(255,0,255,0.35),
+                0 0 55px rgba(0,255,255,0.25),
+                inset 0 0 25px rgba(0,0,0,0.45);
+            "/>
 
-  <!-- Sottotitolo cyberpunk hacker -->
+  <!-- FRASE CYBERPUNK -->
   <p style="
-    color:#e0d4ff;
-    font-size:1.3em;
-    font-weight:600;
-    text-shadow: 0 0 3px #00ffff;
-    margin-top:10px;">
-    Navigate the addon matrix. Command with precision.
+      color:#d9caff;
+      font-size:1.35em;
+      font-weight:700;
+      font-family:'Orbitron',sans-serif;
+      letter-spacing:1.5px;
+      margin-top:6px;
+      margin-bottom:20px;
+      text-shadow:
+        0 0 4px #ff00ff,
+        0 0 8px #00ffff;
+    ">
+    Enter the neon grid. Control every addon.  
+    Execute with surgical precision.
   </p>
 
-  <!-- Banner grafico cyberpunk -->
-  <img src="https://capsule-render.vercel.app/api?type=rect&color=0:ff00cc,100:3333ff&height=140&section=header&text=STREAMORDER&fontSize=50&fontAlignY=55&fontColor=ffffff&desc=Cyberpunk%20Stremio%20Addon%20Console&descAlignY=85" 
-       alt="Cyberpunk Neon Banner" 
-       style="border-radius:15px;margin-top:20px;box-shadow:0 0 25px rgba(255,0,255,0.3);" />
-
-  <!-- Badge dinamici -->
-  <p style="margin-top:20px;">
-    <img src="https://img.shields.io/badge/Version-1.0.0-purple?style=for-the-badge&logo=stremio" />
-    <img src="https://img.shields.io/badge/Build-Stable-cyan?style=for-the-badge" />
-    <img src="https://img.shields.io/badge/Theme-Cyberpunk-ff00ff?style=for-the-badge&logoColor=white" />
-    <img src="https://img.shields.io/badge/Secure-Yes-green?style=for-the-badge" />
-    <img src="https://img.shields.io/badge/Speed-Lightning-blue?style=for-the-badge&logo=zap" />
-    <img src="https://img.shields.io/badge/Style-Neon-pink?style=for-the-badge" />
-  </p>
-
-  <!-- Motto -->
-  <blockquote style="
-    color:#ff99ff;
-    font-style:italic;
-    font-size:1.1em;
-    margin-top:15px;
-    text-shadow:0 0 5px #ff66ff;">
-    "Control the chaos. Rule your Addons. 🔥"
-  </blockquote>
+  <!-- BANNER NEON FUTURISTICO -->
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:ff00cc,100:3300ff&height=220&section=header&text=STREAMORDER%20CYBERDECK&fontSize=46&fontAlignY=35&fontColor=ffffff&animation=twinkling&desc=Stremio%20Addon%20Operator%20Console&descAlignY=70&descSize=18"
+       alt="StreamOrder Cyberdeck Banner"
+       style="margin-top:-10px;
+              margin-bottom:-5px;
+              filter: drop-shadow(0 0 12px rgba(255,0,255,0.45));
+       "/>
 
 </div>
 <!-- =================== /HEADER README CYBERPUNK =================== -->
