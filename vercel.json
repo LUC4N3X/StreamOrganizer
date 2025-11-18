@@ -1,35 +1,19 @@
 {
   "version": 2,
   "builds": [
-    {
-      "src": "index.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
-    }
+    { "src": "index.js", "use": "@vercel/node" },
+    { "src": "public/**", "use": "@vercel/static" }
   ],
   "functions": {
-    "index.js": {
-      "memory": 2048,
-      "maxDuration": 30
-    }
+    "index.js": { "memory": 2048, "maxDuration": 30 }
   },
   "routes": [
+    { "src": "/api/(.*)", "dest": "/index.js" },
     {
-      "src": "/api/(.*)",
-      "dest": "/index.js",
-      "continue": true
-    },
-    {
-      "src": "/(.*)\\.(js|css|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|eot|otf|json|webmanifest|xml|txt|webm|mp4|pdf)",
+      "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|eot|otf|pdf|webm|mp4))",
       "dest": "/public/$1"
     },
-    {
-      "src": "/(.*)",
-      "dest": "/public/index.html"
-    }
+    { "src": "/(.*)", "dest": "/public/index.html", "status": 200 }
   ],
   "headers": [
     {
@@ -44,7 +28,7 @@
       ]
     },
     {
-      "source": "/(.*)\\.(js|css|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|eot|otf|pdf|webm|mp4)",
+      "source": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|eot|otf|pdf|webm|mp4))",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
@@ -61,7 +45,7 @@
         { "key": "Cache-Control", "value": "no-cache, private, must-revalidate" },
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS" },
-        { "key": "Content-Type, Authorization, X-Requested-With" }
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, X-Requested-With" }
       ]
     }
   ],
