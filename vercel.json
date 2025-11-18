@@ -23,5 +23,11 @@
       "src": "/(.*)",
       "dest": "public/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 * * * *" 
+    }
   ]
 }
