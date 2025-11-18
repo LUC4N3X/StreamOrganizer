@@ -6,7 +6,7 @@
       "use": "@vercel/node"
     },
     {
-      "src": "public/**",
+      "src": "public/**/*",
       "use": "@vercel/static"
     }
   ],
@@ -16,24 +16,12 @@
       "dest": "index.js"
     },
     {
-      "src": "/(.*\\.(js|css|ico|png|jpg|jpeg|svg|txt|json|webmanifest|woff2?|ttf|eot))$",
-      "dest": "$1"
+      "src": "/(.*\\.(css|js|ico|png|jpg|svg|txt|json|webmanifest))$",
+      "dest": "public/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "index.html",
-      "status": 200
-    }
-  ],
-  "headers": [
-    {
-      "source": "/(.*\\.(js|css|png|jpg|jpeg|svg|woff2?|ttf|eot))$",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public,max-age=31536000,immutable"
-        }
-      ]
+      "dest": "public/index.html"
     }
   ]
 }
