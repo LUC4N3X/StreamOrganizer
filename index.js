@@ -1,269 +1,144 @@
-const express = require('express');
-const fetch = require('node-fetch');
-const cors = require('cors');
-const path = require('path');
-const rateLimit = require('express-rate-limit');
-const Joi = require('joi');
-const helmet = require('helmet');
-const cookieParser = require('cookie-parser');
-const mongoose = require('mongoose');
-const sanitizeHtml = require('sanitize-html');
-const { promises: dns } = require('dns');
-const net = require('net');
+const { createApp, ref, computed, onMounted, onBeforeUnmount, watch, nextTick } = Vue;
+import { mapAddon, deepClone } from './utils.js';
+import './mobile-scroll-fix.js';
+import { useAppCore } from './composables/useAppCore.js';
+import { useTranslations } from './composables/useTranslations.js';
+import { useHistory } from './composables/useHistory.js';
+import { useAuth } from './composables/useAuth.js';
+import { useProfiles } from './composables/useProfiles.js';
+import { useAddons } from './composables/useAddons.js';
+import { useAddonActions } from './composables/useAddonActions.js';
+import { useFiltersAndSelection } from './composables/useFiltersAndSelection.js';
+import { useImportExport } from './composables/useImportExport.js';
+import { useTour } from './composables/useTour.js';
 
-const app = express();
-const PORT = process.env.PORT || 7860;
+const app = createApp({
+    setup() {
+        const { lang, t, initLang } = useTranslations(ref, computed);
+        const { isLoading, apiBaseUrl, isMobile, isLightMode, showInstructions, toasts, showToast, updateIsMobile, initTheme } = useAppCore(ref);
+        const addons = ref([]);
+        const isSyncing = ref(false);
 
-app.set('trust proxy', 1);
+        const { email, password, authKey, isLoggedIn, isMonitoring, adminClickCount, showAdminInput, adminKey, targetEmail, loginMode, providedAuthKey, login, monitorLogin, toggleLoginMode, incrementAdminClick, setResetHistory } = useAuth(ref, apiBaseUrl, showToast, t, mapAddon, isLoading, addons);
+        const { history, redoStack, actionLog, redoActionLog, hasUnsavedChanges, canUndo, canRedo, recordAction, undo, redo, resetHistory } = useHistory({ ref, computed }, addons, { isLoading, isMonitoring, showToast, t, deepClone });
+        setResetHistory(resetHistory);
 
-const STREMIO_API_BASE = 'https://api.strem.io/api/';
-const LOGIN_API_URL = `${STREMIO_API_BASE}login`;
-const ADDONS_GET_URL = `${STREMIO_API_BASE}addonCollectionGet`;
-const ADDONS_SET_URL = `${STREMIO_API_BASE}addonCollectionSet`;
-const FETCH_TIMEOUT = 10000;
-const MAX_JSON_PAYLOAD = '250kb';
+        const logout = () => { sessionStorage.clear(); email.value=''; password.value=''; authKey.value=null; addons.value=[]; isLoggedIn.value=false; isMonitoring.value=false; showAdminInput.value=false; resetHistory(); };
+        const { savedProfiles, selectedProfileId, loadProfiles, saveProfiles, saveProfile:origSaveProfile, startEditProfile, finishEditProfile, loadProfile, deleteProfile, setRetrieveAddons, setLogout } = useProfiles(ref, nextTick, isLoggedIn, isMonitoring, authKey, email, showToast, t);
 
-const MONGO_URI = process.env.DATABASE_URL; 
-let isConnected = false;
+        const showSaveProfileModal = ref(false);
+        const newProfileName = ref('');
+        const profileNameInputRef = ref(null);
+        const saveProfile = async () => { if(isMonitoring.value) return showToast(t.value('monitor.disabledAction'),'error'); const ex=savedProfiles.value.find(p=>p.email===email.value); newProfileName.value=ex?(ex.name||email.value):email.value; showSaveProfileModal.value=true; await nextTick(); if(profileNameInputRef.value) profileNameInputRef.value.select(); };
+        const cancelSaveProfile = () => { showSaveProfileModal.value=false; newProfileName.value=''; };
+        const confirmSaveProfile = () => {
+            const n=newProfileName.value; if(!n||!n.trim()) return showToast(t.value('profiles.saveCancelled'),'info');
+            const ex=savedProfiles.value.find(p=>p.email===email.value);
+            let pToSave=ex?{...ex,name:n.trim(),authKey:providedAuthKey.value||ex.authKey,addons:addons.value.map(a=>a.transportUrl)}:{id:'p-'+Date.now(),email:email.value,name:n.trim(),authKey:providedAuthKey.value,addons:addons.value.map(a=>a.transportUrl)};
+            if(ex) Object.assign(ex,pToSave); else savedProfiles.value.push(pToSave);
+            saveProfiles(); showToast(t.value('profiles.saveSuccess'),'success'); cancelSaveProfile();
+        };
 
-const userSchema = new mongoose.Schema({
-    email: { type: String, required: true, unique: true },
-    authKey: { type: String },
-    autoUpdate: { type: Boolean, default: false },
-    lastCheck: { type: Date },
-    updatedAt: { type: Date, default: Date.now }
-});
-const User = mongoose.models.User || mongoose.model('User', userSchema);
+        const { newAddonUrl, retrieveAddonsFromServer, refreshAddonList, saveOrder, addNewAddon, startEdit, finishEdit, moveUp, moveDown, moveTop, moveBottom, removeAddon, toggleAddonDisableAutoUpdate, onDragEnd, setHistory, setProfileFns } = useAddons(ref, nextTick, addons, apiBaseUrl, authKey, email, isMonitoring, isLoading, recordAction, showToast, t, mapAddon, hasUnsavedChanges);
+        const { isAutoUpdateEnabled, lastUpdateCheck, isUpdating, checkAllAddonsStatus, toggleAddonDetails, testAddonSpeed, runAutoUpdate, openConfiguration, copyManifestUrl, initAutoUpdate } = useAddonActions(ref, apiBaseUrl, isLoggedIn, isMonitoring, isLoading, showToast, t, addons, (up)=>saveOrder(up));
+        const { activeFilter, searchQuery, showSearchInput, searchInputRef, toggleSearch, hideSearchOnBlur, filteredAddons, draggableList, dragOptions, enabledCount, disabledCount, errorCount, selectedAddons, allSelected, toggleSelectAll, enableSelected, disableSelected, removeSelected } = useFiltersAndSelection(ref, computed, watch, nextTick, addons, isMonitoring, hasUnsavedChanges, isMobile, recordAction, showToast, t, debounce);
+        const { fileInput, shareInput, shareUrl, importedConfigFromUrl, showImportConfirm, pendingImportData, importSource, pendingImportNames, exportBackup, exportTxt, triggerFileInput, handleFileImport, closeImportConfirm, confirmImport, generateShareLink, copyShareLink, checkUrlImport } = useImportExport(ref, addons, isMonitoring, recordAction, showToast, t, mapAddon, hasUnsavedChanges);
+        const { showWelcomeScreen, showWelcomeTourModal, dontShowWelcomeAgain, dismissWelcomeScreen, skipTour, beginTour, startTour } = useTour(ref, nextTick, isMobile, isMonitoring, hasUnsavedChanges, t, showImportConfirm, pendingImportData, pendingImportNames, importSource, importedConfigFromUrl);
 
-// Connessione Ottimizzata
-let dbPromise = null;
-async function connectToDatabase() {
-    if (isConnected) return;
-    if (!MONGO_URI) return;
-    if (!dbPromise) {
-        dbPromise = mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 5000, maxPoolSize: 1 })
-            .then(() => { isConnected = true; console.log("✅ DB Connected"); })
-            .catch(e => { dbPromise = null; console.error("❌ DB Error:", e.message); });
-    }
-    await dbPromise;
-}
+        const showAutoUpdateModal = ref(false);
+        const handleAutoUpdateToggle = (e) => { if(isSyncing.value) return; if(e.target.checked){e.target.checked=false;showAutoUpdateModal.value=true;}else{isAutoUpdateEnabled.value=false;} };
+        const confirmAutoUpdate = () => { showAutoUpdateModal.value=false; isAutoUpdateEnabled.value=true; };
+        const cancelAutoUpdate = () => { showAutoUpdateModal.value=false; isAutoUpdateEnabled.value=false; };
 
-app.use(helmet({ contentSecurityPolicy: false }));
-app.use(express.json({ limit: MAX_JSON_PAYLOAD }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
-
-const apiLimiter = rateLimit({ windowMs: 15*60*1000, max: 300 });
-app.use('/api/', apiLimiter);
-
-const allowedOrigins = ['http://localhost:7860', 'https://stream-organizer.vercel.app'];
-if (process.env.VERCEL_URL) allowedOrigins.push(`https://${process.env.VERCEL_URL}`);
-
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.some(o => origin.startsWith(o)) || origin.endsWith('.vercel.app')) return callback(null, true);
-    return callback(new Error('CORS'), false);
-  },
-  credentials: true
-}));
-
-const asyncHandler = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
-
-if (!global.AbortController) global.AbortController = require('abort-controller').AbortController;
-async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(id);
-    return res;
-  } catch (err) { clearTimeout(id); throw err; }
-}
-
-function isPrivateIp(ip) {
-  if (net.isIPv6(ip) && ip.startsWith('::ffff:')) ip = ip.substring(7);
-  if (net.isIPv4(ip)) {
-    const parts = ip.split('.').map(Number);
-    return parts[0] === 10 || parts[0] === 127 || (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) || (parts[0] === 192 && parts[1] === 168) || (parts[0] === 169 && parts[1] === 254) || parts[0] === 0;
-  }
-  return false;
-}
-async function isSafeUrl(urlString) {
-  try {
-    const parsed = new URL(urlString);
-    if (!['http:', 'https:'].includes(parsed.protocol)) return false;
-    if (parsed.hostname.toLowerCase() === 'localhost') return false;
-    if (net.isIP(parsed.hostname)) return !isPrivateIp(parsed.hostname);
-    const addressesInfo = await dns.lookup(parsed.hostname, { all: true });
-    const ips = addressesInfo.map(info => info.address);
-    return !ips.some(isPrivateIp);
-  } catch (err) { return false; }
-}
-
-async function getAddonsByAuthKey(authKey) {
-    const res = await fetchWithTimeout(ADDONS_GET_URL, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ authKey: authKey.trim() })
-    });
-    const data = await res.json();
-    if (!data.result) throw new Error("Auth err");
-    return data.result.addons || [];
-}
-
-// --- ENDPOINTS ---
-
-// 1. LOGIN VELOCE
-app.post('/api/login', asyncHandler(async (req, res) => {
-  const dbInit = connectToDatabase();
-  const { email, password, authKey: providedAuthKey } = req.body;
-  let data;
-  const cleanEmail = email ? email.trim().toLowerCase() : null;
-
-  if (cleanEmail && password) {
-    const loginRes = await fetchWithTimeout(LOGIN_API_URL, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail, password })
-    });
-    const loginData = await loginRes.json();
-    if (!loginData.result?.authKey) throw new Error("Credenziali errate");
-    // Non blocchiamo per gli addon, li prendiamo dopo se serve
-    data = { authKey: loginData.result.authKey, addons: [] }; 
-    // Fetch addon asincrono per velocizzare (opzionale, qui lo facciamo rapido)
-    try { data.addons = await getAddonsByAuthKey(data.authKey); } catch(e){}
-  } else if (providedAuthKey) {
-    const trimmedKey = providedAuthKey.trim();
-    data = { authKey: trimmedKey, addons: await getAddonsByAuthKey(trimmedKey) };
-  } else {
-      return res.status(400).json({ error: { message: "Dati mancanti" } });
-  }
-
-  let autoUpdateEnabled = false;
-  if (cleanEmail) {
-      await dbInit;
-      try {
-          const user = await User.findOneAndUpdate(
-              { email: cleanEmail },
-              { $set: { authKey: data.authKey, updatedAt: new Date() }, $setOnInsert: { autoUpdate: false } },
-              { upsert: true, new: true, setDefaultsOnInsert: true }
-          );
-          autoUpdateEnabled = user.autoUpdate;
-      } catch (e) {}
-  }
-
-  res.cookie('authKey', data.authKey, { httpOnly: true, secure: true, sameSite: 'none' });
-  res.json({ addons: data.addons, authKey: data.authKey, autoUpdateEnabled });
-}));
-
-// 2. GET PREFERENCES (AUTO-HEALING)
-app.get('/api/preferences', asyncHandler(async (req, res) => {
-    // Cerca AuthKey ovunque
-    const authKey = req.cookies.authKey || req.headers.authorization;
-    // Cerca Email (passata dal frontend)
-    const email = req.query.email ? req.query.email.toLowerCase() : null;
-
-    if (!authKey) return res.status(401).json({ error: "No Auth" });
-    await connectToDatabase();
-
-    // A. Proviamo con la chiave (Veloce)
-    let user = await User.findOne({ authKey });
-    if (user) return res.json({ autoUpdate: user.autoUpdate });
-
-    // B. Se la chiave non corrisponde, proviamo con l'Email (Recupero Sessione)
-    if (email) {
-        user = await User.findOne({ email });
-        if (user) {
-            // Abbiamo trovato l'utente, ma la chiave nel DB è diversa (es. altro PC)
-            // Verifichiamo se la chiave di QUESTO dispositivo è valida su Stremio
+        // --- FIX SYNC: Invia Email e AuthKey ---
+        const fetchServerPreferences = async () => {
+            if (!isLoggedIn.value || !email.value) return;
+            isSyncing.value = true;
             try {
-                await getAddonsByAuthKey(authKey); // Se non lancia errore, è valida
-                // Chiave valida! Aggiorniamo il DB per puntare a questo dispositivo
-                user.authKey = authKey;
-                user.updatedAt = new Date();
-                await user.save();
-                return res.json({ autoUpdate: user.autoUpdate });
-            } catch (e) {
-                // Chiave non valida, sessione scaduta davvero
-            }
-        }
-    }
-    res.json({ autoUpdate: false });
-}));
-
-// 3. SAVE PREFERENCES
-app.post('/api/preferences', asyncHandler(async (req, res) => {
-    const authKey = req.cookies.authKey || req.body.authKey;
-    const email = req.body.email ? req.body.email.trim().toLowerCase() : null;
-    const { autoUpdate } = req.body;
-
-    if (!authKey || !email) return res.status(400).json({ error: "Dati mancanti" });
-
-    await connectToDatabase();
-    await User.findOneAndUpdate(
-        { email }, 
-        { email, authKey, autoUpdate: !!autoUpdate, updatedAt: new Date() },
-        { upsert: true, new: true }
-    );
-    res.json({ success: true });
-}));
-
-// 4. SET ADDONS
-app.post('/api/set-addons', asyncHandler(async (req, res) => {
-    const authKey = req.cookies.authKey || req.body.authKey;
-    if (!authKey) return res.status(401).json({error: "No Auth"});
-    const addons = req.body.addons.map(a => {
-        let c = JSON.parse(JSON.stringify(a));
-        if(c.manifest) for(let k in c.manifest) if(typeof c.manifest[k]==='string') c.manifest[k]=sanitizeHtml(c.manifest[k]);
-        return c;
-    });
-    await fetchWithTimeout(ADDONS_SET_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ authKey, addons }) });
-    res.json({ success: true });
-}));
-
-// 5. FETCH MANIFEST
-app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
-    const { manifestUrl } = req.body;
-    if (!manifestUrl || !(await isSafeUrl(manifestUrl))) return res.status(400).json({error: "URL errato"});
-    const r = await fetchWithTimeout(manifestUrl, { redirect: 'error' });
-    if (!r.ok) throw new Error("Fetch KO");
-    res.json(await r.json());
-}));
-
-// 6. CRON
-app.get('/api/cron', async (req, res) => {
-    await connectToDatabase();
-    console.log("⏰ Cron...");
-    const users = await User.find({ autoUpdate: true }).select('email authKey');
-    let c = 0;
-    for (const u of users) {
-        try {
-            const d = await getAddonsByAuthKey(u.authKey);
-            let up = false;
-            const newAddons = await Promise.all(d.map(async a => {
-                const url = a.transportUrl || a.manifest?.id;
-                if(url && url.startsWith('http') && await isSafeUrl(url)) {
-                    try {
-                        const r = await fetchWithTimeout(url, {}, 4000);
-                        if(r.ok) {
-                            const rem = await r.json();
-                            if(rem.version !== a.manifest.version) { up=true; return {...a, manifest: rem}; }
-                        }
-                    } catch(e){}
+                // Passa email nella query + authKey nell'header
+                const res = await fetch(`${apiBaseUrl.value}/preferences?email=${encodeURIComponent(email.value)}`, {
+                    headers: { 'Authorization': authKey.value }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    isAutoUpdateEnabled.value = data.autoUpdate;
+                    localStorage.setItem('stremioAutoUpdateEnabled', data.autoUpdate);
                 }
-                return a;
-            }));
-            if(up) {
-                await fetchWithTimeout(ADDONS_SET_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({authKey: u.authKey, addons:newAddons}) });
-                c++; User.updateOne({_id: u._id}, {lastCheck: new Date()}).exec();
-            }
-        } catch(e){}
-    }
-    res.json({ success: true, updated: c });
-});
+            } catch (e) { console.warn("Sync err", e); } 
+            finally { await nextTick(); setTimeout(() => { isSyncing.value = false; }, 200); }
+        };
 
-app.post('/api/logout', (req, res) => { res.cookie('authKey', '', {maxAge:0}); res.json({success:true}); });
-app.use('/api/*', (req,res)=>res.status(404).json({error:"Not found"}));
-app.use((req,res,n)=>{ if(req.method==='GET'&&!req.path.startsWith('/api')) return res.sendFile(path.join(__dirname,'public','index.html')); n(); });
-app.use((err,req,res,n)=>{ console.error(err); res.status(500).json({error:{message:err.message}}); });
-if(!process.env.VERCEL_ENV) connectToDatabase().then(()=>app.listen(PORT));
-module.exports = app;
+        const aEseguiLogin = async () => {
+            const success = await login();
+            if (success) {
+                showWelcomeScreen.value = true;
+                // Usa il valore ritornato dal login se presente (versione turbo)
+                if (sessionStorage.getItem('stremioAutoUpdateEnabled')) {
+                    isAutoUpdateEnabled.value = sessionStorage.getItem('stremioAutoUpdateEnabled') === 'true';
+                } else {
+                    await fetchServerPreferences();
+                }
+            }
+        };
+        const aEseguiMonitorLogin = async () => { await monitorLogin(showWelcomeScreen); };
+        const fullLogout = () => { if(hasUnsavedChanges.value && !confirm(t.value('list.logoutConfirm'))) return; logout(); searchQuery.value=''; showSearchInput.value=false; showInstructions.value=false; toasts.value=[]; showWelcomeScreen.value=false; showWelcomeTourModal.value=false; loadProfiles(); };
+        const handleToggleEnabled = (a,e) => { if(isMonitoring.value)return; a.isEnabled=e.target.checked; recordAction(t.value(a.isEnabled?'actions.enabledAddon':'actions.disabledAddon',{name:a.manifest.name})); hasUnsavedChanges.value=true; };
+        const handleToggleSelected = (a,e) => { a.selected=e.target.checked; };
+
+        setRetrieveAddons(retrieveAddonsFromServer); setLogout(fullLogout); setHistory(resetHistory); setProfileFns(savedProfiles, saveProfiles);
+
+        watch(lang, (nl)=>{document.documentElement.lang=nl;document.title=t.value('meta.title');try{localStorage.setItem('stremioConsoleLang',nl);}catch(e){}});
+        watch(isAutoUpdateEnabled, async (nv) => {
+            if(isSyncing.value) return;
+            try {
+                localStorage.setItem('stremioAutoUpdateEnabled', nv);
+                if(isLoggedIn.value && email.value) {
+                    await fetch(`${apiBaseUrl.value}/preferences`, {
+                        method: 'POST', headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify({ email: email.value.toLowerCase(), autoUpdate: nv, authKey: authKey.value })
+                    });
+                }
+                showToast(t.value(nv?'autoUpdate.enabled':'autoUpdate.disabled'),'info');
+            } catch(e) {}
+        });
+        watch(isLightMode, (nv)=>{document.body.classList.toggle('light-mode',nv);try{localStorage.setItem('stremioTheme',nv?'light':'dark');}catch(e){}showToast(t.value(nv?'core.themeLight':'core.themeDark'),'info');});
+
+        onMounted(async () => {
+            window.addEventListener('beforeunload', beforeUnloadHandler); window.addEventListener('resize', updateIsMobile);
+            initTheme(); loadProfiles(); initLang(); checkUrlImport(); initAutoUpdate();
+            try {
+                const sKey = sessionStorage.getItem('stremioAuthKey');
+                const sList = sessionStorage.getItem('stremioAddonList');
+                const sEmail = sessionStorage.getItem('stremioEmail');
+                const sMon = sessionStorage.getItem('stremioIsMonitoring')==='true';
+                if (sKey && sList) {
+                    authKey.value = sKey; email.value = sEmail||''; isMonitoring.value = sMon;
+                    if (sMon) targetEmail.value = sEmail||'';
+                    addons.value = JSON.parse(sList).map(a=>mapAddon(a));
+                    isLoggedIn.value = true;
+                    await fetchServerPreferences();
+                    showToast(t.value('addon.sessionRestored'), 'info');
+                    showWelcomeScreen.value = true;
+                }
+            } catch(e) { sessionStorage.clear(); }
+        });
+        onBeforeUnmount(() => { window.removeEventListener('beforeunload', beforeUnloadHandler); window.removeEventListener('resize', updateIsMobile); });
+
+        return {
+            isLoading, isMobile, isLightMode, showInstructions, toasts, showToast, t, lang,
+            email, password, authKey, isLoggedIn, isMonitoring, adminClickCount, showAdminInput, adminKey, targetEmail, loginMode, providedAuthKey,
+            login: aEseguiLogin, monitorLogin: aEseguiMonitorLogin, toggleLoginMode, incrementAdminClick, logout: fullLogout,
+            savedProfiles, selectedProfileId, saveProfile, startEditProfile, finishEditProfile, loadProfile, deleteProfile,
+            showSaveProfileModal, newProfileName, profileNameInputRef, confirmSaveProfile, cancelSaveProfile,
+            addons, newAddonUrl, refreshAddonList, saveOrder, addNewAddon, startEdit, finishEdit, moveUp, moveDown, moveTop, moveBottom, removeAddon, toggleAddonDisableAutoUpdate, onDragEnd,
+            isAutoUpdateEnabled, lastUpdateCheck, isUpdating, checkAllAddonsStatus, toggleAddonDetails, testAddonSpeed, runAutoUpdate, openConfiguration, copyManifestUrl, getResourceNames,
+            history, redoStack, actionLog, redoActionLog, hasUnsavedChanges, undo, redo, canUndo, canRedo,
+            activeFilter, searchQuery, showSearchInput, searchInputRef, toggleSearch, hideSearchOnBlur, filteredAddons, draggableList, dragOptions, enabledCount, disabledCount, errorCount, selectedAddons, allSelected, toggleSelectAll, enableSelected, disableSelected, removeSelected,
+            fileInput, shareInput, shareUrl, showImportConfirm, pendingImportData, importSource, pendingImportNames, exportBackup, exportTxt, triggerFileInput, handleFileImport, closeImportConfirm, confirmImport, generateShareLink, copyShareLink,
+            showWelcomeScreen, showWelcomeTourModal, dontShowWelcomeAgain, dismissWelcomeScreen, skipTour, beginTour, startTour,
+            handleToggleEnabled, handleToggleSelected, showAutoUpdateModal, handleAutoUpdateToggle, confirmAutoUpdate, cancelAutoUpdate
+        };
+    }
+});
+app.component('draggable', window.vuedraggable);
+app.mount('#app');
