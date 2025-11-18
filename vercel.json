@@ -1,38 +1,41 @@
 {
   "version": 2,
   "builds": [
+    // Build 1: Funzione Serverless per la logica backend
     {
       "src": "index.js",
       "use": "@vercel/node",
       "config": {
-        // Rimosso il flag --force. Vercel usa 'npm install' di default.
+        // Usa il comando standard per l'installazione delle dipendenze da package.json
         "installCommand": "npm install" 
       }
     },
+    // Build 2: Contenuti Statici (HTML, CSS, Immagini, ecc.)
     {
-      // Questo glob è più specifico e garantisce che solo i contenuti di 'public' siano considerati statici
-      "src": "public/**", 
+      "src": "public/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
-    // 1. API Routes: Gestisce tutte le chiamate API
+    // 1. Route API: Inoltra tutte le richieste /api/* a index.js
     {
       "src": "/api/(.*)",
       "dest": "index.js"
     },
-    // 2. Specific Static Assets: Serve i file statici con hash o nomi specifici (es. index.html, favicon.ico)
+    // 2. Route Statiche: Serve asset specifici direttamente dalla cartella 'public'.
+    // Include i formati più comuni (css, js, immagini, font, file di configurazione).
     {
-      "src": "/(.*\\.(html|css|js|ico|png|jpg|svg|txt|json|webmanifest|woff2|ttf))$",
+      "src": "/(.*\\.(css|js|ico|png|jpg|gif|svg|webp|txt|xml|json|webmanifest|woff2|ttf|eot))$",
       "dest": "public/$1"
     },
-    // 3. SPA Fallback: Qualsiasi altra richiesta viene reindirizzata a index.html per la gestione lato client
+    // 3. Fallback SPA/Index: Tutte le altre richieste vanno a index.html (tipico per le Single Page Applications)
     {
       "src": "/(.*)",
       "dest": "public/index.html"
     }
   ],
   "crons": [
+    // Job schedulato (eseguito ogni ora)
     {
       "path": "/api/cron",
       "schedule": "0 * * * *" 
