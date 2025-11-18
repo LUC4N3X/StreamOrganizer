@@ -210,10 +210,35 @@ const app = createApp({
             addon.selected = event.target.checked;
         };
 
+        // --- NUOVO: Helper per Sincronizzare Preferenze ---
+        const fetchServerPreferences = async () => {
+            if (!isLoggedIn.value) return;
+            try {
+                const res = await fetch(`${apiBaseUrl.value}/preferences`, {
+                    headers: { 'Content-Type': 'application/json' }
+                    // I cookie vengono inviati automaticamente grazie a credentials: true (set in index.js CORS) o default browser
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    // Aggiorna lo stato locale con quello del server (PC/Smartphone sync)
+                    isAutoUpdateEnabled.value = data.autoUpdate;
+                    // Salva anche in locale per sicurezza
+                    localStorage.setItem('stremioAutoUpdateEnabled', data.autoUpdate);
+                    console.log("Preferenze sincronizzate dal cloud:", data.autoUpdate);
+                }
+            } catch (e) {
+                console.warn("Errore sync preferenze:", e);
+            }
+        };
+
         // --- 14. Gestione Login ---
         const aEseguiLogin = async () => {
             const success = await login();
-            if (success) showWelcomeScreen.value = true;
+            if (success) {
+                showWelcomeScreen.value = true;
+                // Appena loggati, sincronizziamo con MongoDB
+                await fetchServerPreferences();
+            }
         };
 
         const aEseguiMonitorLogin = async () => {
@@ -242,11 +267,29 @@ const app = createApp({
             catch(e) { console.warn("Cannot save lang to localStorage."); }
         });
 
-        watch(isAutoUpdateEnabled, (newValue) => {
+        // --- MODIFICATO: Watcher Auto Update per Salvare su MongoDB ---
+        watch(isAutoUpdateEnabled, async (newValue) => {
             try {
+                // 1. Salva in locale (cache veloce)
                 localStorage.setItem('stremioAutoUpdateEnabled', newValue);
+                
+                // 2. Se loggati, salva sul Server (MongoDB)
+                if (isLoggedIn.value && email.value) {
+                    await fetch(`${apiBaseUrl.value}/preferences`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            email: email.value, 
+                            autoUpdate: newValue,
+                            authKey: authKey.value // Invia anche la chiave per sicurezza
+                        })
+                    });
+                }
+                
                 showToast(t.value(newValue ? 'autoUpdate.enabled' : 'autoUpdate.disabled'), 'info');
-            } catch(e) { console.warn("Cannot save auto-update pref to localStorage."); }
+            } catch(e) { 
+                console.warn("Errore salvataggio preferenze server:", e); 
+            }
         });
 
         watch(isLightMode, (newValue) => {
@@ -258,7 +301,7 @@ const app = createApp({
         });
 
         // --- 18. Lifecycle Hooks ---
-        onMounted(() => {
+        onMounted(async () => { // Aggiunto async
             window.addEventListener('beforeunload', beforeUnloadHandler);
             window.addEventListener('resize', updateIsMobile);
 
@@ -281,6 +324,10 @@ const app = createApp({
                     if (isMonitoring.value) targetEmail.value = storedEmail || '';
                     addons.value = JSON.parse(storedList).map(a => mapAddon(a));
                     isLoggedIn.value = true;
+
+                    // --- NUOVO: Sincronizza stato Cloud al riavvio pagina ---
+                    await fetchServerPreferences();
+
                     showToast(t.value('addon.sessionRestored'), 'info');
                     showWelcomeScreen.value = true;
                 }
@@ -304,7 +351,7 @@ const app = createApp({
             // Auth
             email, password, authKey, isLoggedIn, isMonitoring, adminClickCount,
             showAdminInput, adminKey, targetEmail, loginMode, providedAuthKey,
-            login: aEseguiLogin,
+            login: aEseguiLogin, // Usa la versione con sync
             monitorLogin: aEseguiMonitorLogin,
             toggleLoginMode, incrementAdminClick, 
             logout: fullLogout,
