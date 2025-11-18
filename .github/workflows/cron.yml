@@ -2,9 +2,9 @@ name: Trigger Stremio Update
 
 on:
   schedule:
-    # Esegue ogni ora al minuto 0 (es. 13:00, 14:00, etc.)
-    - cron: '0 * * * *'
-  # Permette di eseguirlo anche manualmente dalla tab "Actions" di GitHub per testare
+    # Minuto 0, Ora 3 (03:00 UTC) ogni giorno
+    - cron: '0 3 * * *'
+  # Mantiene il pulsante per l'avvio manuale
   workflow_dispatch:
 
 jobs:
