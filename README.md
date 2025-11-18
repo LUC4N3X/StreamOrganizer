@@ -21,7 +21,7 @@
       font-family:'Orbitron',sans-serif;
       letter-spacing:1.5px;
       margin-top:6px;
-      margin-bottom:20px;
+      margin-bottom:24px;
       text-shadow:
         0 0 4px #ff00ff,
         0 0 8px #00ffff;
@@ -33,11 +33,76 @@
   <!-- BANNER NEON FUTURISTICO -->
   <img src="https://capsule-render.vercel.app/api?type=waving&color=0:ff00cc,100:3300ff&height=220&section=header&text=STREAMORDER%20CYBERDECK&fontSize=46&fontAlignY=35&fontColor=ffffff&animation=twinkling&desc=Stremio%20Addon%20Operator%20Console&descAlignY=70&descSize=18"
        alt="StreamOrder Cyberdeck Banner"
-       style="margin-top:-10px;
-              margin-bottom:-5px;
-              filter: drop-shadow(0 0 12px rgba(255,0,255,0.45));
-       "/>
+       style="filter: drop-shadow(0 0 15px rgba(255,0,255,0.45)); margin-top:-10px;"/>
 
+
+  <!-- ==================== PULSANTI NEON ==================== -->
+  <div style="margin-top:25px; display:flex; justify-content:center; gap:16px; flex-wrap:wrap;">
+
+    <!-- Pulsante Install -->
+    <a href="#install"
+       style="
+         padding:12px 28px;
+         border-radius:8px;
+         border:2px solid #ff00ff;
+         color:#ffffff;
+         font-family:'Orbitron',sans-serif;
+         font-weight:600;
+         text-decoration:none;
+         letter-spacing:1px;
+         background:rgba(255,0,255,0.12);
+         box-shadow:0 0 12px rgba(255,0,255,0.6);
+         text-shadow:0 0 8px #ff00ff;
+         transition:0.2s;
+       "
+       onmouseover="this.style.boxShadow='0 0 18px rgba(0,255,255,0.9)'; this.style.borderColor='#00ffff'; this.style.textShadow='0 0 8px #00ffff'; this.style.color='#b8ffff';"
+       onmouseout="this.style.boxShadow='0 0 12px rgba(255,0,255,0.6)'; this.style.borderColor='#ff00ff'; this.style.textShadow='0 0 8px #ff00ff'; this.style.color='#ffffff';">
+      ⚡ INSTALL
+    </a>
+
+    <!-- Pulsante Demo -->
+    <a href="#demo"
+       style="
+         padding:12px 28px;
+         border-radius:8px;
+         border:2px solid #00ffff;
+         color:#cfffff;
+         font-family:'Orbitron',sans-serif;
+         font-weight:600;
+         text-decoration:none;
+         letter-spacing:1px;
+         background:rgba(0,255,255,0.12);
+         box-shadow:0 0 12px rgba(0,255,255,0.55);
+         text-shadow:0 0 8px #00ffff;
+         transition:0.2s;
+       "
+       onmouseover="this.style.boxShadow='0 0 18px rgba(255,0,255,0.8)'; this.style.borderColor='#ff00ff'; this.style.textShadow='0 0 8px #ff00ff'; this.style.color='#ffd6ff';"
+       onmouseout="this.style.boxShadow='0 0 12px rgba(0,255,255,0.55)'; this.style.borderColor='#00ffff'; this.style.textShadow='0 0 8px #00ffff'; this.style.color='#cfffff';">
+      ▶ DEMO
+    </a>
+
+    <!-- Pulsante Docs -->
+    <a href="#docs"
+       style="
+         padding:12px 28px;
+         border-radius:8px;
+         border:2px solid #aa66ff;
+         color:#f3e8ff;
+         font-family:'Orbitron',sans-serif;
+         font-weight:600;
+         text-decoration:none;
+         letter-spacing:1px;
+         background:rgba(170,102,255,0.15);
+         box-shadow:0 0 12px rgba(170,102,255,0.55);
+         text-shadow:0 0 8px #aa66ff;
+         transition:0.2s;
+       "
+       onmouseover="this.style.boxShadow='0 0 18px rgba(255,0,0,0.8)'; this.style.borderColor='#ff0000'; this.style.textShadow='0 0 8px #ff0000'; this.style.color='#ffd1d1';"
+       onmouseout="this.style.boxShadow='0 0 12px rgba(170,102,255,0.55)'; this.style.borderColor='#aa66ff'; this.style.textShadow='0 0 8px #aa66ff'; this.style.color='#f3e8ff';">
+      📘 DOCS
+    </a>
+
+  </div>
 </div>
 <!-- =================== /HEADER README CYBERPUNK =================== -->
 
