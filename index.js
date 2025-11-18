@@ -37,17 +37,16 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 
-// Connessione Ottimizzata (Promise Caching)
+// Connessione Ottimizzata (Promise Caching per velocità)
 let dbPromise = null;
 async function connectToDatabase() {
     if (isConnected) return;
     if (!MONGO_URI) return;
     
-    // Se c'è già una connessione in corso, usala invece di aprirne una nuova
     if (!dbPromise) {
         dbPromise = mongoose.connect(MONGO_URI, { 
             serverSelectionTimeoutMS: 5000,
-            maxPoolSize: 1 // Ottimizzazione per Serverless
+            maxPoolSize: 1 
         }).then(() => {
             isConnected = true;
             console.log("✅ DB Connected");
@@ -65,7 +64,7 @@ app.use(express.json({ limit: MAX_JSON_PAYLOAD }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const apiLimiter = rateLimit({ windowMs: 15*60*1000, max: 300 }); // Aumentato leggermente
+const apiLimiter = rateLimit({ windowMs: 15*60*1000, max: 300 });
 app.use('/api/', apiLimiter);
 
 const allowedOrigins = ['http://localhost:7860', 'https://stream-organizer.vercel.app'];
@@ -116,7 +115,6 @@ async function isSafeUrl(urlString) {
   } catch (err) { return false; }
 }
 
-// --- HELPER STREMIO ---
 async function getAddonsByAuthKey(authKey) {
     const res = await fetchWithTimeout(ADDONS_GET_URL, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -131,15 +129,15 @@ async function getAddonsByAuthKey(authKey) {
 // ENDPOINTS
 // ---------------------------------------------------------------------
 
-// 1. LOGIN (TURBO MODE)
+// 1. LOGIN VELOCE & SINCRONIZZATO
 app.post('/api/login', asyncHandler(async (req, res) => {
-  // 1. Avvia connessione DB in parallelo (senza aspettare)
+  // A. Avvia connessione DB in background (senza bloccare)
   const dbInit = connectToDatabase();
 
   const { email, password, authKey: providedAuthKey } = req.body;
   let data;
 
-  // 2. Esegui chiamate Stremio (mentre il DB si connette)
+  // B. Esegui login Stremio (Lento, quindi usiamo questo tempo per connettere il DB)
   if (email && password) {
     const loginRes = await fetchWithTimeout(LOGIN_API_URL, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -148,7 +146,6 @@ app.post('/api/login', asyncHandler(async (req, res) => {
     const loginData = await loginRes.json();
     if (!loginData.result?.authKey) throw new Error("Credenziali non valide.");
     
-    // Parallelizziamo anche il fetch degli addon se possibile, ma qui serve la key
     const addons = await getAddonsByAuthKey(loginData.result.authKey);
     data = { authKey: loginData.result.authKey, addons };
 
@@ -160,38 +157,37 @@ app.post('/api/login', asyncHandler(async (req, res) => {
       return res.status(400).json({ error: { message: "Dati mancanti." } });
   }
 
-  // 3. Gestione DB (Ora aspettiamo che sia pronto, ma dovrebbe aver finito)
+  // C. Sincronizzazione DB (Ora velocissima)
   let autoUpdateEnabled = false;
   
   if (email) {
-      await dbInit; // Aspetta solo se il DB è più lento di Stremio (raro)
+      await dbInit; // Aspetta che il DB sia pronto (di solito lo è già a questo punto)
       
-      // USIAMO findOneAndUpdate con UPSERT (1 sola chiamata al DB invece di 3)
-      // Se esiste: aggiorna authKey e updatedAt
-      // Se non esiste: crea nuovo con autoUpdate: false
       try {
+          // LOGICA INTELLIGENTE: 
+          // Trova l'utente per EMAIL. 
+          // Se esiste, aggiorna solo la AuthKey e PRESERVA autoUpdate.
+          // Se non esiste, lo crea con autoUpdate: false.
           const user = await User.findOneAndUpdate(
               { email },
               { 
                   $set: { authKey: data.authKey, updatedAt: new Date() },
-                  $setOnInsert: { autoUpdate: false } // Setta false solo se crea nuovo
+                  $setOnInsert: { autoUpdate: false } 
               },
               { upsert: true, new: true, setDefaultsOnInsert: true }
           );
           autoUpdateEnabled = user.autoUpdate;
-          console.log(`[LOGIN] Sync OK per ${email}`);
       } catch (e) {
-          console.error("DB Update Fallito:", e);
-          // Non blocchiamo il login se il DB fallisce
+          console.error("DB Sync Error:", e);
       }
   }
 
-  // 4. Risposta Immediata
+  // D. Risposta
   res.cookie('authKey', data.authKey, { httpOnly: true, secure: true, sameSite: 'none' });
   res.json({ 
       addons: data.addons, 
       authKey: data.authKey,
-      autoUpdateEnabled 
+      autoUpdateEnabled // Il frontend riceve lo stato corretto salvato nel DB
   });
 }));
 
@@ -200,7 +196,6 @@ app.get('/api/preferences', asyncHandler(async (req, res) => {
     const { authKey } = req.cookies;
     if (!authKey) return res.status(401).json({ error: "No Auth" });
     await connectToDatabase();
-    // Proiezione: prendi solo il campo autoUpdate per essere più veloce
     const user = await User.findOne({ authKey }).select('autoUpdate'); 
     res.json({ autoUpdate: user ? user.autoUpdate : false });
 }));
@@ -213,10 +208,9 @@ app.post('/api/preferences', asyncHandler(async (req, res) => {
 
     if (!key || !email) return res.status(400).json({ error: "Dati mancanti" });
 
-    // Non aspettiamo la connessione se è già attiva
     await connectToDatabase();
     
-    // Fire and forget parziale (non bloccare troppo)
+    // Update rapido
     await User.findOneAndUpdate(
         { email }, 
         { email, authKey: key, autoUpdate: !!autoUpdate, updatedAt: new Date() },
@@ -251,10 +245,7 @@ app.post('/api/set-addons', asyncHandler(async (req, res) => {
 // 5. FETCH MANIFEST
 app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
   const { manifestUrl } = req.body;
-  // Validazione basilare prima di tutto
   if (!manifestUrl) return res.status(400).json({error: "No URL"});
-
-  // Controllo SSRF
   if (!(await isSafeUrl(manifestUrl))) return res.status(400).json({error: "URL non sicuro"});
 
   const r = await fetchWithTimeout(manifestUrl, { redirect: 'error' });
@@ -265,8 +256,8 @@ app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
 // 6. CRON JOB
 app.get('/api/cron', async (req, res) => {
     await connectToDatabase();
-    console.log("⏰ [CRON] Starting...");
-    const users = await User.find({ autoUpdate: true }).select('email authKey'); // Prendi solo campi utili
+    console.log("⏰ [CRON] Check...");
+    const users = await User.find({ autoUpdate: true }).select('email authKey');
     let updatedCount = 0;
 
     for (const user of users) {
@@ -281,15 +272,12 @@ app.get('/api/cron', async (req, res) => {
             const addons = addonsData.result.addons;
             let hasUpdates = false;
 
-            // Limitiamo a 5 chiamate parallele per utente per non intasare
             const checkUpdate = async (addon) => {
                 const url = addon.transportUrl || addon.manifest?.id;
                 if (!url || !url.startsWith('http')) return addon;
                 try {
-                    // Check SSRF veloce
                     if (!(await isSafeUrl(url))) return addon;
-                    
-                    const r = await fetchWithTimeout(url, {}, 4000); // Timeout ridotto a 4s per il cron
+                    const r = await fetchWithTimeout(url, {}, 4000);
                     if (r.ok) {
                         const remote = await r.json();
                         if (remote.version !== addon.manifest.version) {
@@ -309,11 +297,10 @@ app.get('/api/cron', async (req, res) => {
                     body: JSON.stringify({ authKey: user.authKey, addons: newAddons })
                 });
                 updatedCount++;
-                // Aggiorna timestamp senza await (fire and forget)
                 User.updateOne({ _id: user._id }, { lastCheck: new Date() }).exec();
             }
         } catch(e) {
-            console.error(`Errore ${user.email}`, e.message);
+            console.error(`Error ${user.email}`, e.message);
         }
     }
     res.json({ success: true, updated: updatedCount });
