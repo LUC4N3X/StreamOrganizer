@@ -1,0 +1,16 @@
+name: Trigger Stremio Update
+
+on:
+  schedule:
+    # Esegue ogni ora al minuto 0 (es. 13:00, 14:00, etc.)
+    - cron: '0 * * * *'
+  # Permette di eseguirlo anche manualmente dalla tab "Actions" di GitHub per testare
+  workflow_dispatch:
+
+jobs:
+  cron-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call API Cron endpoint
+        run: |
+          curl -X GET https://stream-organizer.vercel.app/api/cron
