@@ -1,8 +1,12 @@
 {
+  "version": 2,
   "builds": [
     {
       "src": "index.js",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "installCommand": "npm install --force" 
+      }
     },
     {
       "src": "public/**/*",
@@ -21,12 +25,6 @@
     {
       "src": "/(.*)",
       "dest": "public/index.html"
-    }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron",
-      "schedule": "0 * * * *"
     }
   ]
 }
