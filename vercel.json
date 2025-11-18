@@ -1,5 +1,4 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
   "builds": [
     {
       "src": "index.js",
@@ -13,15 +12,15 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/index.js"
+      "dest": "index.js"
     },
     {
       "src": "/(.*\\.(css|js|ico|png|jpg|svg|txt|json|webmanifest))$",
-      "dest": "/public/$1"
+      "dest": "public/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "/public/index.html"
+      "dest": "public/index.html"
     }
   ],
   "crons": [
