@@ -6,8 +6,12 @@ const rateLimit = require('express-rate-limit');
 const Joi = require('joi');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
-const mongoose = require('mongoose');
+
+// --- LIBRERIE PER IL DATABASE CENTRALE (Come nel config.py) ---
+const mongoose = require('mongoose'); 
 const sanitizeHtml = require('sanitize-html');
+
+// --- FIX VERCEL: Isolamento moduli core ---
 const { promises: dns } = require('dns');
 const net = require('net');
 
@@ -16,16 +20,26 @@ const PORT = process.env.PORT || 7860;
 
 app.set('trust proxy', 1);
 
-const STREMIO_API_BASE = 'https://api.strem.io/api/';
-const LOGIN_API_URL = `${STREMIO_API_BASE}login`;
-const ADDONS_GET_URL = `${STREMIO_API_BASE}addonCollectionGet`;
-const ADDONS_SET_URL = `${STREMIO_API_BASE}addonCollectionSet`;
-const FETCH_TIMEOUT = 10000;
+// --- CONFIGURAZIONE (Ispirata al tuo file Python) ---
+const CONFIG = {
+    STREMIO_API: 'https://api.strem.io/api/',
+    // Qui usiamo la variabile d'ambiente di Vercel per sicurezza
+    DATABASE_URL: process.env.DATABASE_URL, 
+    TIMEOUT: 10000
+};
+
+const LOGIN_API_URL = `${CONFIG.STREMIO_API}login`;
+const ADDONS_GET_URL = `${CONFIG.STREMIO_API}addonCollectionGet`;
+const ADDONS_SET_URL = `${CONFIG.STREMIO_API}addonCollectionSet`;
+
 const MAX_JSON_PAYLOAD = '250kb';
 
-const MONGO_URI = process.env.DATABASE_URL; 
+// ---------------------------------------------------------------------
+// CONNESSIONE DATABASE CENTRALE (MongoDB)
+// ---------------------------------------------------------------------
 let isConnected = false;
 
+// Schema Utente (La "memoria" del database)
 const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     authKey: { type: String },
@@ -35,18 +49,24 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 
-let dbPromise = null;
 async function connectToDatabase() {
     if (isConnected) return;
-    if (!MONGO_URI) return;
-    if (!dbPromise) {
-        dbPromise = mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 5000, maxPoolSize: 1 })
-            .then(() => { isConnected = true; console.log("✅ DB Connected"); })
-            .catch(e => { dbPromise = null; console.error("❌ DB Error:", e.message); });
+    if (!CONFIG.DATABASE_URL) {
+        console.warn("⚠️ NESSUN DATABASE_URL! I dati non verranno salvati.");
+        return;
     }
-    await dbPromise;
+    try {
+        await mongoose.connect(CONFIG.DATABASE_URL, { serverSelectionTimeoutMS: 5000 });
+        isConnected = true;
+        console.log("✅ Connesso al Database Centrale");
+    } catch (error) {
+        console.error("❌ Errore DB:", error.message);
+    }
 }
 
+// ---------------------------------------------------------------------
+// MIDDLEWARE & SICUREZZA
+// ---------------------------------------------------------------------
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: MAX_JSON_PAYLOAD }));
 app.use(cookieParser());
@@ -64,15 +84,16 @@ app.use(cors({
     if (allowedOrigins.some(o => origin.startsWith(o)) || origin.endsWith('.vercel.app')) {
       return callback(null, true);
     }
-    return callback(new Error('CORS Block'), false);
+    return callback(new Error('Blocco CORS'), false);
   },
   credentials: true
 }));
 
+// --- UTILS ---
 const asyncHandler = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 if (!global.AbortController) global.AbortController = require('abort-controller').AbortController;
-async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
+async function fetchWithTimeout(url, options = {}, timeout = CONFIG.TIMEOUT) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   try {
@@ -102,6 +123,19 @@ async function isSafeUrl(urlString) {
   } catch (err) { return false; }
 }
 
+const sanitizeOptions = { allowedTags: [], allowedAttributes: {} };
+const sanitize = (text) => text ? sanitizeHtml(text.trim(), sanitizeOptions) : '';
+function sanitizeObject(data) {
+  if (typeof data === 'string') return sanitize(data);
+  if (Array.isArray(data)) return data.map(item => sanitizeObject(item));
+  if (data && typeof data === 'object') {
+    const newObj = {};
+    for (const key in data) newObj[key] = sanitizeObject(data[key]);
+    return newObj;
+  }
+  return data; 
+}
+
 async function getAddonsByAuthKey(authKey) {
     const res = await fetchWithTimeout(ADDONS_GET_URL, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -112,15 +146,19 @@ async function getAddonsByAuthKey(authKey) {
     return data.result.addons || [];
 }
 
-// --- ENDPOINTS ---
+// ---------------------------------------------------------------------
+// ENDPOINTS
+// ---------------------------------------------------------------------
 
-// 1. LOGIN (Fix Case Sensitivity & DB Update)
+// 1. LOGIN (Con Sincronizzazione DB Centrale)
 app.post('/api/login', asyncHandler(async (req, res) => {
+  // Avvia connessione in parallelo
   const dbInit = connectToDatabase();
+
   const { email, password, authKey: providedAuthKey } = req.body;
   let data;
-
-  // FIX: Normalizza email in minuscolo
+  
+  // Normalizza email
   const cleanEmail = email ? email.trim().toLowerCase() : null;
 
   if (cleanEmail && password) {
@@ -142,10 +180,10 @@ app.post('/api/login', asyncHandler(async (req, res) => {
 
   let autoUpdateEnabled = false;
   
+  // Salva/Aggiorna nel Database Centrale
   if (cleanEmail) {
       await dbInit;
       try {
-          // Cerca utente esistente (con email minuscola)
           const user = await User.findOneAndUpdate(
               { email: cleanEmail },
               { 
@@ -155,32 +193,30 @@ app.post('/api/login', asyncHandler(async (req, res) => {
               { upsert: true, new: true, setDefaultsOnInsert: true }
           );
           autoUpdateEnabled = user.autoUpdate;
-      } catch (e) { console.error("DB Sync Error:", e); }
+      } catch (e) { console.error("Errore sync DB:", e); }
   }
 
   res.cookie('authKey', data.authKey, { httpOnly: true, secure: true, sameSite: 'none' });
-  res.json({ addons: data.addons, authKey: data.authKey, autoUpdateEnabled });
+  res.json({ 
+      addons: data.addons, 
+      authKey: data.authKey,
+      autoUpdateEnabled 
+  });
 }));
 
-// 2. GET PREFERENCES (Fix Mobile Cookies)
+// 2. PREFERENZE (Lettura/Scrittura su DB Centrale)
 app.get('/api/preferences', asyncHandler(async (req, res) => {
-    // Cerca AuthKey nei Cookie OPPURE nell'Header (per mobile)
-    let authKey = req.cookies.authKey;
-    if (!authKey && req.headers.authorization) {
-        authKey = req.headers.authorization; // Fallback
-    }
-
+    let authKey = req.cookies.authKey || req.headers.authorization;
     if (!authKey) return res.status(401).json({ error: "No Auth" });
-    
+
     await connectToDatabase();
     const user = await User.findOne({ authKey }).select('autoUpdate'); 
     res.json({ autoUpdate: user ? user.autoUpdate : false });
 }));
 
-// 3. SAVE PREFERENCES
 app.post('/api/preferences', asyncHandler(async (req, res) => {
     const authKey = req.cookies.authKey || req.body.authKey;
-    const email = req.body.email ? req.body.email.trim().toLowerCase() : null; // FIX Minuscolo
+    const email = req.body.email ? req.body.email.trim().toLowerCase() : null;
     const { autoUpdate } = req.body;
 
     if (!authKey || !email) return res.status(400).json({ error: "Dati mancanti" });
@@ -194,41 +230,14 @@ app.post('/api/preferences', asyncHandler(async (req, res) => {
     res.json({ success: true });
 }));
 
-// 4. SET ADDONS
-app.post('/api/set-addons', asyncHandler(async (req, res) => {
-  const authKey = req.cookies.authKey || req.body.authKey; // Supporto body per mobile
-  if (!authKey) return res.status(401).json({error: "No Auth"});
-  
-  const addons = req.body.addons.map(a => {
-      let c = JSON.parse(JSON.stringify(a));
-      if (c.manifest && typeof c.manifest === 'object') {
-          for(let k in c.manifest) if(typeof c.manifest[k] === 'string') c.manifest[k] = sanitizeHtml(c.manifest[k]);
-      }
-      return c;
-  });
-
-  const r = await fetchWithTimeout(ADDONS_SET_URL, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ authKey, addons })
-  });
-  const d = await r.json();
-  if (d.error) throw new Error(d.error.message);
-  res.json({ success: true });
-}));
-
-app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
-  const { manifestUrl } = req.body;
-  if (!manifestUrl || !(await isSafeUrl(manifestUrl))) return res.status(400).json({error: "URL invalido"});
-  const r = await fetchWithTimeout(manifestUrl, { redirect: 'error' });
-  if (!r.ok) throw new Error("Fetch failed");
-  res.json(await r.json());
-}));
-
+// 3. CRON JOB (Aggiornamento Automatico)
 app.get('/api/cron', async (req, res) => {
     await connectToDatabase();
-    console.log("⏰ [CRON] Check...");
+    console.log("⏰ [CRON] Controllo aggiornamenti...");
+    
     const users = await User.find({ autoUpdate: true }).select('email authKey');
     let updatedCount = 0;
+
     for (const user of users) {
         try {
             const addonsRes = await fetchWithTimeout(ADDONS_GET_URL, {
@@ -237,12 +246,15 @@ app.get('/api/cron', async (req, res) => {
             });
             const addonsData = await addonsRes.json();
             if (!addonsData.result) continue;
+
+            const addons = addonsData.result.addons;
             let hasUpdates = false;
+
             const checkUpdate = async (addon) => {
                 const url = addon.transportUrl || addon.manifest?.id;
                 if (!url || !url.startsWith('http') || !(await isSafeUrl(url))) return addon;
                 try {
-                    const r = await fetchWithTimeout(url, {}, 4000);
+                    const r = await fetchWithTimeout(url, {}, 5000);
                     if (r.ok) {
                         const remote = await r.json();
                         if (remote.version !== addon.manifest.version) {
@@ -253,7 +265,9 @@ app.get('/api/cron', async (req, res) => {
                 } catch(e){}
                 return addon;
             };
-            const newAddons = await Promise.all(addonsData.result.addons.map(checkUpdate));
+
+            const newAddons = await Promise.all(addons.map(checkUpdate));
+
             if (hasUpdates) {
                 await fetchWithTimeout(ADDONS_SET_URL, {
                     method: 'POST', headers: {'Content-Type':'application/json'},
@@ -262,24 +276,55 @@ app.get('/api/cron', async (req, res) => {
                 updatedCount++;
                 User.updateOne({ _id: user._id }, { lastCheck: new Date() }).exec();
             }
-        } catch(e) { console.error(`Error ${user.email}`, e.message); }
+        } catch(e) { console.error(`Err ${user.email}:`, e.message); }
     }
     res.json({ success: true, updated: updatedCount });
 });
 
+// 4. STANDARD ENDPOINTS
+app.post('/api/get-addons', asyncHandler(async (req, res) => {
+    const authKey = req.cookies.authKey || req.body.authKey;
+    if (!authKey) return res.status(401).json({error: "No Auth"});
+    const addons = await getAddonsByAuthKey(authKey);
+    res.json({ addons });
+}));
+
+app.post('/api/set-addons', asyncHandler(async (req, res) => {
+    const authKey = req.cookies.authKey || req.body.authKey;
+    if (!authKey) return res.status(401).json({error: "No Auth"});
+    const addons = sanitizeObject(req.body.addons); // Usa sanitize ricorsivo
+    await fetchWithTimeout(ADDONS_SET_URL, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ authKey, addons })
+    });
+    res.json({ success: true });
+}));
+
+app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
+    const { manifestUrl } = req.body;
+    if (!manifestUrl || !(await isSafeUrl(manifestUrl))) return res.status(400).json({error: "URL non sicuro"});
+    const r = await fetchWithTimeout(manifestUrl, { redirect: 'error' });
+    if (!r.ok) throw new Error("Fetch failed");
+    res.json(await r.json());
+}));
+
 app.post('/api/logout', (req, res) => {
-  res.cookie('authKey', '', { ...cookieOptions, maxAge: 0 });
-  res.json({ success: true });
+    res.cookie('authKey', '', { ...cookieOptions, maxAge: 0 });
+    res.json({ success: true });
 });
 
 app.use('/api/*', (req, res) => res.status(404).json({error: "Not found"}));
+
+// Fallback Frontend
 app.use((req, res, next) => {
     if (req.method === 'GET' && !req.path.startsWith('/api')) return res.sendFile(path.join(__dirname, 'public', 'index.html'));
     next();
 });
+
+// Gestione Errori
 app.use((err, req, res, next) => {
-  console.error(`ERROR: ${err.message}`);
-  res.status(err.status || 500).json({ error: { message: err.message || "Server Error" } });
+    console.error(`ERROR: ${err.message}`);
+    res.status(err.status || 500).json({ error: { message: err.message || "Server Error" } });
 });
 
 if (!process.env.VERCEL_ENV) connectToDatabase().then(() => app.listen(PORT, () => console.log(`Running on ${PORT}`)));
