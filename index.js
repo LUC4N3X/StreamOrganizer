@@ -8,11 +8,14 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 
 // --- LIBRERIE AGGIUNTE PER PERSISTENZA E SICUREZZA ---
-const mongoose = require('mongoose'); // NUOVO: per MongoDB
+const mongoose = require('mongoose'); // MongoDB
 const sanitizeHtml = require('sanitize-html');
-const dns = require('dns').promises;
+
+// --- FIX VERCEL/NPM: Isolamento moduli core per prevenire errori ENOENT ---
+// Usiamo la destrutturazione per evitare che NPM tenti di installarli localmente.
+const { promises: dns } = require('dns');
 const net = require('net');
-// --- FINE LIBRERIE AGGIUNTE ---
+// --- FINE FIX VERCEL ---
 
 const app = express();
 const PORT = process.env.PORT || 7860;
@@ -21,7 +24,6 @@ app.set('trust proxy', 1);
 
 const MONITOR_KEY_SECRET = process.env.MONITOR_KEY;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-
 const STREMIO_API_BASE = 'https://api.strem.io/api/';
 const LOGIN_API_URL = `${STREMIO_API_BASE}login`;
 const ADDONS_GET_URL = `${STREMIO_API_BASE}addonCollectionGet`;
@@ -74,121 +76,7 @@ async function updateUserPreference(authKey, email, autoUpdate) {
         { upsert: true, new: true }
     );
 }
-
 // ---------------------------------------------------------------------
-// HELMET E CSP
-// ---------------------------------------------------------------------
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "https://unpkg.com", "https://cdnjs.cloudflare.com"],
-      "style-src": ["'self'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
-      "font-src": ["'self'", "https://fonts.gstatic.com"],
-      "connect-src": [
-        "'self'", "https://api.strem.io", "https://api.github.com", 
-        "https://fonts.googleapis.com", "https://fonts.gstatic.com", 
-        "https://unpkg.com", "https://cdnjs.cloudflare.com", 
-        "https://stream-organizer.vercel.app", "https://*.vercel.app",
-        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ''
-      ].filter(Boolean), 
-      "img-src": ["'self'", "data:", "https:"]
-    }
-  }
-}));
-
-// ---------------------------------------------------------------------
-// MIDDLEWARE GENERALI
-// ---------------------------------------------------------------------
-
-// Limita la dimensione del payload JSON per prevenire DoS
-app.use(express.json({ limit: MAX_JSON_PAYLOAD }));
-
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
-
-// ---------------------------------------------------------------------
-// RATE LIMIT
-// ---------------------------------------------------------------------
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, max: process.env.RATE_LIMIT_MAX || 100,
-  message: { error: { message: 'Troppe richieste. Riprova fra 15 minuti.' } }
-});
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, max: process.env.LOGIN_RATE_LIMIT_MAX || 20,
-  message: { error: { message: 'Troppi tentativi di login. Riprova fra 15 minuti.' } }
-});
-app.use('/api/', apiLimiter);
-app.use('/api/login', loginLimiter);
-
-// ---------------------------------------------------------------------
-// CORS
-// ---------------------------------------------------------------------
-const allowedOrigins = ['http://localhost:7860', 'https://stream-organizer.vercel.app'];
-if (process.env.VERCEL_URL) allowedOrigins.push(`https://${process.env.VERCEL_URL}`);
-
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || (process.env.VERCEL_ENV === 'preview' && origin.endsWith('.vercel.app'))) {
-      return callback(null, true);
-    }
-    return callback(new Error('Origine non autorizzata dalla policy CORS'), false);
-  },
-  credentials: true
-}));
-
-// Middleware per CSRF Hardening
-const enforceOrigin = (req, res, next) => {
-  if (req.path === '/api/cron') return next(); // Bypass CRON
-    
-  if (req.method === 'POST') {
-    const origin = req.header('Origin');
-    const referer = req.header('Referer');
-    let requestOrigin = origin;
-
-    if (!requestOrigin && referer) {
-      try { requestOrigin = new URL(referer).origin; } catch (e) { requestOrigin = undefined; }
-    }
-
-    if (requestOrigin) {
-      const isAllowed = allowedOrigins.includes(requestOrigin) || (process.env.VERCEL_ENV === 'preview' && requestOrigin.endsWith('.vercel.app'));
-      if (!isAllowed) return res.status(403).json({ error: { message: 'Origine richiesta non valida (CSRF check).' } });
-    }
-  }
-  return next();
-};
-app.use('/api/', enforceOrigin);
-
-// ---------------------------------------------------------------------
-// FETCH CON TIMEOUT
-// ---------------------------------------------------------------------
-if (!global.AbortController)
-  global.AbortController = require('abort-controller').AbortController;
-
-async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(id);
-    return res;
-  } catch (err) {
-    clearTimeout(id);
-    if (err.name === 'AbortError') throw new Error('Richiesta al server scaduta (timeout).');
-    throw err;
-  }
-}
-
-// ---------------------------------------------------------------------
-// COOKIE OPTIONS
-// ---------------------------------------------------------------------
-const cookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
-  maxAge: 30 * 24 * 60 * 60 * 1000
-};
 
 // ---------------------------------------------------------------------
 // JOI SCHEMAS
@@ -216,6 +104,91 @@ const schemas = {
 };
 
 // ---------------------------------------------------------------------
+// MIDDLEWARE GENERALI E SICUREZZA
+// ---------------------------------------------------------------------
+app.set('trust proxy', 1);
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "script-src": ["'self'", "https://unpkg.com", "https://cdnjs.cloudflare.com"],
+      "style-src": ["'self'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+      "font-src": ["'self'", "https://fonts.gstatic.com"],
+      "connect-src": [
+        "'self'", "https://api.strem.io", "https://api.github.com", 
+        "https://fonts.googleapis.com", "https://fonts.gstatic.com", 
+        "https://unpkg.com", "https://cdnjs.cloudflare.com", 
+        "https://stream-organizer.vercel.app", "https://*.vercel.app",
+        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ''
+      ].filter(Boolean), 
+      "img-src": ["'self'", "data:", "https:"]
+    }
+  }
+}));
+
+app.use(express.json({ limit: MAX_JSON_PAYLOAD }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Rate Limit
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: process.env.RATE_LIMIT_MAX || 100,
+  message: { error: { message: 'Troppe richieste. Riprova fra 15 minuti.' } }
+});
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: process.env.LOGIN_RATE_LIMIT_MAX || 20,
+  message: { error: { message: 'Troppi tentativi di login. Riprova fra 15 minuti.' } }
+});
+app.use('/api/', apiLimiter);
+app.use('/api/login', loginLimiter);
+
+// CORS
+const allowedOrigins = ['http://localhost:7860', 'https://stream-organizer.vercel.app'];
+if (process.env.VERCEL_URL) allowedOrigins.push(`https://${process.env.VERCEL_URL}`);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || (process.env.VERCEL_ENV === 'preview' && origin.endsWith('.vercel.app'))) {
+      return callback(null, true);
+    }
+    return callback(new Error('Origine non autorizzata dalla policy CORS'), false);
+  },
+  credentials: true
+}));
+
+// CSRF Hardening
+const enforceOrigin = (req, res, next) => {
+  if (req.path === '/api/cron') return next();
+    
+  if (req.method === 'POST') {
+    const origin = req.header('Origin');
+    const referer = req.header('Referer');
+    let requestOrigin = origin;
+
+    if (!requestOrigin && referer) {
+      try { requestOrigin = new URL(referer).origin; } catch (e) { requestOrigin = undefined; }
+    }
+
+    if (requestOrigin) {
+      const isAllowed = allowedOrigins.includes(requestOrigin) || (process.env.VERCEL_ENV === 'preview' && requestOrigin.endsWith('.vercel.app'));
+      if (!isAllowed) return res.status(403).json({ error: { message: 'Origine richiesta non valida (CSRF check).' } });
+    }
+  }
+  return next();
+};
+app.use('/api/', enforceOrigin);
+
+// Cookie Options
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict',
+  maxAge: 30 * 24 * 60 * 60 * 1000
+};
+
+// ---------------------------------------------------------------------
 // SSRF (Controllo IP)
 // ---------------------------------------------------------------------
 function isPrivateIp(ip) {
@@ -239,7 +212,8 @@ async function isSafeUrl(urlString) {
     if (net.isIP(hostname)) { return !isPrivateIp(hostname); }
     let ips = [];
     try {
-      const addressesInfo = await dns.lookup(hostname, { all: true });
+      // Uso dns.lookup che ora è la versione promise
+      const addressesInfo = await dns.lookup(hostname, { all: true }); 
       ips = addressesInfo.map(info => info.address);
     } catch (dnsErr) { return false; }
     if (ips.length === 0) { return false; }
@@ -332,9 +306,9 @@ app.post('/api/login', asyncHandler(async (req, res) => {
 
   res.cookie('authKey', data.authKey, cookieOptions);
   
-  // *** AGGIUNTA MONGO DB ***
+  // *** AGGIUNTA MONGO DB: Salva l'utente per la gestione delle preferenze ***
   if (email && isConnected) {
-      await updateUserPreference(data.authKey, email, false); // Salva l'utente senza attivare l'auto-update
+      await updateUserPreference(data.authKey, email, false); 
   }
   
   res.json({ addons: data.addons });
@@ -358,7 +332,6 @@ app.post('/api/preferences', asyncHandler(async (req, res) => {
         res.status(500).json({ error: { message: "Errore Database" } });
     }
 }));
-
 
 // GET ADDONS
 app.post('/api/get-addons', asyncHandler(async (req, res) => {
@@ -453,7 +426,7 @@ app.get('/api/cron', async (req, res) => {
                 if (!manifestUrl || !manifestUrl.startsWith('http')) return addon;
 
                 try {
-                    // Controlliamo il manifest URL per SSRF anche nel cron
+                    // Controllo SSRF anche nel cron
                     if (!(await isSafeUrl(manifestUrl))) return addon; 
                     
                     const resp = await fetchWithTimeout(manifestUrl, {}, 5000);
@@ -522,7 +495,7 @@ app.use((err, req, res, next) => {
   const status = err.status || 500;
   let message = 'Errore interno del server.';
 
-  if (err.isJoi) { // Gestione errore Joi
+  if (err.isJoi) {
       message = err.details[0].message;
   }
   else if (err.message.includes('redirect')) {
