@@ -3,10 +3,7 @@
   "builds": [
     {
       "src": "index.js",
-      "use": "@vercel/node",
-      "config": { // NUOVO BLOCCO
-        "installCommand": "npm install --force" // Forza l'installazione
-      }
+      "use": "@vercel/node"
     },
     {
       "src": "public/**/*",
@@ -14,7 +11,6 @@
     }
   ],
   "routes": [
-    // ... (Le tue route rimangono invariate) ...
     {
       "src": "/api/(.*)",
       "dest": "index.js"
@@ -26,12 +22,6 @@
     {
       "src": "/(.*)",
       "dest": "public/index.html"
-    }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron",
-      "schedule": "0 * * * *" 
     }
   ]
 }
