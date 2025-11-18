@@ -1,44 +1,27 @@
 {
   "version": 2,
   "builds": [
-    // Build 1: Funzione Serverless per la logica backend
     {
       "src": "index.js",
-      "use": "@vercel/node",
-      "config": {
-        // Usa il comando standard per l'installazione delle dipendenze da package.json
-        "installCommand": "npm install" 
-      }
+      "use": "@vercel/node"
     },
-    // Build 2: Contenuti Statici (HTML, CSS, Immagini, ecc.)
     {
-      "src": "public/**",
+      "src": "public/**/*",
       "use": "@vercel/static"
     }
   ],
   "routes": [
-    // 1. Route API: Inoltra tutte le richieste /api/* a index.js
     {
       "src": "/api/(.*)",
       "dest": "index.js"
     },
-    // 2. Route Statiche: Serve asset specifici direttamente dalla cartella 'public'.
-    // Include i formati più comuni (css, js, immagini, font, file di configurazione).
     {
-      "src": "/(.*\\.(css|js|ico|png|jpg|gif|svg|webp|txt|xml|json|webmanifest|woff2|ttf|eot))$",
+      "src": "/(.*\\.(css|js|ico|png|jpg|svg|txt|json|webmanifest))$",
       "dest": "public/$1"
     },
-    // 3. Fallback SPA/Index: Tutte le altre richieste vanno a index.html (tipico per le Single Page Applications)
     {
       "src": "/(.*)",
       "dest": "public/index.html"
-    }
-  ],
-  "crons": [
-    // Job schedulato (eseguito ogni ora)
-    {
-      "path": "/api/cron",
-      "schedule": "0 * * * *" 
     }
   ]
 }
