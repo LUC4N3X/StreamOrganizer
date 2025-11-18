@@ -13,15 +13,15 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/index.js"
+      "dest": "index.js"
     },
     {
       "src": "/(.*\\.(js|css|ico|png|jpg|jpeg|svg|txt|json|webmanifest|woff2?|ttf|eot))$",
-      "dest": "/public/$1"
+      "dest": "$1"
     },
     {
       "src": "/(.*)",
-      "dest": "/public/index.html",
+      "dest": "index.html",
       "status": 200
     }
   ],
