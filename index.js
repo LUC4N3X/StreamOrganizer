@@ -8,13 +8,8 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
 const sanitizeHtml = require('sanitize-html');
-
-// --- FIX VERCEL: Moduli Core ---
 const { promises: dns } = require('dns');
 const net = require('net');
-
-// ⚠️ NOTA: NON c'è nessun require('./utils.js') qui!
-// Tutte le funzioni necessarie sono definite sotto.
 
 const app = express();
 const PORT = process.env.PORT || 7860;
@@ -27,9 +22,7 @@ const ADDONS_GET_URL = `${STREMIO_API_BASE}addonCollectionGet`;
 const ADDONS_SET_URL = `${STREMIO_API_BASE}addonCollectionSet`;
 const FETCH_TIMEOUT = 10000;
 const MAX_JSON_PAYLOAD = '250kb';
-const MAX_MANIFEST_SIZE_BYTES = 250 * 1024;
 
-// --- DATABASE ---
 const MONGO_URI = process.env.DATABASE_URL; 
 let isConnected = false;
 
@@ -42,6 +35,7 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 
+// Connessione Cacheata per velocità
 let dbPromise = null;
 async function connectToDatabase() {
     if (isConnected) return;
@@ -54,7 +48,6 @@ async function connectToDatabase() {
     await dbPromise;
 }
 
-// --- MIDDLEWARE ---
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: MAX_JSON_PAYLOAD }));
 app.use(cookieParser());
@@ -69,15 +62,12 @@ if (process.env.VERCEL_URL) allowedOrigins.push(`https://${process.env.VERCEL_UR
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.some(o => origin.startsWith(o)) || origin.endsWith('.vercel.app')) {
-      return callback(null, true);
-    }
-    return callback(new Error('CORS Block'), false);
+    if (allowedOrigins.some(o => origin.startsWith(o)) || origin.endsWith('.vercel.app')) return callback(null, true);
+    return callback(new Error('CORS'), false);
   },
   credentials: true
 }));
 
-// --- UTILS INTEGRATE (Così non serve require esterno) ---
 const asyncHandler = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 if (!global.AbortController) global.AbortController = require('abort-controller').AbortController;
@@ -99,7 +89,6 @@ function isPrivateIp(ip) {
   }
   return false;
 }
-
 async function isSafeUrl(urlString) {
   try {
     const parsed = new URL(urlString);
@@ -112,10 +101,18 @@ async function isSafeUrl(urlString) {
   } catch (err) { return false; }
 }
 
-// Funzione Sanitizzazione interna
+async function getAddonsByAuthKey(authKey) {
+    const res = await fetchWithTimeout(ADDONS_GET_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ authKey: authKey.trim() })
+    });
+    const data = await res.json();
+    if (!data.result) throw new Error("Auth Error");
+    return data.result.addons || [];
+}
+
 const sanitizeOptions = { allowedTags: [], allowedAttributes: {} };
 const sanitize = (text) => text ? sanitizeHtml(text.trim(), sanitizeOptions) : '';
-
 function sanitizeObject(data) {
   if (typeof data === 'string') return sanitize(data);
   if (Array.isArray(data)) return data.map(item => sanitizeObject(item));
@@ -127,19 +124,9 @@ function sanitizeObject(data) {
   return data; 
 }
 
-async function getAddonsByAuthKey(authKey) {
-    const res = await fetchWithTimeout(ADDONS_GET_URL, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ authKey: authKey.trim() })
-    });
-    const data = await res.json();
-    if (!data.result) throw new Error("Errore recupero addon.");
-    return data.result.addons || [];
-}
-
 // --- ENDPOINTS ---
 
-// 1. LOGIN
+// 1. LOGIN (Logica Sincronizzazione Multi-Device)
 app.post('/api/login', asyncHandler(async (req, res) => {
   const dbInit = connectToDatabase();
   const { email, password, authKey: providedAuthKey } = req.body;
@@ -152,42 +139,40 @@ app.post('/api/login', asyncHandler(async (req, res) => {
         body: JSON.stringify({ email: cleanEmail, password })
     });
     const loginData = await loginRes.json();
-    if (!loginData.result?.authKey) throw new Error("Credenziali non valide.");
-    data = { authKey: loginData.result.authKey, addons: [] }; 
-    // Caricamento asincrono addons per velocità
+    if (!loginData.result?.authKey) throw new Error("Credenziali invalide");
+    data = { authKey: loginData.result.authKey, addons: [] };
+    // Fetch addons in background per non rallentare
     getAddonsByAuthKey(data.authKey).then(a => data.addons = a).catch(()=>{});
   } else if (providedAuthKey) {
     const trimmedKey = providedAuthKey.trim();
     data = { authKey: trimmedKey, addons: await getAddonsByAuthKey(trimmedKey) };
   } else {
-      return res.status(400).json({ error: { message: "Dati mancanti." } });
+      return res.status(400).json({ error: { message: "Dati mancanti" } });
   }
 
   let autoUpdateEnabled = false;
+  
   if (cleanEmail) {
       await dbInit;
       try {
+          // LA MAGIA: Cerca per email. Se esiste, aggiorna solo la AuthKey ma lascia autoUpdate com'è.
           const user = await User.findOneAndUpdate(
               { email: cleanEmail },
               { 
-                  $set: { authKey: data.authKey, updatedAt: new Date() },
-                  $setOnInsert: { autoUpdate: false } 
+                  $set: { authKey: data.authKey, updatedAt: new Date() }, // Aggiorna chiave
+                  $setOnInsert: { autoUpdate: false } // Default solo se nuovo
               },
               { upsert: true, new: true, setDefaultsOnInsert: true }
           );
           autoUpdateEnabled = user.autoUpdate;
-      } catch (e) { console.error("DB Sync Error:", e); }
+      } catch (e) {}
   }
 
   res.cookie('authKey', data.authKey, { httpOnly: true, secure: true, sameSite: 'none' });
-  res.json({ 
-      addons: data.addons || [], 
-      authKey: data.authKey,
-      autoUpdateEnabled 
-  });
+  res.json({ addons: data.addons || [], authKey: data.authKey, autoUpdateEnabled });
 }));
 
-// 2. GET PREFERENCES
+// 2. GET PREFERENCES (Fix Mobile + Sincronizzazione)
 app.get('/api/preferences', asyncHandler(async (req, res) => {
     const authKey = req.cookies.authKey || req.headers.authorization;
     const email = req.query.email ? req.query.email.toLowerCase() : null;
@@ -195,20 +180,20 @@ app.get('/api/preferences', asyncHandler(async (req, res) => {
     if (!authKey) return res.status(401).json({ error: "No Auth" });
     await connectToDatabase();
 
+    // Caso A: Stesso dispositivo (trovato per chiave)
     let user = await User.findOne({ authKey });
     if (user) return res.json({ autoUpdate: user.autoUpdate });
 
+    // Caso B: Nuovo dispositivo (chiave diversa, ma stessa email)
     if (email) {
         user = await User.findOne({ email });
         if (user) {
-             // Auto-Healing sessione
-             try {
-                await getAddonsByAuthKey(authKey); 
-                user.authKey = authKey;
-                user.updatedAt = new Date();
-                await user.save();
-                return res.json({ autoUpdate: user.autoUpdate });
-            } catch(e) {}
+            // Abbiamo trovato l'utente con la vecchia chiave.
+            // Aggiorniamo il DB con la NUOVA chiave di questo telefono.
+            user.authKey = authKey;
+            user.updatedAt = new Date();
+            await user.save();
+            return res.json({ autoUpdate: user.autoUpdate });
         }
     }
     res.json({ autoUpdate: false });
@@ -220,7 +205,7 @@ app.post('/api/preferences', asyncHandler(async (req, res) => {
     const email = req.body.email ? req.body.email.trim().toLowerCase() : null;
     const { autoUpdate } = req.body;
 
-    if (!authKey || !email) return res.status(400).json({ error: "Dati mancanti" });
+    if (!authKey || !email) return res.status(400).json({ error: "Mancano dati" });
 
     await connectToDatabase();
     await User.findOneAndUpdate(
@@ -235,25 +220,21 @@ app.post('/api/preferences', asyncHandler(async (req, res) => {
 app.post('/api/set-addons', asyncHandler(async (req, res) => {
     const authKey = req.cookies.authKey || req.body.authKey;
     if (!authKey) return res.status(401).json({error: "No Auth"});
-    
     const addons = sanitizeObject(req.body.addons);
-    await fetchWithTimeout(ADDONS_SET_URL, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ authKey, addons })
-    });
+    await fetchWithTimeout(ADDONS_SET_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ authKey, addons }) });
     res.json({ success: true });
 }));
 
 // 5. FETCH MANIFEST
 app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
   const { manifestUrl } = req.body;
-  if (!manifestUrl || !(await isSafeUrl(manifestUrl))) return res.status(400).json({error: "URL invalido"});
+  if (!manifestUrl || !(await isSafeUrl(manifestUrl))) return res.status(400).json({error: "URL errato"});
   const r = await fetchWithTimeout(manifestUrl, { redirect: 'error' });
-  if (!r.ok) throw new Error("Fetch failed");
+  if (!r.ok) throw new Error("Fetch KO");
   res.json(await r.json());
 }));
 
-// 6. CRON
+// 6. CRON JOB
 app.get('/api/cron', async (req, res) => {
     await connectToDatabase();
     console.log("⏰ CRON...");
@@ -285,21 +266,9 @@ app.get('/api/cron', async (req, res) => {
     res.json({ success: true, updated: c });
 });
 
-app.post('/api/logout', (req, res) => {
-  res.cookie('authKey', '', { ...cookieOptions, maxAge: 0 });
-  res.json({ success: true });
-});
-
-app.use('/api/*', (req, res) => res.status(404).json({error: "Not found"}));
-app.use((req, res, next) => {
-    if (req.method === 'GET' && !req.path.startsWith('/api')) return res.sendFile(path.join(__dirname, 'public', 'index.html'));
-    next();
-});
-app.use((err, req, res, next) => {
-  console.error(`ERROR: ${err.message}`);
-  res.status(err.status || 500).json({ error: { message: err.message || "Server Error" } });
-});
-
-if (!process.env.VERCEL_ENV) connectToDatabase().then(() => app.listen(PORT, () => console.log(`Running on ${PORT}`)));
-
+app.post('/api/logout', (req, res) => { res.cookie('authKey', '', { ...cookieOptions, maxAge: 0 }); res.json({ success: true }); });
+app.use('/api/*', (req,res)=>res.status(404).json({error:"Not found"}));
+app.use((req,res,n)=>{ if(req.method==='GET'&&!req.path.startsWith('/api')) return res.sendFile(path.join(__dirname,'public','index.html')); n(); });
+app.use((err,req,res,n)=>{ console.error(err); res.status(500).json({error:{message:err.message}}); });
+if(!process.env.VERCEL_ENV) connectToDatabase().then(()=>app.listen(PORT));
 module.exports = app;
