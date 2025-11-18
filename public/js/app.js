@@ -1,6 +1,38 @@
 const { createApp, ref, computed, onMounted, onBeforeUnmount, watch, nextTick } = Vue;
-import { mapAddon, deepClone } from './utils.js';
-import './mobile-scroll-fix.js';
+
+// --- UTILS (Incollate qui per evitare problemi di import) ---
+function debounce(fn, delay = 300) {
+    let timeoutId;
+    return function(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn.apply(this, args), delay);
+    };
+}
+
+function deepClone(obj) {
+    if (obj === null || typeof obj !== 'object') return obj;
+    return JSON.parse(JSON.stringify(obj));
+}
+
+function getResourceNames(resources) {
+    if (!Array.isArray(resources)) return '';
+    return resources.map(res => (typeof res === 'string' ? res : res.name)).filter(Boolean).join(', ');
+}
+
+function mapAddon(addon) {
+    if (!addon) return null;
+    const manifest = addon.manifest || { name: 'Sconosciuto', version: '0.0.0', resources: [] };
+    return {
+        ...addon,
+        isEditing: false, newLocalName: manifest.name, newTransportUrl: addon.transportUrl || '',
+        selected: false, isExpanded: false, status: 'unchecked', errorDetails: null,
+        isEnabled: addon.isEnabled !== false, disableAutoUpdate: addon.disableAutoUpdate || false,
+        resourceNames: getResourceNames(manifest.resources), githubInfo: null, isLoadingGithub: false
+    };
+}
+// --- FINE UTILS ---
+
+// Importa i tuoi file di composables (assicurati che esistano nella cartella 'composables')
 import { useAppCore } from './composables/useAppCore.js';
 import { useTranslations } from './composables/useTranslations.js';
 import { useHistory } from './composables/useHistory.js';
@@ -11,6 +43,7 @@ import { useAddonActions } from './composables/useAddonActions.js';
 import { useFiltersAndSelection } from './composables/useFiltersAndSelection.js';
 import { useImportExport } from './composables/useImportExport.js';
 import { useTour } from './composables/useTour.js';
+import './mobile-scroll-fix.js';
 
 const app = createApp({
     setup() {
@@ -55,7 +88,6 @@ const app = createApp({
             if (!isLoggedIn.value || !email.value) return;
             isSyncing.value = true;
             try {
-                // Invia email per permettere al server di trovarci anche se la chiave è diversa
                 const res = await fetch(`${apiBaseUrl.value}/preferences?email=${encodeURIComponent(email.value)}`, {
                     headers: { 'Authorization': authKey.value }
                 });
@@ -72,14 +104,16 @@ const app = createApp({
             const success = await login();
             if (success) {
                 showWelcomeScreen.value = true;
+                // Se il backend ci ha già mandato lo stato (versione turbo), usiamolo per evitare un fetch inutile
                 if (sessionStorage.getItem('stremioAutoUpdateEnabled')) {
-                    isAutoUpdateEnabled.value = sessionStorage.getItem('stremioAutoUpdateEnabled') === 'true';
+                     isAutoUpdateEnabled.value = sessionStorage.getItem('stremioAutoUpdateEnabled') === 'true';
                 } else {
                     await fetchServerPreferences();
                 }
             }
         };
         const aEseguiMonitorLogin = async () => { await monitorLogin(showWelcomeScreen); };
+        
         const fullLogout = () => { if(hasUnsavedChanges.value && !confirm(t.value('list.logoutConfirm'))) return; logout(); searchQuery.value=''; showSearchInput.value=false; showInstructions.value=false; toasts.value=[]; showWelcomeScreen.value=false; showWelcomeTourModal.value=false; loadProfiles(); };
         const handleToggleEnabled = (a,e) => { if(isMonitoring.value)return; a.isEnabled=e.target.checked; recordAction(t.value(a.isEnabled?'actions.enabledAddon':'actions.disabledAddon',{name:a.manifest.name})); hasUnsavedChanges.value=true; };
         const handleToggleSelected = (a,e) => { a.selected=e.target.checked; };
