@@ -5,7 +5,7 @@
       "src": "index.js",
       "use": "@vercel/node",
       "config": {
-        "installCommand": "npm install --force" // Forziamo l'installazione
+        "installCommand": "npm install --force"
       }
     },
     {
@@ -16,21 +16,21 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "index.js"
+      "dest": "/index.js"
     },
     {
       "src": "/(.*\\.(css|js|ico|png|jpg|svg|txt|json|webmanifest))$",
-      "dest": "public/$1"
+      "dest": "/public/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "public/index.html"
+      "dest": "/public/index.html"
     }
   ],
   "crons": [
     {
       "path": "/api/cron",
-      "schedule": "0 * * * *" 
+      "schedule": "0 * * * *"
     }
   ]
 }
