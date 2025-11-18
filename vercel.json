@@ -1,26 +1,27 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/api/:path*",
-      "destination": "/index.js"
+      "src": "index.js",
+      "use": "@vercel/node"
     },
     {
-      "source": "/:path*",
-      "has": [
-        {
-          "type": "header",
-          "key": "sec-fetch-dest",
-          "value": "document"
-        }
-      ],
-      "destination": "/public/index.html"
+      "src": "public/**/*",
+      "use": "@vercel/static"
     }
   ],
-  "crons": [
+  "routes": [
     {
-      "path": "/api/cron",
-      "schedule": "0 * * * *"
+      "src": "/api/(.*)",
+      "dest": "index.js"
+    },
+    {
+      "src": "/(.*\\.(css|js|ico|png|jpg|svg|txt|json|webmanifest))$",
+      "dest": "public/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "public/index.html"
     }
   ]
 }
