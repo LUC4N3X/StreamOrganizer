@@ -6,22 +6,34 @@
       "use": "@vercel/node"
     },
     {
-      "src": "public/**/*",
+      "src": "public/**",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "index.js"
+      "dest": "/index.js"
     },
     {
-      "src": "/(.*\\.(css|js|ico|png|jpg|svg|txt|json|webmanifest))$",
-      "dest": "public/$1"
+      "src": "/(.*\\.(js|css|ico|png|jpg|jpeg|svg|txt|json|webmanifest|woff2?|ttf|eot))$",
+      "dest": "/public/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "public/index.html"
+      "dest": "/public/index.html",
+      "status": 200
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*\\.(js|css|png|jpg|jpeg|svg|woff2?|ttf|eot))$",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public,max-age=31536000,immutable"
+        }
+      ]
     }
   ]
 }
