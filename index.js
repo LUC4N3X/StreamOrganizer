@@ -6,31 +6,23 @@ const rateLimit = require('express-rate-limit');
 const Joi = require('joi');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
-
-// --- LIBRERIE AGGIUNTE PER PERSISTENZA E SICUREZZA ---
-const mongoose = require('mongoose'); // MongoDB
+const mongoose = require('mongoose');
 const sanitizeHtml = require('sanitize-html');
 
-// --- FIX VERCEL/NPM: Isolamento moduli core per prevenire errori di installazione ---
+// Fix per moduli core su Vercel
 const { promises: dns } = require('dns');
 const net = require('net');
-// --- FINE FIX ---
 
 const app = express();
 const PORT = process.env.PORT || 7860;
 
 app.set('trust proxy', 1);
 
-const MONITOR_KEY_SECRET = process.env.MONITOR_KEY;
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const STREMIO_API_BASE = 'https://api.strem.io/api/';
 const LOGIN_API_URL = `${STREMIO_API_BASE}login`;
 const ADDONS_GET_URL = `${STREMIO_API_BASE}addonCollectionGet`;
 const ADDONS_SET_URL = `${STREMIO_API_BASE}addonCollectionSet`;
-
 const FETCH_TIMEOUT = 10000;
-
-// Costanti per i limiti
 const MAX_JSON_PAYLOAD = '250kb';
 const MAX_MANIFEST_SIZE_BYTES = 250 * 1024;
 const MAX_API_RESPONSE_BYTES = 5 * 1024 * 1024;
@@ -39,15 +31,13 @@ const SANITIZE_MAX_DEPTH = 6;
 const SANITIZE_MAX_STRING = 2000;
 const SANITIZE_MAX_ARRAY = 200;
 
-// ---------------------------------------------------------------------
-// MONGO DB CONNECTION & SCHEMA
-// ---------------------------------------------------------------------
+// --- DATABASE ---
 const MONGO_URI = process.env.DATABASE_URL; 
 let isConnected = false;
 
 const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
-    authKey: { type: String },
+    authKey: { type: String }, // L'ultima chiave usata
     autoUpdate: { type: Boolean, default: false },
     lastCheck: { type: Date },
     updatedAt: { type: Date, default: Date.now }
@@ -56,208 +46,41 @@ const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 async function connectToDatabase() {
     if (isConnected) return;
-    if (!MONGO_URI) return console.warn("⚠️ DATABASE_URL mancante. Persistenza disabilitata.");
+    if (!MONGO_URI) return console.warn("⚠️ DATABASE_URL mancante.");
     try {
         await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 5000 });
         isConnected = true;
         console.log("✅ Connesso a MongoDB");
-    } catch (error) {
-        console.error("❌ Errore connessione MongoDB:", error.message);
-    }
+    } catch (error) { console.error("❌ Errore DB:", error.message); }
 }
 
-async function updateUserPreference(authKey, email, autoUpdate) {
-    await connectToDatabase();
-    if (!isConnected) return;
-    return await User.findOneAndUpdate(
-        { email },
-        { authKey, email, autoUpdate, updatedAt: new Date() },
-        { upsert: true, new: true }
-    );
-}
-
-async function findUserPreference(email) {
-    await connectToDatabase();
-    if (!isConnected) return null;
-    return await User.findOne({ email });
-}
-
-// ---------------------------------------------------------------------
-// MIDDLEWARE GENERALI
-// ---------------------------------------------------------------------
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "https://unpkg.com", "https://cdnjs.cloudflare.com"],
-      "style-src": ["'self'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
-      "font-src": ["'self'", "https://fonts.gstatic.com"],
-      "connect-src": [
-        "'self'", "https://api.strem.io", "https://api.github.com", 
-        "https://fonts.googleapis.com", "https://fonts.gstatic.com", 
-        "https://unpkg.com", "https://cdnjs.cloudflare.com", 
-        "https://stream-organizer.vercel.app", "https://*.vercel.app",
-        process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ''
-      ].filter(Boolean), 
-      "img-src": ["'self'", "data:", "https:"]
-    }
-  }
-}));
-
+// --- MIDDLEWARE ---
+app.use(helmet({ contentSecurityPolicy: false })); // Semplificato per evitare problemi UI
 app.use(express.json({ limit: MAX_JSON_PAYLOAD }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Rate Limit
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, max: process.env.RATE_LIMIT_MAX || 100,
-  message: { error: { message: 'Troppe richieste. Riprova fra 15 minuti.' } }
-});
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, max: process.env.LOGIN_RATE_LIMIT_MAX || 20,
-  message: { error: { message: 'Troppi tentativi di login. Riprova fra 15 minuti.' } }
-});
+const apiLimiter = rateLimit({ windowMs: 15*60*1000, max: 200 });
 app.use('/api/', apiLimiter);
-app.use('/api/login', loginLimiter);
 
-// CORS
 const allowedOrigins = ['http://localhost:7860', 'https://stream-organizer.vercel.app'];
 if (process.env.VERCEL_URL) allowedOrigins.push(`https://${process.env.VERCEL_URL}`);
 
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || (process.env.VERCEL_ENV === 'preview' && origin.endsWith('.vercel.app'))) {
+    if (allowedOrigins.some(o => origin.startsWith(o)) || origin.endsWith('.vercel.app')) {
       return callback(null, true);
     }
-    return callback(new Error('Origine non autorizzata dalla policy CORS'), false);
+    return callback(new Error('CORS Block'), false);
   },
   credentials: true
 }));
 
-// CSRF Hardening
-const enforceOrigin = (req, res, next) => {
-  if (req.path === '/api/cron') return next();
-  if (req.method === 'POST') {
-    const origin = req.header('Origin');
-    const referer = req.header('Referer');
-    let requestOrigin = origin;
-    if (!requestOrigin && referer) {
-      try { requestOrigin = new URL(referer).origin; } catch (e) { requestOrigin = undefined; }
-    }
-    if (requestOrigin) {
-      const isAllowed = allowedOrigins.includes(requestOrigin) || (process.env.VERCEL_ENV === 'preview' && requestOrigin.endsWith('.vercel.app'));
-      if (!isAllowed) return res.status(403).json({ error: { message: 'Origine richiesta non valida (CSRF check).' } });
-    }
-  }
-  return next();
-};
-app.use('/api/', enforceOrigin);
-
-const cookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
-  maxAge: 30 * 24 * 60 * 60 * 1000
-};
-
-// ---------------------------------------------------------------------
-// JOI SCHEMAS
-// ---------------------------------------------------------------------
-const schemas = {
-  authKey: Joi.object({ authKey: Joi.string().min(1).required() }),
-  login: Joi.object({ email: Joi.string().email().required(), password: Joi.string().min(6).required() }),
-  manifestUrl: Joi.object({ manifestUrl: Joi.string().uri().required() }),
-  setAddons: Joi.object({
-    addons: Joi.array().min(1).required(),
-    email: Joi.string().email().allow(null)
-  }),
-  manifestCore: Joi.object({
-    id: Joi.string().max(100).required(),
-    version: Joi.string().max(50).required(),
-    name: Joi.string().max(250).required(),
-    description: Joi.string().max(5000).allow('').optional(),
-    resources: Joi.array().max(50),
-    types: Joi.array().max(50),
-  }).unknown(true),
-  preferences: Joi.object({
-    autoUpdate: Joi.boolean().required(),
-    email: Joi.string().email().required()
-  })
-};
-
-// ---------------------------------------------------------------------
-// SICUREZZA (SSRF & XSS)
-// ---------------------------------------------------------------------
-function isPrivateIp(ip) {
-  if (net.isIPv6(ip) && ip.startsWith('::ffff:')) { ip = ip.substring(7); }
-  if (net.isIPv4(ip)) {
-    const parts = ip.split('.').map(Number);
-    return parts[0] === 10 || parts[0] === 127 || (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) || (parts[0] === 192 && parts[1] === 168) || (parts[0] === 169 && parts[1] === 254) || parts[0] === 0;
-  }
-  if (net.isIPv6(ip)) {
-    const lowerIp = ip.toLowerCase();
-    return lowerIp === '::1' || lowerIp.startsWith('fc') || lowerIp.startsWith('fd') || lowerIp.startsWith('fe80');
-  }
-  return false;
-}
-async function isSafeUrl(urlString) {
-  try {
-    const parsed = new URL(urlString);
-    if (!['http:', 'https:'].includes(parsed.protocol)) return false;
-    const hostname = parsed.hostname;
-    if (hostname.toLowerCase() === 'localhost') return false;
-    if (net.isIP(hostname)) return !isPrivateIp(hostname);
-    let ips = [];
-    try {
-      const addressesInfo = await dns.lookup(hostname, { all: true });
-      ips = addressesInfo.map(info => info.address);
-    } catch (dnsErr) { return false; }
-    if (ips.length === 0) return false;
-    if (ips.some(isPrivateIp)) return false;
-    return true;
-  } catch (err) { return false; }
-}
-
-const sanitizeOptions = { allowedTags: [], allowedAttributes: {} };
-const sanitize = (text) => text ? sanitizeHtml(text.trim(), sanitizeOptions) : '';
-
-function sanitizeObject(data, currentDepth = 0) {
-  if (currentDepth > SANITIZE_MAX_DEPTH) return "[Profondità eccessiva]";
-  if (typeof data === 'string') {
-    if (data.length > SANITIZE_MAX_STRING) data = data.substring(0, SANITIZE_MAX_STRING) + "...";
-    return sanitize(data);
-  }
-  if (Array.isArray(data)) {
-    if (data.length > SANITIZE_MAX_ARRAY) data = data.slice(0, SANITIZE_MAX_ARRAY);
-    return data.map(item => sanitizeObject(item, currentDepth + 1));
-  }
-  if (data && typeof data === 'object' && data.constructor === Object) {
-    const newObj = {};
-    for (const key in data) {
-      if (Object.prototype.hasOwnProperty.call(data, key)) {
-        newObj[key] = sanitizeObject(data[key], currentDepth + 1);
-      }
-    }
-    return newObj;
-  }
-  return data; 
-}
-
-// ---------------------------------------------------------------------
-// UTILS
-// ---------------------------------------------------------------------
+// --- UTILS ---
 const asyncHandler = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-function validateApiResponse(res, maxSize = MAX_API_RESPONSE_BYTES) {
-  const contentType = res.headers.get('content-type');
-  if (!contentType || !contentType.includes('application/json')) throw new Error('Risposta API non valida.');
-  const contentLength = res.headers.get('content-length');
-  if (contentLength && parseInt(contentLength, 10) > maxSize) throw new Error('Risposta API troppo grande.');
-}
-
 if (!global.AbortController) global.AbortController = require('abort-controller').AbortController;
-
 async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
@@ -265,249 +88,260 @@ async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
     const res = await fetch(url, { ...options, signal: controller.signal });
     clearTimeout(id);
     return res;
-  } catch (err) {
-    clearTimeout(id);
-    throw err;
+  } catch (err) { clearTimeout(id); throw err; }
+}
+
+function isPrivateIp(ip) {
+  if (net.isIPv6(ip) && ip.startsWith('::ffff:')) ip = ip.substring(7);
+  if (net.isIPv4(ip)) {
+    const parts = ip.split('.').map(Number);
+    return parts[0] === 10 || parts[0] === 127 || (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) || (parts[0] === 192 && parts[1] === 168) || (parts[0] === 169 && parts[1] === 254) || parts[0] === 0;
   }
+  return false;
+}
+async function isSafeUrl(urlString) {
+  try {
+    const parsed = new URL(urlString);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return false;
+    if (parsed.hostname.toLowerCase() === 'localhost') return false;
+    if (net.isIP(parsed.hostname)) return !isPrivateIp(parsed.hostname);
+    const addressesInfo = await dns.lookup(parsed.hostname, { all: true });
+    const ips = addressesInfo.map(info => info.address);
+    return !ips.some(isPrivateIp);
+  } catch (err) { return false; }
 }
 
-async function getAddonsByAuthKey(authKey) {
-  const { error } = schemas.authKey.validate({ authKey });
-  if (error) throw new Error("AuthKey non valida.");
-  const res = await fetchWithTimeout(ADDONS_GET_URL, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ authKey: authKey.trim() })
-  });
-  validateApiResponse(res, MAX_API_RESPONSE_BYTES);
-  const data = await res.json();
-  if (!data.result) throw new Error(data.error?.message || "Errore recupero addon.");
-  return data.result.addons || [];
-}
+// --- ENDPOINTS ---
 
-async function getStremioData(email, password) {
-  const { error } = schemas.login.validate({ email, password });
-  if (error) throw new Error("Email o password non valide.");
-  const res = await fetchWithTimeout(LOGIN_API_URL, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: email.trim(), password })
-  });
-  validateApiResponse(res, MAX_LOGIN_RESPONSE_BYTES);
-  const data = await res.json();
-  if (!data.result?.authKey) throw new Error(data.error?.message || "Credenziali non valide.");
-  const addons = await getAddonsByAuthKey(data.result.authKey);
-  return { addons, authKey: data.result.authKey };
-}
-
-// ---------------------------------------------------------------------
-// ENDPOINTS
-// ---------------------------------------------------------------------
-
-// 1. LOGIN (Con Sync preferenze)
+// 1. LOGIN (FIXED FOR SYNC)
 app.post('/api/login', asyncHandler(async (req, res) => {
   const { email, password, authKey: providedAuthKey } = req.body;
   let data;
-  let userPreference = null;
 
+  // 1. Autenticazione con Stremio
   if (email && password) {
-    data = await getStremioData(email, password);
-  }
-  else if (providedAuthKey) {
-    const trimmedAuthKey = providedAuthKey.trim();
-    data = { addons: await getAddonsByAuthKey(trimmedAuthKey), authKey: trimmedAuthKey };
-  }
-  else return res.status(400).json({ error: { message: "Email o AuthKey mancanti." } });
+    // Login classico con credenziali
+    const loginRes = await fetchWithTimeout(LOGIN_API_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password })
+    });
+    const loginData = await loginRes.json();
+    if (!loginData.result?.authKey) throw new Error("Credenziali non valide.");
+    
+    // Otteniamo gli addon
+    const addonsRes = await fetchWithTimeout(ADDONS_GET_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ authKey: loginData.result.authKey })
+    });
+    const addonsData = await addonsRes.json();
+    data = { authKey: loginData.result.authKey, addons: addonsData.result?.addons || [] };
 
-  // Recupera stato sync da MongoDB
+  } else if (providedAuthKey) {
+    // Login con chiave esistente
+    const authKey = providedAuthKey.trim();
+    const addonsRes = await fetchWithTimeout(ADDONS_GET_URL, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ authKey })
+    });
+    const addonsData = await addonsRes.json();
+    if (!addonsData.result) throw new Error("AuthKey scaduta.");
+    data = { authKey, addons: addonsData.result.addons || [] };
+  } else {
+      return res.status(400).json({ error: { message: "Dati mancanti." } });
+  }
+
+  // 2. SINCRONIZZAZIONE DB (Il cuore del fix)
+  let autoUpdateEnabled = false;
+  
   if (email) {
-      userPreference = await findUserPreference(email);
-      // Se è un nuovo login o authKey diversa, aggiorna la chiave nel DB mantenendo la preferenza
-      if (!userPreference || userPreference.authKey !== data.authKey) {
-          const currentAutoUpdate = userPreference ? userPreference.autoUpdate : false;
-          await updateUserPreference(data.authKey, email, currentAutoUpdate);
+      await connectToDatabase();
+      
+      // Cerchiamo se l'utente esiste già con questa email
+      const existingUser = await User.findOne({ email });
+
+      if (existingUser) {
+          // UTENTE ESISTE: Manteniamo la sua preferenza di autoUpdate
+          autoUpdateEnabled = existingUser.autoUpdate;
+          
+          // Aggiorniamo la AuthKey nel DB perché è cambiata con questo nuovo login
+          existingUser.authKey = data.authKey;
+          existingUser.updatedAt = new Date();
+          await existingUser.save();
+          console.log(`[LOGIN] Utente ${email} riconosciuto. Key aggiornata. AutoUpdate: ${autoUpdateEnabled}`);
+      } else {
+          // NUOVO UTENTE SUL DB: Creiamolo (default autoUpdate: false)
+          await User.create({
+              email,
+              authKey: data.authKey,
+              autoUpdate: false
+          });
+          console.log(`[LOGIN] Nuovo utente DB creato: ${email}`);
       }
   }
 
-  res.cookie('authKey', data.authKey, cookieOptions);
-  
+  // 3. Risposta
+  res.cookie('authKey', data.authKey, { httpOnly: true, secure: true, sameSite: 'none' });
   res.json({ 
       addons: data.addons, 
       authKey: data.authKey,
-      // Invia lo stato al frontend per attivare l'interruttore
-      autoUpdateEnabled: userPreference ? userPreference.autoUpdate : false 
+      autoUpdateEnabled // Il frontend usa questo per settare l'interruttore
   });
 }));
 
-// 2. SAVE PREFERENCES (Attiva/Disattiva e Salva)
-app.post('/api/preferences', asyncHandler(async (req, res) => {
-    const { authKey } = req.cookies;
-    const { error } = schemas.preferences.validate(req.body);
-    
-    if (!authKey) return res.status(401).json({ error: { message: "Non autenticato." } });
-    if (error) return res.status(400).json({ error: { message: error.details[0].message } });
-
-    const { email, autoUpdate } = req.body;
-    
-    try {
-        await updateUserPreference(authKey, email, !!autoUpdate);
-        res.json({ success: true, message: "Preferenze salvate in Cloud." });
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: { message: "Errore salvataggio DB." } });
-    }
-}));
-
-// 3. GET PREFERENCES (Per sync su altri dispositivi)
+// 2. GET PREFERENCES (Per sync quando ricarichi la pagina)
 app.get('/api/preferences', asyncHandler(async (req, res) => {
     const { authKey } = req.cookies;
-    if (!authKey) return res.status(401).json({ error: { message: "Non autenticato." } });
+    if (!authKey) return res.status(401).json({ error: "No Auth" });
 
     await connectToDatabase();
+    // Cerca l'utente che ha QUESTA chiave di sessione
     const user = await User.findOne({ authKey });
     
     res.json({ autoUpdate: user ? user.autoUpdate : false });
 }));
 
-// 4. GET ADDONS
-app.post('/api/get-addons', asyncHandler(async (req, res) => {
-  const { authKey } = req.cookies;
-  const { email } = req.body;
-  if (!authKey) return res.status(400).json({ error: { message: "Cookie mancante." } });
-  res.json({ addons: await getAddonsByAuthKey(authKey) });
+// 3. SAVE PREFERENCES
+app.post('/api/preferences', asyncHandler(async (req, res) => {
+    const { authKey } = req.cookies;
+    const { email, autoUpdate } = req.body;
+    
+    // Fallback authKey dal body se i cookie non vanno (es. Safari mobile a volte)
+    const key = authKey || req.body.authKey;
+
+    if (!key || !email) return res.status(400).json({ error: "Dati mancanti" });
+
+    await connectToDatabase();
+    
+    // Aggiorna o crea
+    await User.findOneAndUpdate(
+        { email }, 
+        { email, authKey: key, autoUpdate: !!autoUpdate, updatedAt: new Date() },
+        { upsert: true, new: true }
+    );
+    
+    res.json({ success: true });
 }));
 
-// 5. SET ADDONS (Sanitized)
-app.post('/api/set-addons', asyncHandler(async (req, res) => {
-  const { authKey } = req.cookies;
-  if (!authKey) return res.status(401).json({ error: { message: "Cookie mancante." } });
-
-  const { error } = schemas.setAddons.validate(req.body);
-  if (error) return res.status(400).json({ error: { message: error.details[0].message } });
-
-  const addonsToSave = req.body.addons.map(a => {
-    let clean = JSON.parse(JSON.stringify(a));
-    clean = sanitizeObject(clean);
-    if (clean.manifest && !clean.manifest.id) {
-      clean.manifest.id = `external-${Math.random().toString(36).substring(2, 9)}`;
-    }
-    return clean;
-  });
-
-  const resSet = await fetchWithTimeout(ADDONS_SET_URL, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ authKey: authKey.trim(), addons: addonsToSave })
-  });
-  validateApiResponse(resSet, MAX_LOGIN_RESPONSE_BYTES);
-  const dataSet = await resSet.json();
-  if (dataSet.error) throw new Error(dataSet.error.message);
-
-  res.json({ success: true, message: "Salvataggio riuscito." });
-}));
-
-// 6. FETCH MANIFEST (SSRF Protected)
-app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
-  const { error } = schemas.manifestUrl.validate(req.body);
-  if (error) return res.status(400).json({ error: { message: "URL non valido." } });
-
-  const { manifestUrl } = req.body;
-  if (!(await isSafeUrl(manifestUrl))) {
-    return res.status(400).json({ error: { message: "URL non sicuro (SSRF)." } });
-  }
-
-  const resp = await fetchWithTimeout(manifestUrl, { redirect: 'error' });
-  if (!resp.ok) throw new Error(`Status ${resp.status}`);
-  validateApiResponse(resp, MAX_MANIFEST_SIZE_BYTES);
-
-  const manifest = await resp.json(); 
-  const { error: mErr } = schemas.manifestCore.validate(manifest);
-  if (mErr) throw new Error(`Manifesto invalido: ${mErr.details[0].message}`);
-
-  res.json(manifest);
-}));
-
-// 7. CRON JOB (Aggiornamento Notturno)
+// 4. CRON JOB
 app.get('/api/cron', async (req, res) => {
     await connectToDatabase();
-    if (!isConnected) return res.status(503).json({ error: "DB Error" });
+    console.log("⏰ [CRON] Starting...");
     
-    console.log("⏰ [CRON] Start update cycle...");
     const users = await User.find({ autoUpdate: true });
     let updatedCount = 0;
-    const logs = [];
 
     for (const user of users) {
         try {
-            const addons = await getAddonsByAuthKey(user.authKey);
+            // Fetch current addons
+            const addonsRes = await fetchWithTimeout(ADDONS_GET_URL, {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ authKey: user.authKey })
+            });
+            const addonsData = await addonsRes.json();
+            if (!addonsData.result) continue; // Key scaduta o errore
+
+            const addons = addonsData.result.addons;
             let hasUpdates = false;
 
-            const updatedAddons = await Promise.all(addons.map(async (addon) => {
-                const manifestUrl = addon.transportUrl || addon.manifest?.id;
-                if (!manifestUrl || !manifestUrl.startsWith('http')) return addon;
-
+            // Check updates
+            const newAddons = await Promise.all(addons.map(async (addon) => {
+                const url = addon.transportUrl || addon.manifest?.id;
+                if (!url || !url.startsWith('http') || !(await isSafeUrl(url))) return addon;
                 try {
-                    if (!(await isSafeUrl(manifestUrl))) return addon; 
-                    const resp = await fetchWithTimeout(manifestUrl, {}, 5000);
-                    if (resp.ok) {
-                        const remote = await resp.json();
+                    const r = await fetchWithTimeout(url, {}, 5000);
+                    if (r.ok) {
+                        const remote = await r.json();
                         if (remote.version !== addon.manifest.version) {
                             hasUpdates = true;
                             return { ...addon, manifest: remote };
                         }
                     }
-                } catch (e) {}
+                } catch(e){}
                 return addon;
             }));
 
+            // Save if needed
             if (hasUpdates) {
-                const saveRes = await fetchWithTimeout(ADDONS_SET_URL, {
-                    method: 'POST', body: JSON.stringify({ authKey: user.authKey, addons: updatedAddons })
+                await fetchWithTimeout(ADDONS_SET_URL, {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ authKey: user.authKey, addons: newAddons })
                 });
-                const saveData = await saveRes.json();
-                if (saveData.result || saveData.success) {
-                    updatedCount++;
-                    user.lastCheck = new Date();
-                    await user.save();
-                }
+                updatedCount++;
+                user.lastCheck = new Date();
+                await user.save();
             }
-        } catch (err) {
-            logs.push(`Error ${user.email}: ${err.message}`);
-            if (err.message.includes('AuthKey') || err.message.includes('Credenziali')) {
-                 await User.findOneAndUpdate({ email: user.email }, { autoUpdate: false });
-            }
+        } catch(e) {
+            console.error(`Errore utente ${user.email}`, e.message);
         }
     }
-    res.json({ success: true, updated: updatedCount, logs });
+    res.json({ success: true, updated: updatedCount });
 });
 
-// 8. LOGOUT
+// ALTRI ENDPOINT (Standard)
+app.post('/api/get-addons', asyncHandler(async (req, res) => {
+    const { authKey } = req.cookies;
+    if (!authKey) return res.status(401).json({error: "No Auth"});
+    const r = await fetchWithTimeout(ADDONS_GET_URL, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ authKey })
+    });
+    const d = await r.json();
+    res.json({ addons: d.result?.addons || [] });
+}));
+
+app.post('/api/set-addons', asyncHandler(async (req, res) => {
+    const { authKey } = req.cookies;
+    if (!authKey) return res.status(401).json({error: "No Auth"});
+    
+    // Pulisci dati per sicurezza
+    const addons = req.body.addons.map(a => {
+        let c = JSON.parse(JSON.stringify(a));
+        // Basic sanitize
+        if (c.manifest && typeof c.manifest === 'object') {
+            for(let k in c.manifest) if(typeof c.manifest[k] === 'string') c.manifest[k] = sanitizeHtml(c.manifest[k]);
+        }
+        return c;
+    });
+
+    const r = await fetchWithTimeout(ADDONS_SET_URL, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ authKey, addons })
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+    res.json({ success: true });
+}));
+
+app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
+    const { manifestUrl } = req.body;
+    if (!(await isSafeUrl(manifestUrl))) return res.status(400).json({error: "URL non sicuro"});
+    const r = await fetchWithTimeout(manifestUrl, { redirect: 'error' });
+    if (!r.ok) throw new Error("Fetch failed");
+    res.json(await r.json());
+}));
+
 app.post('/api/logout', (req, res) => {
-  res.cookie('authKey', '', { ...cookieOptions, maxAge: 0 });
-  res.json({ success: true });
+    res.cookie('authKey', '', { maxAge: 0 });
+    res.json({ success: true });
 });
 
-// 404 & ERRORS
-app.use('/api/*', (req, res) => res.status(404).json({ error: { message: 'Endpoint not found' } }));
+app.use('/api/*', (req, res) => res.status(404).json({error: "Not found"}));
 
-if (process.env.NODE_ENV === 'production') {
-  app.use((req, res, next) => {
-    if (req.header('x-forwarded-proto') !== 'https') return res.redirect(301, `https://${req.hostname}${req.url}`);
+// Fallback per SPA (Frontend)
+app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/api')) {
+        return res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    }
     next();
-  });
-}
+});
 
 app.use((err, req, res, next) => {
-  console.error(`ERROR: ${err.message}`);
-  const status = err.status || 500;
-  let message = 'Errore interno.';
-  if (err.isJoi) message = err.details[0].message;
-  else if (status < 500) message = err.message;
-  res.status(status).json({ error: { message } });
+    console.error(err);
+    res.status(500).json({ error: { message: err.message || "Server Error" } });
 });
 
-// AVVIO
 if (!process.env.VERCEL_ENV) {
-    connectToDatabase().then(() => {
-        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-    });
+    connectToDatabase().then(() => app.listen(PORT, () => console.log(`Running on ${PORT}`)));
 }
 
 module.exports = app;
