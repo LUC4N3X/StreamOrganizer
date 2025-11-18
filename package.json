@@ -8,13 +8,13 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^2.6.7",
     "cors": "^2.8.5",
     "helmet": "^7.1.0",
     "express-rate-limit": "^7.3.1",
     "joi": "^17.13.3",
     "cookie-parser": "^1.4.6",
     "sanitize-html": "^2.13.0",
-    "mongoose": "^8.4.1" 
+    "mongoose": "^8.4.1"
   }
 }
