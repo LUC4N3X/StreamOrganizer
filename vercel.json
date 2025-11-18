@@ -1,30 +1,26 @@
 {
-  "version": 2,
-  "builds": [
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
     {
-      "src": "index.js",
-      "use": "@vercel/node",
-      "config": {
-        "installCommand": "npm install --force" 
-      }
+      "source": "/api/:path*",
+      "destination": "/index.js"
     },
     {
-      "src": "public/**/*",
-      "use": "@vercel/static"
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "header",
+          "key": "sec-fetch-dest",
+          "value": "document"
+        }
+      ],
+      "destination": "/public/index.html"
     }
   ],
-  "routes": [
+  "crons": [
     {
-      "src": "/api/(.*)",
-      "dest": "index.js"
-    },
-    {
-      "src": "/(.*\\.(css|js|ico|png|jpg|svg|txt|json|webmanifest))$",
-      "dest": "public/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "public/index.html"
+      "path": "/api/cron",
+      "schedule": "0 * * * *"
     }
   ]
 }
