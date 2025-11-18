@@ -8,11 +8,13 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 
 // --- LIBRERIE AGGIUNTE PER PERSISTENZA E SICUREZZA ---
-const mongoose = require('mongoose'); // NUOVO: per MongoDB
+const mongoose = require('mongoose'); // MongoDB
 const sanitizeHtml = require('sanitize-html');
-const dns = require('dns').promises;
+
+// --- FIX VERCEL/NPM: Isolamento moduli core per prevenire errori di installazione ---
+const { promises: dns } = require('dns');
 const net = require('net');
-// --- FINE LIBRERIE AGGIUNTE ---
+// --- FINE FIX ---
 
 const app = express();
 const PORT = process.env.PORT || 7860;
@@ -21,7 +23,6 @@ app.set('trust proxy', 1);
 
 const MONITOR_KEY_SECRET = process.env.MONITOR_KEY;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-
 const STREMIO_API_BASE = 'https://api.strem.io/api/';
 const LOGIN_API_URL = `${STREMIO_API_BASE}login`;
 const ADDONS_GET_URL = `${STREMIO_API_BASE}addonCollectionGet`;
@@ -39,7 +40,7 @@ const SANITIZE_MAX_STRING = 2000;
 const SANITIZE_MAX_ARRAY = 200;
 
 // ---------------------------------------------------------------------
-// MONGO DB CONNECTION & SCHEMA (Persistenza)
+// MONGO DB CONNECTION & SCHEMA
 // ---------------------------------------------------------------------
 const MONGO_URI = process.env.DATABASE_URL; 
 let isConnected = false;
@@ -55,7 +56,7 @@ const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 async function connectToDatabase() {
     if (isConnected) return;
-    if (!MONGO_URI) return console.warn("⚠️ DATABASE_URL mancante. La persistenza fallirà.");
+    if (!MONGO_URI) return console.warn("⚠️ DATABASE_URL mancante. Persistenza disabilitata.");
     try {
         await mongoose.connect(MONGO_URI, { serverSelectionTimeoutMS: 5000 });
         isConnected = true;
@@ -75,8 +76,14 @@ async function updateUserPreference(authKey, email, autoUpdate) {
     );
 }
 
+async function findUserPreference(email) {
+    await connectToDatabase();
+    if (!isConnected) return null;
+    return await User.findOne({ email });
+}
+
 // ---------------------------------------------------------------------
-// HELMET E CSP
+// MIDDLEWARE GENERALI
 // ---------------------------------------------------------------------
 app.use(helmet({
   contentSecurityPolicy: {
@@ -97,19 +104,11 @@ app.use(helmet({
   }
 }));
 
-// ---------------------------------------------------------------------
-// MIDDLEWARE GENERALI
-// ---------------------------------------------------------------------
-
-// Limita la dimensione del payload JSON per prevenire DoS
 app.use(express.json({ limit: MAX_JSON_PAYLOAD }));
-
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ---------------------------------------------------------------------
-// RATE LIMIT
-// ---------------------------------------------------------------------
+// Rate Limit
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, max: process.env.RATE_LIMIT_MAX || 100,
   message: { error: { message: 'Troppe richieste. Riprova fra 15 minuti.' } }
@@ -121,9 +120,7 @@ const loginLimiter = rateLimit({
 app.use('/api/', apiLimiter);
 app.use('/api/login', loginLimiter);
 
-// ---------------------------------------------------------------------
 // CORS
-// ---------------------------------------------------------------------
 const allowedOrigins = ['http://localhost:7860', 'https://stream-organizer.vercel.app'];
 if (process.env.VERCEL_URL) allowedOrigins.push(`https://${process.env.VERCEL_URL}`);
 
@@ -138,19 +135,16 @@ app.use(cors({
   credentials: true
 }));
 
-// Middleware per CSRF Hardening
+// CSRF Hardening
 const enforceOrigin = (req, res, next) => {
-  if (req.path === '/api/cron') return next(); // Bypass CRON
-    
+  if (req.path === '/api/cron') return next();
   if (req.method === 'POST') {
     const origin = req.header('Origin');
     const referer = req.header('Referer');
     let requestOrigin = origin;
-
     if (!requestOrigin && referer) {
       try { requestOrigin = new URL(referer).origin; } catch (e) { requestOrigin = undefined; }
     }
-
     if (requestOrigin) {
       const isAllowed = allowedOrigins.includes(requestOrigin) || (process.env.VERCEL_ENV === 'preview' && requestOrigin.endsWith('.vercel.app'));
       if (!isAllowed) return res.status(403).json({ error: { message: 'Origine richiesta non valida (CSRF check).' } });
@@ -160,29 +154,6 @@ const enforceOrigin = (req, res, next) => {
 };
 app.use('/api/', enforceOrigin);
 
-// ---------------------------------------------------------------------
-// FETCH CON TIMEOUT
-// ---------------------------------------------------------------------
-if (!global.AbortController)
-  global.AbortController = require('abort-controller').AbortController;
-
-async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(id);
-    return res;
-  } catch (err) {
-    clearTimeout(id);
-    if (err.name === 'AbortError') throw new Error('Richiesta al server scaduta (timeout).');
-    throw err;
-  }
-}
-
-// ---------------------------------------------------------------------
-// COOKIE OPTIONS
-// ---------------------------------------------------------------------
 const cookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
@@ -216,7 +187,7 @@ const schemas = {
 };
 
 // ---------------------------------------------------------------------
-// SSRF (Controllo IP)
+// SICUREZZA (SSRF & XSS)
 // ---------------------------------------------------------------------
 function isPrivateIp(ip) {
   if (net.isIPv6(ip) && ip.startsWith('::ffff:')) { ip = ip.substring(7); }
@@ -233,31 +204,28 @@ function isPrivateIp(ip) {
 async function isSafeUrl(urlString) {
   try {
     const parsed = new URL(urlString);
-    if (!['http:', 'https:'].includes(parsed.protocol)) { return false; }
+    if (!['http:', 'https:'].includes(parsed.protocol)) return false;
     const hostname = parsed.hostname;
-    if (hostname.toLowerCase() === 'localhost') { return false; }
-    if (net.isIP(hostname)) { return !isPrivateIp(hostname); }
+    if (hostname.toLowerCase() === 'localhost') return false;
+    if (net.isIP(hostname)) return !isPrivateIp(hostname);
     let ips = [];
     try {
       const addressesInfo = await dns.lookup(hostname, { all: true });
       ips = addressesInfo.map(info => info.address);
     } catch (dnsErr) { return false; }
-    if (ips.length === 0) { return false; }
-    if (ips.some(isPrivateIp)) { return false; }
+    if (ips.length === 0) return false;
+    if (ips.some(isPrivateIp)) return false;
     return true;
   } catch (err) { return false; }
 }
 
-// ---------------------------------------------------------------------
-// XSS (Sanificazione Ricorsiva)
-// ---------------------------------------------------------------------
 const sanitizeOptions = { allowedTags: [], allowedAttributes: {} };
 const sanitize = (text) => text ? sanitizeHtml(text.trim(), sanitizeOptions) : '';
 
 function sanitizeObject(data, currentDepth = 0) {
-  if (currentDepth > SANITIZE_MAX_DEPTH) return "[Profondità oggetto eccessiva]";
+  if (currentDepth > SANITIZE_MAX_DEPTH) return "[Profondità eccessiva]";
   if (typeof data === 'string') {
-    if (data.length > SANITIZE_MAX_STRING) data = data.substring(0, SANITIZE_MAX_STRING) + "... [troncato]";
+    if (data.length > SANITIZE_MAX_STRING) data = data.substring(0, SANITIZE_MAX_STRING) + "...";
     return sanitize(data);
   }
   if (Array.isArray(data)) {
@@ -277,15 +245,30 @@ function sanitizeObject(data, currentDepth = 0) {
 }
 
 // ---------------------------------------------------------------------
-// WRAPPER ASYNC & UTILS STREMIO
+// UTILS
 // ---------------------------------------------------------------------
 const asyncHandler = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 function validateApiResponse(res, maxSize = MAX_API_RESPONSE_BYTES) {
   const contentType = res.headers.get('content-type');
-  if (!contentType || !contentType.includes('application/json')) throw new Error('Risposta API non valida (Content-Type non JSON).');
+  if (!contentType || !contentType.includes('application/json')) throw new Error('Risposta API non valida.');
   const contentLength = res.headers.get('content-length');
   if (contentLength && parseInt(contentLength, 10) > maxSize) throw new Error('Risposta API troppo grande.');
+}
+
+if (!global.AbortController) global.AbortController = require('abort-controller').AbortController;
+
+async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
 }
 
 async function getAddonsByAuthKey(authKey) {
@@ -297,7 +280,7 @@ async function getAddonsByAuthKey(authKey) {
   });
   validateApiResponse(res, MAX_API_RESPONSE_BYTES);
   const data = await res.json();
-  if (!data.result || data.error) throw new Error(data.error?.message || "Errore recupero addon.");
+  if (!data.result) throw new Error(data.error?.message || "Errore recupero addon.");
   return data.result.addons || [];
 }
 
@@ -310,83 +293,102 @@ async function getStremioData(email, password) {
   });
   validateApiResponse(res, MAX_LOGIN_RESPONSE_BYTES);
   const data = await res.json();
-  if (!data.result?.authKey || data.error) throw new Error(data.error?.message || "Credenziali non valide.");
+  if (!data.result?.authKey) throw new Error(data.error?.message || "Credenziali non valide.");
   const addons = await getAddonsByAuthKey(data.result.authKey);
   return { addons, authKey: data.result.authKey };
 }
 
 // ---------------------------------------------------------------------
-// ENDPOINTS API
+// ENDPOINTS
 // ---------------------------------------------------------------------
 
-// LOGIN
+// 1. LOGIN (Con Sync preferenze)
 app.post('/api/login', asyncHandler(async (req, res) => {
   const { email, password, authKey: providedAuthKey } = req.body;
   let data;
-  if (email && password) data = await getStremioData(email, password);
+  let userPreference = null;
+
+  if (email && password) {
+    data = await getStremioData(email, password);
+  }
   else if (providedAuthKey) {
     const trimmedAuthKey = providedAuthKey.trim();
     data = { addons: await getAddonsByAuthKey(trimmedAuthKey), authKey: trimmedAuthKey };
   }
-  else return res.status(400).json({ error: { message: "Email/password o authKey richiesti." } });
+  else return res.status(400).json({ error: { message: "Email o AuthKey mancanti." } });
+
+  // Recupera stato sync da MongoDB
+  if (email) {
+      userPreference = await findUserPreference(email);
+      // Se è un nuovo login o authKey diversa, aggiorna la chiave nel DB mantenendo la preferenza
+      if (!userPreference || userPreference.authKey !== data.authKey) {
+          const currentAutoUpdate = userPreference ? userPreference.autoUpdate : false;
+          await updateUserPreference(data.authKey, email, currentAutoUpdate);
+      }
+  }
 
   res.cookie('authKey', data.authKey, cookieOptions);
   
-  // *** AGGIUNTA MONGO DB ***
-  if (email && isConnected) {
-      await updateUserPreference(data.authKey, email, false); // Salva l'utente senza attivare l'auto-update
-  }
-  
-  res.json({ addons: data.addons });
+  res.json({ 
+      addons: data.addons, 
+      authKey: data.authKey,
+      // Invia lo stato al frontend per attivare l'interruttore
+      autoUpdateEnabled: userPreference ? userPreference.autoUpdate : false 
+  });
 }));
 
-// NEW: SAVE PREFERENCES (Aggiorna MongoDB per Auto-Update)
+// 2. SAVE PREFERENCES (Attiva/Disattiva e Salva)
 app.post('/api/preferences', asyncHandler(async (req, res) => {
     const { authKey } = req.cookies;
     const { error } = schemas.preferences.validate(req.body);
     
-    if (!authKey) return res.status(401).json({ error: { message: "AuthKey mancante." } });
+    if (!authKey) return res.status(401).json({ error: { message: "Non autenticato." } });
     if (error) return res.status(400).json({ error: { message: error.details[0].message } });
 
     const { email, autoUpdate } = req.body;
     
     try {
         await updateUserPreference(authKey, email, !!autoUpdate);
-        res.json({ success: true, message: "Impostazioni salvate nel Cloud." });
+        res.json({ success: true, message: "Preferenze salvate in Cloud." });
     } catch (e) {
-        console.error("Errore salvataggio preferenze:", e);
-        res.status(500).json({ error: { message: "Errore Database" } });
+        console.error(e);
+        res.status(500).json({ error: { message: "Errore salvataggio DB." } });
     }
 }));
 
+// 3. GET PREFERENCES (Per sync su altri dispositivi)
+app.get('/api/preferences', asyncHandler(async (req, res) => {
+    const { authKey } = req.cookies;
+    if (!authKey) return res.status(401).json({ error: { message: "Non autenticato." } });
 
-// GET ADDONS
+    await connectToDatabase();
+    const user = await User.findOne({ authKey });
+    
+    res.json({ autoUpdate: user ? user.autoUpdate : false });
+}));
+
+// 4. GET ADDONS
 app.post('/api/get-addons', asyncHandler(async (req, res) => {
   const { authKey } = req.cookies;
   const { email } = req.body;
-  if (!authKey || !email) return res.status(400).json({ error: { message: "Cookie authKey mancante o email mancante." } });
+  if (!authKey) return res.status(400).json({ error: { message: "Cookie mancante." } });
   res.json({ addons: await getAddonsByAuthKey(authKey) });
 }));
 
-
-// SET ADDONS
+// 5. SET ADDONS (Sanitized)
 app.post('/api/set-addons', asyncHandler(async (req, res) => {
   const { authKey } = req.cookies;
-  if (!authKey) return res.status(401).json({ error: { message: "Cookie authKey mancante." } });
+  if (!authKey) return res.status(401).json({ error: { message: "Cookie mancante." } });
 
   const { error } = schemas.setAddons.validate(req.body);
   if (error) return res.status(400).json({ error: { message: error.details[0].message } });
 
   const addonsToSave = req.body.addons.map(a => {
     let clean = JSON.parse(JSON.stringify(a));
-    
-    // Sanificazione XSS
     clean = sanitizeObject(clean);
-
     if (clean.manifest && !clean.manifest.id) {
       clean.manifest.id = `external-${Math.random().toString(36).substring(2, 9)}`;
     }
-
     return clean;
   });
 
@@ -394,51 +396,40 @@ app.post('/api/set-addons', asyncHandler(async (req, res) => {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ authKey: authKey.trim(), addons: addonsToSave })
   });
-
   validateApiResponse(resSet, MAX_LOGIN_RESPONSE_BYTES);
   const dataSet = await resSet.json();
-  if (dataSet.error) throw new Error(dataSet.error.message || "Errore salvataggio addon.");
+  if (dataSet.error) throw new Error(dataSet.error.message);
 
-  res.json({ success: true, message: "Addon salvati con successo." });
+  res.json({ success: true, message: "Salvataggio riuscito." });
 }));
 
-// FETCH MANIFEST
+// 6. FETCH MANIFEST (SSRF Protected)
 app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
   const { error } = schemas.manifestUrl.validate(req.body);
-  if (error) return res.status(400).json({ error: { message: "URL manifesto non valido." } });
+  if (error) return res.status(400).json({ error: { message: "URL non valido." } });
 
   const { manifestUrl } = req.body;
-  
-  // Controllo SSRF
   if (!(await isSafeUrl(manifestUrl))) {
-    return res.status(400).json({ error: { message: "URL non sicuro o risolve a un IP privato." } });
+    return res.status(400).json({ error: { message: "URL non sicuro (SSRF)." } });
   }
 
   const resp = await fetchWithTimeout(manifestUrl, { redirect: 'error' });
   if (!resp.ok) throw new Error(`Status ${resp.status}`);
-
   validateApiResponse(resp, MAX_MANIFEST_SIZE_BYTES);
 
   const manifest = await resp.json(); 
-  
-  // Validazione schema Joi
-  const { error: manifestError } = schemas.manifestCore.validate(manifest);
-  if (manifestError) {
-    throw new Error(`Manifesto non valido: ${manifestError.details[0].message}`);
-  }
+  const { error: mErr } = schemas.manifestCore.validate(manifest);
+  if (mErr) throw new Error(`Manifesto invalido: ${mErr.details[0].message}`);
 
   res.json(manifest);
 }));
 
-
-// NEW: VERCEL CRON JOB (Aggiornamento Background)
+// 7. CRON JOB (Aggiornamento Notturno)
 app.get('/api/cron', async (req, res) => {
     await connectToDatabase();
+    if (!isConnected) return res.status(503).json({ error: "DB Error" });
     
-    if (!isConnected) return res.status(503).json({ error: "Database non connesso." });
-    
-    console.log("⏰ [CRON] Inizio ciclo di aggiornamento...");
-    
+    console.log("⏰ [CRON] Start update cycle...");
     const users = await User.find({ autoUpdate: true });
     let updatedCount = 0;
     const logs = [];
@@ -453,9 +444,7 @@ app.get('/api/cron', async (req, res) => {
                 if (!manifestUrl || !manifestUrl.startsWith('http')) return addon;
 
                 try {
-                    // Controlliamo il manifest URL per SSRF anche nel cron
                     if (!(await isSafeUrl(manifestUrl))) return addon; 
-                    
                     const resp = await fetchWithTimeout(manifestUrl, {}, 5000);
                     if (resp.ok) {
                         const remote = await resp.json();
@@ -480,66 +469,44 @@ app.get('/api/cron', async (req, res) => {
                 }
             }
         } catch (err) {
-            logs.push(`Errore utente ${user.email}: ${err.message}`);
-            if (err.message.includes('AuthKey') || err.message.includes('Credenziali non valide')) {
+            logs.push(`Error ${user.email}: ${err.message}`);
+            if (err.message.includes('AuthKey') || err.message.includes('Credenziali')) {
                  await User.findOneAndUpdate({ email: user.email }, { autoUpdate: false });
             }
         }
     }
-
-    res.json({ success: true, checked: users.length, updated: updatedCount, logs });
+    res.json({ success: true, updated: updatedCount, logs });
 });
 
-
-// LOGOUT
+// 8. LOGOUT
 app.post('/api/logout', (req, res) => {
   res.cookie('authKey', '', { ...cookieOptions, maxAge: 0 });
-  res.json({ success: true, message: "Logout effettuato." });
+  res.json({ success: true });
 });
 
-// 404
-app.use('/api/*', (req, res) =>
-  res.status(404).json({ error: { message: 'Endpoint non trovato.' } })
-);
+// 404 & ERRORS
+app.use('/api/*', (req, res) => res.status(404).json({ error: { message: 'Endpoint not found' } }));
 
-// HTTPS REDIRECT IN PRODUZIONE
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
-    if (req.header('x-forwarded-proto') !== 'https') {
-      return res.redirect(301, `https://${req.hostname}${req.url}`);
-    }
+    if (req.header('x-forwarded-proto') !== 'https') return res.redirect(301, `https://${req.hostname}${req.url}`);
     next();
   });
 }
 
-// ERRORE GLOBALE
 app.use((err, req, res, next) => {
-  console.error(`ERRORE: ${err.message}`);
-  if (process.env.NODE_ENV !== 'production' && err.stack) {
-    console.error(err.stack);
-  }
-  
+  console.error(`ERROR: ${err.message}`);
   const status = err.status || 500;
-  let message = 'Errore interno del server.';
-
-  if (err.isJoi) { // Gestione errore Joi
-      message = err.details[0].message;
-  }
-  else if (err.message.includes('redirect')) {
-      message = 'Recupero del manifesto non riuscito (redirect bloccato).';
-  } else if (err.message.includes('timeout')) {
-      message = 'Richiesta al server scaduta (timeout).';
-  } else if (status < 500) {
-      message = err.message;
-  }
-  
+  let message = 'Errore interno.';
+  if (err.isJoi) message = err.details[0].message;
+  else if (status < 500) message = err.message;
   res.status(status).json({ error: { message } });
 });
 
-// AVVIO LOCALE
+// AVVIO
 if (!process.env.VERCEL_ENV) {
     connectToDatabase().then(() => {
-        app.listen(PORT, () => console.log(`Server avviato sulla porta ${PORT}`));
+        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
     });
 }
 
