@@ -227,24 +227,9 @@ Accedi subito alla versione web:
 </div>
 
 ---
+# MIT License
 
-/* * -----------------------------------------------------------------------------
- * _      _    _  _____  _  _   _   _  _____ __   __
- * | |    | |  | |/ ____|| || | | \ | ||___  |\ \ / /
- * | |    | |  | | |     | || |_|  \| |   / /  \ V / 
- * | |    | |  | | |     |__   _| . ` |  / /    > <  
- * | |____| |__| | |____    | | | |\  | / /__  / . \ 
- * |______|_____/ \_____|   |_| |_| \_|/_____|/_/ \_\
- * * :: SYSTEM ID : LUC4N3X
- * :: PROTOCOL  : MIT LICENSE
- * :: TIMESTAMP : 2025
- * :: STATUS    : [UNRESTRICTED ACCESS]
- * -----------------------------------------------------------------------------
- */
-
-MIT License
-
-Copyright (c) 2025 LUC4N3X
+**Copyright (c) 2025 LUC4N3X**
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -253,8 +238,8 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+> The above copyright notice and this permission notice shall be included in all
+> copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -264,13 +249,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-/*
- * =============================================================================
- * [!] TRANSMISSION END
- * * > 🛸 Bend the neon streams, master your addons.
- * >    May your cyberdeck always run clean.
- * > ⚡ Use wisely, code boldly. Let the grid illuminate your path. 🌌
- * =============================================================================
- */
+---
 
+<div align="center">
 
+### ⚡ LUC4N3X SYSTEMS ⚡
+
+*Bend the neon streams, master your addons.*
+*May your cyberdeck always run clean.*
+
+🌌 **Use wisely.**
+</div>
