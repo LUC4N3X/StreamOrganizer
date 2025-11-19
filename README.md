@@ -254,8 +254,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 <div align="center" style="margin-top:40px;color:#ff00ff;font-family:'Orbitron',sans-serif;font-size:1.15em;text-shadow:0 0 8px #ff00ff, 0 0 12px #ff66ff;">
-    🚀 Bend the neon streams, master your addons, and may your cyberdeck always run clean.  
+    🛸 Bend the neon streams, master your addons, and may your cyberdeck always run clean.  
     ⚡ Use wisely, code boldly, and let the grid illuminate your path 🌌
 </div>
+
 
 
