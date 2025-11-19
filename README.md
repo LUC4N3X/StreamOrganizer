@@ -231,31 +231,30 @@ Una volta salvato, attendi qualche secondo e collegati a `https://il-tuo-dominio
                 box-shadow: 0 0 25px rgba(187,134,252,0.3); transition: transform 0.3s;">
     <tr>
       <td align="center" style="font-family: 'Segoe UI', Arial, sans-serif; color:#e0d4ff;">
-        <h3 style="margin-top:0; color:#bb86fc; font-size:1.5em; text-shadow:0 0 10px #bb86fc;">🌐 Prova la versione Cloud</h3>
+        <h3 style="margin-top:0; color:#bb86fc; font-size:1.5em; text-shadow:0 0 12px #bb86fc;">🌐 Prova la versione Cloud</h3>
         <p style="margin:0 0 20px 0; font-size:1.1em; color:#c0c0c0;">
            Nessuna installazione necessaria. Scegli il provider che preferisci:
         </p>
-        <p style="margin:5px 0; font-size:1.2em;">
-          👉 <a href="https://luc4n3x-stream-organizer.hf.space" target="_blank" 
-                 style="color:#7ee787; font-weight:bold; text-decoration:none; transition: all 0.3s;"
-                 onmouseover="this.style.color='#bb86fc'; this.style.textShadow='0 0 8px #7ee787';" 
-                 onmouseout="this.style.color='#7ee787'; this.style.textShadow='none';">
-              HuggingFace
-          </a>
-        </p>
-        <p style="margin:5px 0; font-size:1.2em;">
-          👉 <a href="https://stream-organizer.vercel.app" target="_blank" 
-                 style="color:#7ee787; font-weight:bold; text-decoration:none; transition: all 0.3s;"
-                 onmouseover="this.style.color='#bb86fc'; this.style.textShadow='0 0 8px #7ee787';" 
-                 onmouseout="this.style.color='#7ee787'; this.style.textShadow='none';">
-              Vercel
-          </a>
-        </p>
+        <!-- Pulsante HuggingFace -->
+        <a href="https://luc4n3x-stream-organizer.hf.space" target="_blank" 
+           style="display:inline-block; margin:5px; padding:10px 20px; font-size:1.1em; font-weight:bold; 
+                  color:#fff; text-decoration:none; border-radius:10px; background: linear-gradient(135deg,#ff6fd8,#7ee787);
+                  box-shadow: 0 0 10px #ff6fd8, 0 0 20px #7ee787; transition: all 0.3s;">
+          🤗 HuggingFace
+        </a>
+        <!-- Pulsante Vercel -->
+        <a href="https://stream-organizer.vercel.app" target="_blank" 
+           style="display:inline-block; margin:5px; padding:10px 20px; font-size:1.1em; font-weight:bold; 
+                  color:#fff; text-decoration:none; border-radius:10px; background: linear-gradient(135deg,#6a0dad,#00f0ff);
+                  box-shadow: 0 0 10px #6a0dad, 0 0 20px #00f0ff; transition: all 0.3s;">
+          ▲ Vercel
+        </a>
       </td>
     </tr>
   </table>
   <br />
 </div>
+
 
 
 ---
