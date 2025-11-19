@@ -8,7 +8,7 @@ const translations = {
             login: "Controlla il caos. Domina i tuoi Addon.",
             monitoring: "Modalità Monitoraggio attiva",
             loggedIn: "Console rapida per gestire, ordinare e salvare gli addon",
-            security: "Sicuro: la tua password non viene mai salvata."
+            security: "🛡️ Sicuro: Password non salvata. L'AuthKey resta sul tuo dispositivo."
         },
         core: {
             themeLight: "Modalità Chiara Attiva! (Salvata)",
@@ -28,7 +28,7 @@ const translations = {
         },
         profiles: {
             title: "Profili Salvati",
-            p1: "Seleziona un profilo per caricare istantaneamente le credenziali e la sessione. Clicca sul nome per rinominare. (Dati salvati localmente)",
+            p1: "Seleziona un profilo per caricare istantaneamente le credenziali e la sessione. Clicca sul nome per rinominare. (Dati sensibili salvati SOLO nel tuo browser)",
             noProfiles: "Nessun profilo salvato.",
             manageTitle: "Gestisci Profili",
             saveButton: "Salva Sessione come Profilo",
@@ -69,7 +69,7 @@ const translations = {
             title: "Accesso Utente",
             emailPlaceholder: "E-mail Stremio",
             passwordPlaceholder: "Password Stremio",
-            tokenPlaceholder: "Il tuo AuthKey (Token) di Stremio",
+            tokenPlaceholder: "Il tuo AuthKey (⚠️ NON CONDIVIDERE)",
             useToken: "Accedi con Token (AuthKey)",
             usePassword: "Accedi con Email/Password",
             button: "ACCEDI",
@@ -100,14 +100,14 @@ const translations = {
             title: "Gestione Backup",
             exportButton: "Esporta Backup (.json)",
             importButton: "Importa Backup (.json)",
-            shareButton: "Condividi Configurazione (URL)",
+            shareButton: "Condividi Configurazione (URL Sicuro)",
             exportTxtButton: "Esporta Lista TXT",
             exportTxtSuccess: "Lista esportata come TXT!"
         },
         share: {
             title: "Link di Condivisione Generato",
             copyButton: "Copia Link",
-            copySuccess: "Link copiato negli appunti!"
+            copySuccess: "Link copiato! (Non contiene le tue credenziali)"
         },
         import: {
             urlSuccess: "Configurazione importata da URL! {{count}} addon caricati. Clicca SALVA.",
@@ -250,19 +250,19 @@ const translations = {
             darkMode: "Modalità Scura"
         },
         instructions: {
-            title: "Istruzioni",
+            title: "Istruzioni & Sicurezza",
             disclaimer: {
                 title: "ESCLUSIONE DI RESPONSABILITÀ (DISCLAIMER)",
-                p1: "QUESTA APPLICAZIONE È UNO STRUMENTO NON UFFICIALE DI TERZE PARTI. NON CI ASSUMIAMO ALCUNA RESPONSABILITÀ PER L'USO CHE NE FARAI. USARE QUESTA APP POTREBBE POTENZIALMENTE CAUSARE DANNI AL TUO ACCOUNT STREMIO (es. la perdita dell'ordine degli addon o problemi di sincronizzazione). UTILIZZALA A TUO RISCHIO E PERICOLO. NON siamo affiliati, approvati o sponsorizzati da Stremio."
+                p1: "QUESTA APPLICAZIONE È UNO STRUMENTO NON UFFICIALE DI TERZE PARTI. L'USO È A TUO RISCHIO. NON CI ASSUMIAMO RESPONSABILITÀ PER DANNI ALL'ACCOUNT STREMIO. NON siamo affiliati a Stremio."
             },
             login: {
-                title: "Accesso e Monitoraggio",
-                p1: "Inserisci le tue credenziali Stremio. L'app non salva la tua password; genera e usa un 'authKey' temporaneo.",
-                p2: "Clicca il titolo 5 volte per sbloccare la 'Modalità Monitoraggio', utile per visualizzare la lista addon di un altro utente (richiede una chiave amministrativa).",
+                title: "Accesso e Sicurezza AuthKey",
+                p1: "L'app usa il tuo 'AuthKey' per comunicare con Stremio. NON condividere mai questo codice con nessuno: equivale alla tua password!",
+                p2: "Se usi un computer pubblico, ricordati di cliccare ESCI alla fine, altrimenti la tua AuthKey rimarrà nel browser.",
             },
             profiles: {
                 title: "Gestione Profili",
-                p1: "Salva la tua sessione loggata (Email e Chiave d'Autenticazione) localmente per quick access senza reinserire la password. Clicca sul nome di un profilo per rinominarlo.",
+                p1: "I profili salvano la tua AuthKey nel 'LocalStorage' del browser. Usali solo su dispositivi personali sicuri.",
             },
             list: {
                 title: "Gestione Addon",
@@ -285,10 +285,10 @@ const translations = {
                 p1: "Clicca 'Verifica Stato Addon' per controllare se gli URL dei manifesti rispondono correttamente (lo stato diventa 🟢 OK o 🔴 Errore).",
             },
             backup: {
-                title: "Backup e Importazione",
-                p1: "Esporta un file .json per salvare la tua configurazione completa (ordine, stato, URL) sul tuo computer.",
-                p2: "Importa un file .json per ripristinare una configurazione precedente, sovrascrivendo quella attuale (è richiesta conferma).",
-                p3: "Esporta Lista TXT è utile per una rapida condivisione degli URL.",
+                title: "Backup e Condivisione Sicura",
+                p1: "Esporta Backup (.json): Salva tutti i dati (inclusi stati e nomi). Utile per backup personali.",
+                p2: "Link di Condivisione: Genera un link sicuro che contiene SOLO la lista degli addon, SENZA le tue credenziali (AuthKey). Puoi condividerlo tranquillamente.",
+                p3: "Esporta Lista TXT: Crea una lista semplice di URL.",
             },
             share: {
                 title: "Link di Condivisione",
@@ -316,7 +316,7 @@ const translations = {
             login: "Control the chaos. Dominate your Addons.",
             monitoring: "Monitoring Mode active",
             loggedIn: "Quick console to manage, order, and save addons",
-            security: "Secure: Your password is never saved."
+            security: "🛡️ Secure: Password not saved. AuthKey remains on your device."
         },
         core: {
             themeLight: "Light Mode Activated! (Saved)",
@@ -336,7 +336,7 @@ const translations = {
         },
         profiles: {
             title: "Saved Profiles",
-            p1: "Select a profile to instantly load credentials and session. Click on the name to rename. (Data saved locally)",
+            p1: "Select a profile to instantly load credentials and session. Click on the name to rename. (Sensitive data saved ONLY in your browser)",
             noProfiles: "No saved profiles.",
             manageTitle: "Manage Profiles",
             saveButton: "Save Session as Profile",
@@ -377,7 +377,7 @@ const translations = {
             title: "User Login",
             emailPlaceholder: "Stremio E-mail",
             passwordPlaceholder: "Stremio Password",
-            tokenPlaceholder: "Your Stremio AuthKey (Token)",
+            tokenPlaceholder: "Your Stremio AuthKey (⚠️ DO NOT SHARE)",
             useToken: "Login with Token (AuthKey)",
             usePassword: "Login with Email/Password",
             button: "LOGIN",
@@ -408,14 +408,14 @@ const translations = {
             title: "Backup Management",
             exportButton: "Export Backup (.json)",
             importButton: "Import Backup (.json)",
-            shareButton: "Share Configuration (URL)",
+            shareButton: "Share Configuration (Safe URL)",
             exportTxtButton: "Export TXT List",
             exportTxtSuccess: "List exported as TXT!"
         },
         share: {
             title: "Share Link Generated",
             copyButton: "Copy Link",
-            copySuccess: "Link copied to clipboard!"
+            copySuccess: "Link copied! (Does NOT contain your credentials)"
         },
         import: {
             urlSuccess: "Configuration imported from URL! {{count}} addons loaded. Click SAVE.",
@@ -558,19 +558,19 @@ const translations = {
             darkMode: "Dark Mode"
         },
         instructions: {
-            title: "Instructions",
+            title: "Instructions & Security",
             disclaimer: {
                 title: "DISCLAIMER",
-                p1: "THIS APPLICATION IS AN UNOFFICIAL THIRD-PARTY TOOL. WE DO NOT ASSUME ANY RESPONSIBILITY FOR YOUR USE OF IT. USING THIS APP COULD POTENTIALLY CAUSE DAMAGE TO YOUR STREMIO ACCOUNT (e.g., loss of addon order or synchronization issues). USE IT AT YOUR OWN RISK. We are NOT affiliated with, endorsed by, or sponsored by Stremio."
+                p1: "THIS APPLICATION IS AN UNOFFICIAL THIRD-PARTY TOOL. WE DO NOT ASSUME ANY RESPONSIBILITY FOR YOUR USE OF IT. USING THIS APP COULD POTENTIALLY CAUSE DAMAGE TO YOUR STREMIO ACCOUNT. USE IT AT YOUR OWN RISK. We are NOT affiliated with Stremio."
             },
             login: {
-                title: "Login and Monitoring",
-                p1: "Enter your Stremio credentials. The app does not save your password; it generates and uses a temporary 'authKey'.",
-                p2: "Click the title 5 times to unlock 'Monitoring Mode', useful for viewing another user's addon list (requires an administrative key).",
+                title: "Login and AuthKey Security",
+                p1: "The app uses your 'AuthKey' to communicate with Stremio. NEVER share this key with anyone: it is equivalent to your password!",
+                p2: "If using a public computer, remember to click LOGOUT at the end, otherwise your AuthKey will remain in the browser.",
             },
             profiles: {
                 title: "Profile Management",
-                p1: "Save your logged-in session (Email and Authentication Key) locally for quick access without re-entering the password. Click on a profile name to rename it.",
+                p1: "Profiles save your AuthKey in the browser's 'LocalStorage'. Use them only on secure personal devices.",
             },
             list: {
                 title: "Addon Management",
@@ -593,9 +593,9 @@ const translations = {
                 p1: "Click 'Check Addon Status' to verify that the manifest URLs respond correctly (the status becomes 🟢 OK or 🔴 Error).",
             },
             backup: {
-                title: "Backup and Import",
-                p1: "Export a .json file to save your complete configuration (order, status, URL) to your computer.",
-                p2: "Import a .json file to restore a previous configuration, overwriting the current one (confirmation required).",
+                title: "Backup and Secure Sharing",
+                p1: "Export Backup (.json): Save all data (including status and names). Useful for personal backups.",
+                p2: "Share Link: Generates a secure link containing ONLY the addon list, WITHOUT your credentials (AuthKey). You can share it safely.",
                 p3: "Export TXT List is useful for quickly sharing URLs.",
             },
             share: {
@@ -624,7 +624,7 @@ const translations = {
             login: "Contrôlez le chaos. Dominez vos addons.",
             monitoring: "Mode de surveillance actif",
             loggedIn: "Console rapide pour gérer, ordonner et sauvegarder les addons",
-            security: "Sécurisé : Votre mot de passe n'est jamais sauvegardé."
+            security: "🛡️ Sécurisé : Mot de passe non sauvegardé. Votre AuthKey reste sur cet appareil."
         },
         core: {
             themeLight: "Mode Clair Activé ! (Sauvegardé)",
@@ -644,7 +644,7 @@ const translations = {
         },
         profiles: {
             title: "Profils Sauvegardés",
-            p1: "Sélectionnez un profil pour charger instantanément les identifiants et la session. Cliquez sur le nom pour renommer. (Données sauvegardées localement)",
+            p1: "Sélectionnez un profil pour charger instantanément les identifiants et la session. Cliquez sur le nom pour renommer. (Données sensibles sauvegardées UNIQUEMENT dans votre navigateur)",
             noProfiles: "Aucun profil sauvegardé.",
             manageTitle: "Gérer les Profils",
             saveButton: "Sauvegarder la Session comme Profil",
@@ -685,7 +685,7 @@ const translations = {
             title: "Connexion Utilisateur",
             emailPlaceholder: "E-mail Stremio",
             passwordPlaceholder: "Mot de passe Stremio",
-            tokenPlaceholder: "Votre AuthKey (Token) Stremio",
+            tokenPlaceholder: "Votre AuthKey (⚠️ NE PAS PARTAGER)",
             useToken: "Connexion avec Token (AuthKey)",
             usePassword: "Connexion avec Email/Mot de passe",
             button: "CONNEXION",
@@ -716,14 +716,14 @@ const translations = {
             title: "Gestion de la Sauvegarde",
             exportButton: "Exporter la Sauvegarde (.json)",
             importButton: "Importer la Sauvegarde (.json)",
-            shareButton: "Partager la Configuration (URL)",
+            shareButton: "Partager la Configuration (Lien Sûr)",
             exportTxtButton: "Exporter la Liste TXT",
             exportTxtSuccess: "Liste exportée en TXT!"
         },
         share: {
             title: "Lien de Partage Généré",
             copyButton: "Copier le Lien",
-            copySuccess: "Lien copié dans le presse-papiers!"
+            copySuccess: "Lien copié ! (Ne contient PAS vos identifiants)"
         },
         import: {
             urlSuccess: "Configuration importée depuis l'URL! {{count}} addons chargés. Cliquez sur SAUVEGARDER.",
@@ -866,19 +866,19 @@ const translations = {
             darkMode: "Mode Sombre"
         },
         instructions: {
-            title: "Instructions",
+            title: "Instructions & Sécurité",
             disclaimer: {
                 title: "AVERTISSEMENT (DISCLAIMER)",
-                p1: "CETTE APPLICATION EST UN OUTIL TIERS NON OFFICIEL. NOUS N'ASSUMONS AUCUNE RESPONSABILITÉ QUANT À VOTRE UTILISATION. L'UTILISATION DE CETTE APP PEUT POTENCIELLEMENT ENDOMMAGER VOTRE COMPTE STREMIO (par ex. perte de l'ordre des addons ou problèmes de synchronisation). UTILISEZ-LA À VOS PROPRES RISQUES. Nous ne sommes NI affiliés, ni approuvés, ni sponsorisés par Stremio."
+                p1: "CETTE APPLICATION EST UN OUTIL TIERS NON OFFICIEL. UTILISATION À VOS PROPRES RISQUES. NOUS NE SOMMES PAS AFFILIÉS À STREMIO."
             },
             login: {
-                title: "Connexion et Surveillance",
-                p1: "Entrez vos identifiants Stremio. L'application ne sauvegarde pas votre mot de passe ; elle génère et utilise une 'authKey' temporaire.",
-                p2: "Cliquez 5 fois sur le titre pour débloquer le 'Mode de surveillance', utile pour voir la liste d'addons d'un autre utilisateur (requiert une clé admin).",
+                title: "Connexion et Sécurité de l'AuthKey",
+                p1: "L'application utilise votre 'AuthKey' pour communiquer avec Stremio. NE PARTAGEZ JAMAIS cette clé : elle équivaut à votre mot de passe !",
+                p2: "Si vous utilisez un ordinateur public, n'oubliez pas de cliquer sur DÉCONNEXION à la fin, sinon votre AuthKey restera dans le navigateur.",
             },
             profiles: {
                 title: "Gestion des profils",
-                p1: "Sauvegardez localement votre session connectée (Email et Clé d'authentification) pour un accès rapide sans resaisir le mot de passe. Cliquez sur le nom d'un profil pour le renommer.",
+                p1: "Les profils enregistrent votre AuthKey dans le 'LocalStorage' du navigateur. Utilisez-les uniquement sur des appareils personnels sécurisés.",
             },
             list: {
                 title: "Gestion des Addons",
@@ -901,9 +901,9 @@ const translations = {
                 p1: "Cliquez sur 'Vérifier le statut des Addons' pour contrôler si les URL des manifestes répondent correctement (le statut devient 🟢 OK ou 🔴 Erreur).",
             },
             backup: {
-                title: "Sauvegarde et Importation",
-                p1: "Exportez un fichier .json pour sauvegarder votre configuration complète (ordre, statut, URL) sur votre ordinateur.",
-                p2: "Importez un fichier .json pour restaurer une configuration précédente, écrasant l'actuelle (confirmation requise).",
+                title: "Sauvegarde et Partage Sécurisé",
+                p1: "Exporter la Sauvegarde (.json) : Enregistre toutes les données (y compris les états et les noms). Utile pour les sauvegardes personnelles.",
+                p2: "Lien de Partage : Génère un lien sécurisé contenant UNIQUEMENT la liste des addons, SANS vos identifiants (AuthKey). Vous pouvez le partager en toute sécurité.",
                 p3: "Exporter la liste TXT est utile pour un partage rapide des URL.",
             },
             share: {
@@ -932,7 +932,7 @@ const translations = {
             login: "Kontrolliere das Chaos. Beherrsche deine Addons.",
             monitoring: "Überwachungsmodus aktiv",
             loggedIn: "Schnellkonsole zum Verwalten, Sortieren und Speichern von Addons",
-            security: "Sicher: Ihr Passwort wird niemals gespeichert."
+            security: "🛡️ Sicher: Passwort nicht gespeichert. AuthKey bleibt auf Ihrem Gerät."
         },
         core: {
             themeLight: "Hellmodus aktiviert! (Gespeichert)",
@@ -952,7 +952,7 @@ const translations = {
         },
         profiles: {
             title: "Gespeicherte Profile",
-            p1: "Wählen Sie ein Profil, um Zugangsdaten und Sitzung sofort zu laden. Klicken Sie auf den Namen, um ihn umzubenennen. (Daten lokal gespeichert)",
+            p1: "Wählen Sie ein Profil, um Zugangsdaten und Sitzung sofort zu laden. Klicken Sie auf den Namen, um ihn umzubenennen. (Sensible Daten NUR in Ihrem Browser gespeichert)",
             noProfiles: "Keine Profile gespeichert.",
             manageTitle: "Profile verwalten",
             saveButton: "Sitzung als Profil speichern",
@@ -993,7 +993,7 @@ const translations = {
             title: "Benutzer-Login",
             emailPlaceholder: "Stremio E-Mail",
             passwordPlaceholder: "Stremio Passwort",
-            tokenPlaceholder: "Dein Stremio AuthKey (Token)",
+            tokenPlaceholder: "Dein Stremio AuthKey (⚠️ NICHT TEILEN)",
             useToken: "Mit Token (AuthKey) anmelden",
             usePassword: "Mit E-Mail/Passwort anmelden",
             button: "EINLOGGEN",
@@ -1024,14 +1024,14 @@ const translations = {
             title: "Sicherungsverwaltung",
             exportButton: "Sicherung exportieren (.json)",
             importButton: "Sicherung importieren (.json)",
-            shareButton: "Konfiguration teilen (URL)",
+            shareButton: "Konfiguration teilen (Sichere URL)",
             exportTxtButton: "TXT-Liste exportieren",
             exportTxtSuccess: "Liste als TXT exportiert!"
         },
         share: {
             title: "Teil-Link generiert",
             copyButton: "Link kopieren",
-            copySuccess: "Link in die Zwischenablage kopiert!"
+            copySuccess: "Link kopiert! (Enthält KEINE Anmeldedaten)"
         },
         import: {
             urlSuccess: "Konfiguration von URL importiert! {{count}} Addons geladen. Klicken Sie auf SPEICHERN.",
@@ -1174,19 +1174,19 @@ const translations = {
             darkMode: "Dunkler Modus"
         },
         instructions: {
-            title: "Anweisungen",
+            title: "Anweisungen & Sicherheit",
             disclaimer: {
                 title: "HAFTUNGSAUSSCHLUSS (DISCLAIMER)",
-                p1: "DIESE ANWENDUNG IST EIN INOFFIZIELLES DRITTANBIETER-TOOL. WIR ÜBERNEHMEN KEINE VERANTWORTUNG FÜR IHRE NUTZUNG. DIE VERWENDUNG DIESER APP KANN POTENZIELL SCHÄDEN AN IHREM STREMIO-KONTO VERURSACHEN (z.B. Verlust der Addon-Reihenfolge oder Synchronisationsprobleme). DIE NUTZUNG ERFOLGT AUF EIGENE GEFAHR. Wir sind NICHT mit Stremio verbunden, werden nicht von Stremio unterstützt oder gesponsert."
+                p1: "DIESE ANWENDUNG IST EIN INOFFIZIELLES DRITTANBIETER-TOOL. NUTZUNG AUF EIGENE GEFAHR. WIR SIND NICHT MIT STREMIO VERBUNDEN."
             },
             login: {
-                title: "Anmeldung und Überwachung",
-                p1: "Geben Sie Ihre Stremio-Anmeldedaten ein. Die App speichert Ihr Passwort nicht; sie generiert und verwendet einen temporären 'authKey'.",
-                p2: "Klicken Sie 5 Mal auf den Titel, um den 'Überwachungsmodus' freizuschalten, nützlich, um die Addon-Liste eines anderen Benutzers anzuzeigen (erfordert einen Admin-Schlüssel).",
+                title: "Anmeldung und AuthKey-Sicherheit",
+                p1: "Die App verwendet Ihren 'AuthKey', um mit Stremio zu kommunizieren. Geben Sie diesen Schlüssel NIEMALS weiter: Er entspricht Ihrem Passwort!",
+                p2: "Wenn Sie einen öffentlichen Computer verwenden, vergessen Sie nicht, am Ende auf AUSLOGGEN zu klicken, sonst bleibt Ihr AuthKey im Browser.",
             },
             profiles: {
                 title: "Profilverwaltung",
-                p1: "Speichern Sie Ihre angemeldete Sitzung (E-Mail und Authentifizierungsschlüssel) lokal für einen schnellen Zugriff, ohne das Passwort erneut eingeben zu müssen. Klicken Sie auf einen Profilnamen, um ihn umzubenennen.",
+                p1: "Profile speichern Ihren AuthKey im 'LocalStorage' des Browsers. Verwenden Sie sie nur auf sicheren persönlichen Geräten.",
             },
             list: {
                 title: "Addon-Verwaltung",
@@ -1209,9 +1209,9 @@ const translations = {
                 p1: "Klicken Sie auf 'Addon-Status prüfen', um zu verifizieren, ob die Manifest-URLs korrekt antworten (der Status wird 🟢 OK oder 🔴 Fehler).",
             },
             backup: {
-                title: "Sicherung und Import",
-                p1: "Exportieren Sie eine .json-Datei, um Ihre vollständige Konfiguration (Reihenfolge, Status, URL) auf Ihrem Computer zu speichern.",
-                p2: "Importieren Sie eine .json-Datei, um eine frühere Konfiguration wiederherzustellen, wobei die aktuelle überschrieben wird (Bestätigung erforderlich).",
+                title: "Sicherung und sicheres Teilen",
+                p1: "Sicherung exportieren (.json): Speichern Sie alle Daten (einschließlich Status und Namen). Nützlich für persönliche Backups.",
+                p2: "Teil-Link: Generiert einen sicheren Link, der NUR die Liste der Addons enthält, OHNE Ihre Anmeldedaten (AuthKey). Sie können ihn sicher teilen.",
                 p3: "TXT-Liste exportieren ist nützlich, um URLs schnell zu teilen.",
             },
             share: {
@@ -1240,7 +1240,7 @@ const translations = {
             login: "Controla el caos. Domina tus addons.",
             monitoring: "Modo de monitorización activo",
             loggedIn: "Consola rápida para gestionar, ordenar y guardar addons",
-            security: "Seguro: Tu contraseña nunca se guarda."
+            security: "🛡️ Seguro: Contraseña no guardada. La AuthKey permanece en tu dispositivo."
         },
         core: {
             themeLight: "¡Modo Claro Activado! (Guardado)",
@@ -1260,7 +1260,7 @@ const translations = {
         },
         profiles: {
             title: "Perfiles Guardados",
-            p1: "Selecciona un perfil para cargar instantáneamente las credenciales y la sesión. Haz clic en el nombre para renombrar. (Datos guardados localmente)",
+            p1: "Selecciona un perfil para cargar instantáneamente las credenciales y la sesión. Haz clic en el nombre para renombrar. (Datos sensibles guardados SOLO en tu navegador)",
             noProfiles: "No hay perfiles guardados.",
             manageTitle: "Gestionar Perfiles",
             saveButton: "Guardar Sesión como Perfil",
@@ -1301,7 +1301,7 @@ const translations = {
             title: "Inicio de Sesión de Usuario",
             emailPlaceholder: "E-mail de Stremio",
             passwordPlaceholder: "Contraseña de Stremio",
-            tokenPlaceholder: "Tu AuthKey (Token) de Stremio",
+            tokenPlaceholder: "Tu AuthKey (⚠️ NO COMPARTIR)",
             useToken: "Iniciar sesión con Token (AuthKey)",
             usePassword: "Iniciar sesión con Email/Contraseña",
             button: "INICIAR SESIÓN",
@@ -1332,14 +1332,14 @@ const translations = {
             title: "Gestión de Copias de Seguridad",
             exportButton: "Exportar Copia (.json)",
             importButton: "Importar Copia (.json)",
-            shareButton: "Compartir Configuración (URL)",
+            shareButton: "Compartir Configuración (URL Segura)",
             exportTxtButton: "Exportar Lista TXT",
             exportTxtSuccess: "¡Lista exportada como TXT!"
         },
         share: {
             title: "Enlace para Compartir Generado",
             copyButton: "Copiar Enlace",
-            copySuccess: "¡Enlace copiado al portapapeles!"
+            copySuccess: "¡Enlace copiado! (No contiene tus credenciales)"
         },
         import: {
             urlSuccess: "¡Configuración importada desde URL! {{count}} addons cargados. Haz clic en GUARDAR.",
@@ -1482,19 +1482,19 @@ const translations = {
             darkMode: "Modo Oscuro"
         },
         instructions: {
-            title: "Instrucciones",
+            title: "Instrucciones & Seguridad",
             disclaimer: {
                 title: "DESCARGO DE RESPONSABILIDAD (DISCLAIMER)",
-                p1: "ESTA APLICACIÓN ES UNA HERRAMIENTA DE TERCEROS NO OFICIAL. NO ASUMIMOS NINGUNA RESPONSABILIDAD POR SU USO. USAR ESTA APLICACIÓN PODRÍA CAUSAR DAÑOS A SU CUENTA DE STREMIO (p. ej., pérdida del orden de los addons o problemas de sincronización). ÚSELA BAJO SU PROPIO RIESGO. NO estamos afiliados, respaldados ni patrocinados por Stremio."
+                p1: "ESTA APLICACIÓN ES UNA HERRAMIENTA DE TERCEROS NO OFICIAL. ÚSELA BAJO SU PROPIO RIESGO. NO ESTAMOS AFILIADOS A STREMIO."
             },
             login: {
-                title: "Inicio de Sesión y Monitorización",
-                p1: "Introduce tus credenciales de Stremio. La aplicación no guarda tu contraseña; genera y utiliza una 'authKey' temporal.",
-                p2: "Haz clic en el título 5 veces para desbloquear el 'Modo de Monitorización', útil para ver la lista de addons de otro usuario (requiere una clave administrativa).",
+                title: "Inicio de Sesión y Seguridad AuthKey",
+                p1: "La aplicación utiliza tu 'AuthKey' para comunicarse con Stremio. NUNCA compartas esta clave con nadie: ¡es equivalente a tu contraseña!",
+                p2: "Si usas un ordenador público, recuerda hacer clic en CERRAR SESIÓN al final, de lo contrario tu AuthKey permanecerá en el navegador.",
             },
             profiles: {
                 title: "Gestión de Perfiles",
-                p1: "Guarda tu sesión iniciada (Email y Clave de Autenticación) localmente para un acceso rápido sin volver a introducir la contraseña. Haz clic en el nombre de un perfil para renombrarlo.",
+                p1: "Los perfiles guardan tu AuthKey en el 'LocalStorage' del navegador. Úsalos solo en dispositivos personales seguros.",
             },
             list: {
                 title: "Gestión de Addons",
@@ -1517,9 +1517,9 @@ const translations = {
                 p1: "Haz clic en 'Comprobar Estado de Addons' para verificar que las URL del manifiesto responden correctamente (el estado se convierte en 🟢 OK o 🔴 Error).",
             },
             backup: {
-                title: "Copia de Seguridad e Importación",
-                p1: "Exporta un archivo .json para guardar tu configuración completa (orden, estado, URL) en tu ordenador.",
-                p2: "Importa un archivo .json para restaurar una configuración anterior, sobrescribiendo la actual (se requiere confirmación).",
+                title: "Copia de Seguridad y Compartir Seguro",
+                p1: "Exportar Copia (.json): Guarda todos los datos (incluidos estados y nombres). Útil para copias de seguridad personales.",
+                p2: "Enlace para Compartir: Genera un enlace seguro que contiene SOLO la lista de addons, SIN tus credenciales (AuthKey). Puedes compartirlo de forma segura.",
                 p3: "Exportar Lista TXT es útil para compartir rápidamente las URL.",
             },
             share: {
@@ -1548,7 +1548,7 @@ const translations = {
             login: "Контролюй хаос. Пануй над своїми додатками.",
             monitoring: "Режим моніторингу активний",
             loggedIn: "Швидка консоль для керування, сортування та збереження додатків",
-            security: "Безпечно: Ваш пароль ніколи не зберігається."
+            security: "🛡️ Безпечно: Пароль не зберігається. AuthKey залишається на вашому пристрої."
         },
         core: {
             themeLight: "Світлий режим активовано! (Збережено)",
@@ -1568,7 +1568,7 @@ const translations = {
         },
         profiles: {
             title: "Збережені профілі",
-            p1: "Виберіть профіль, щоб миттєво завантажити дані для входу та сесію. Натисніть на ім'я, щоб перейменувати. (Дані зберігаються локально)",
+            p1: "Виберіть профіль, щоб миттєво завантажити дані для входу та сесію. Натисніть на ім'я, щоб перейменувати. (Чутливі дані зберігаються ТІЛЬКИ у вашому браузері)",
             noProfiles: "Немає збережених профілів.",
             manageTitle: "Керування профілями",
             saveButton: "Зберегти сесію як профіль",
@@ -1609,7 +1609,7 @@ const translations = {
             title: "Вхід користувача",
             emailPlaceholder: "E-mail Stremio",
             passwordPlaceholder: "Пароль Stremio",
-            tokenPlaceholder: "Ваш AuthKey (Токен) Stremio",
+            tokenPlaceholder: "Ваш AuthKey (⚠️ НЕ ДІЛІТЬСЯ)",
             useToken: "Увійти з Токеном (AuthKey)",
             usePassword: "Увійти з Email/Паролем",
             button: "УВІЙТИ",
@@ -1640,14 +1640,14 @@ const translations = {
             title: "Керування резервними копіями",
             exportButton: "Експортувати резервну копію (.json)",
             importButton: "Імпортувати резервну копію (.json)",
-            shareButton: "Поділитися конфігурацією (URL)",
+            shareButton: "Поділитися конфігурацією (Безпечний URL)",
             exportTxtButton: "Експортувати список TXT",
             exportTxtSuccess: "Список експортовано як TXT!"
         },
         share: {
             title: "Згенеровано посилання для поширення",
             copyButton: "Копіювати посилання",
-            copySuccess: "Посилання скопійовано в буфер обміну!"
+            copySuccess: "Посилання скопійовано! (Не містить ваших облікових даних)"
         },
         import: {
             urlSuccess: "Конфігурацію імпортовано з URL! {{count}} додатків завантажено. Натисніть ЗБЕРЕГТИ.",
@@ -1790,19 +1790,19 @@ const translations = {
             darkMode: "Темний режим"
         },
         instructions: {
-            title: "Інструкції",
+            title: "Інструкції & Безпека",
             disclaimer: {
                 title: "ВІДМОВА ВІД ВІДПОВІДАЛЬНОСТІ (DISCLAIMER)",
-                p1: "ЦЕЙ ДОДАТОК Є НЕОФІЦІЙНИМ ІНСТРУМЕНТОМ ВІД ТРЕТІХ ОСІБ. МИ НЕ НЕСЕМО ЖОДНОЇ ВІДПОВІДАЛЬНОСТІ ЗА ЙОГО ВИКОРИСТАННЯ. ВИКОРИСТАННЯ ЦЬОГО ДОДАТКА МОЖЕ ПОТЕНЦІЙНО ЗАШКОДИТИ ВАШОМУ ОБЛІКОВОМУ ЗАПИСУ STREMIO (наприклад, втрата порядку додатків або проблеми з синхронізацією). ВИКОРИСТОВУЙТЕ НА СВІЙ СТРАХ І РИЗИК. Ми НЕ є афілійованими, схваленими або спонсорованими Stremio."
+                p1: "ЦЕЙ ДОДАТОК Є НЕОФІЦІЙНИМ. ВИКОРИСТОВУЙТЕ НА СВІЙ РИЗИК. МИ НЕ ПОВ'ЯЗАНІ З STREMIO."
             },
             login: {
-                title: "Вхід та моніторинг",
-                p1: "Введіть ваші облікові дані Stremio. Додаток не зберігає ваш пароль; він генерує та використовує тимчасовий 'authKey'.",
-                p2: "Натисніть на заголовок 5 разів, щоб розблокувати 'Режим моніторингу', корисний для перегляду списку додатків іншого користувача (потрібен адміністративний ключ).",
+                title: "Вхід та безпека AuthKey",
+                p1: "Додаток використовує ваш 'AuthKey' для зв'язку зі Stremio. НІКОЛИ не діліться цим ключем: це те саме, що ваш пароль!",
+                p2: "Якщо ви користуєтесь публічним комп'ютером, не забудьте натиснути ВИЙТИ в кінці, інакше ваш AuthKey залишиться в браузері.",
             },
             profiles: {
                 title: "Керування профілями",
-                p1: "Збережіть вашу сесію (Email та ключ автентифікації) локально для швидкого доступу без повторного введення пароля. Натисніть на назву профілю, щоб її змінити.",
+                p1: "Профілі зберігають ваш AuthKey у 'LocalStorage' браузера. Використовуйте їх лише на безпечних особистих пристроях.",
             },
             list: {
                 title: "Керування додатками",
@@ -1825,9 +1825,9 @@ const translations = {
                 p1: "Натисніть 'Перевірити статус додатків', щоб перевірити, чи правильно відповідають URL-адреси маніфестів (статус стане 🟢 OK або 🔴 Помилка).",
             },
             backup: {
-                title: "Резервне копіювання та імпорт",
-                p1: "Експортуйте файл .json, щоб зберегти повну конфігурацію (порядок, статус, URL) на вашому комп'ютері.",
-                p2: "Імпортуйте файл .json, щоб відновити попередню конфігурацію, перезаписавши поточну (потрібне підтвердження).",
+                title: "Резервне копіювання та безпечний обмін",
+                p1: "Експортувати резервну копію (.json): Збережіть усі дані (включаючи статус та імена). Корисно для особистих резервних копій.",
+                p2: "Посилання для поширення: Генерує безпечне посилання, що містить ТІЛЬКИ список додатків, БЕЗ ваших облікових даних (AuthKey). Ви можете безпечно ділитися ним.",
                 p3: "Експорт списку TXT корисний для швидкого обміну URL-адресами.",
             },
             share: {
@@ -1856,7 +1856,7 @@ const translations = {
             login: "Controle o caos. Domine os seus addons.",
             monitoring: "Modo de Monitoramento Ativo",
             loggedIn: "Console rápido para gerenciar, ordenar e salvar addons",
-            security: "Seguro: Sua senha nunca é salva."
+            security: "🛡️ Seguro: Senha não salva. A AuthKey permanece no seu dispositivo."
         },
         core: {
             themeLight: "Modo Claro Ativado! (Guardado)",
@@ -1876,7 +1876,7 @@ const translations = {
         },
         profiles: {
             title: "Perfis Salvos",
-            p1: "Selecione um perfil para carregar instantaneamente as credenciais e a sessão. Clique no nome para renomear. (Dados salvos localmente)",
+            p1: "Selecione um perfil para carregar instantaneamente as credenciais e a sessão. Clique no nome para renomear. (Dados sensíveis salvos APENAS no seu navegador)",
             noProfiles: "Nenhum perfil salvo.",
             manageTitle: "Gerenciar Perfis",
             saveButton: "Salvar Sessão como Perfil",
@@ -1917,7 +1917,7 @@ const translations = {
             title: "Login de Usuário",
             emailPlaceholder: "E-mail do Stremio",
             passwordPlaceholder: "Senha do Stremio",
-            tokenPlaceholder: "Seu AuthKey (Token) do Stremio",
+            tokenPlaceholder: "Seu AuthKey (⚠️ NÃO COMPARTILHE)",
             useToken: "Login com Token (AuthKey)",
             usePassword: "Login com Email/Senha",
             button: "LOGIN",
@@ -1948,14 +1948,14 @@ const translations = {
             title: "Gerenciamento de Backup",
             exportButton: "Exportar Backup (.json)",
             importButton: "Importar Backup (.json)",
-            shareButton: "Compartilhar Configuração (URL)",
+            shareButton: "Compartilhar Configuração (URL Segura)",
             exportTxtButton: "Exportar Lista TXT",
             exportTxtSuccess: "Lista exportada como TXT!"
         },
         share: {
             title: "Link de Compartilhamento Gerado",
             copyButton: "Copiar Link",
-            copySuccess: "Link copiado para a área de transferência!"
+            copySuccess: "Link copiado! (NÃO contém suas credenciais)"
         },
         import: {
             urlSuccess: "Configuração importada da URL! {{count}} addons carregados. Clique em SALVAR.",
@@ -2078,7 +2078,7 @@ const translations = {
             selectAll: "Selecionar Todos",
             deselectAll: "Desmarcar Todos",
             enabledSuccess: "Ativados {{count}} addons selecionados. Clique em Salvar.",
-            disabledSuccess: "Desactivados {{count}} addons selecionados. Clique em Salvar.",
+            disabledSuccess: "Desativados {{count}} addons selecionados. Clique em Salvar.",
             removeSuccess: "Removidos {{count}} addons selecionados. Clique em Salvar.",
             noneToEnable: "Nenhum addon selecionado para ativar.",
             noneToDisable: "Nenhum addon selecionado para desativar."
@@ -2098,19 +2098,19 @@ const translations = {
             darkMode: "Modo Escuro"
         },
         instructions: {
-            title: "Instruções",
+            title: "Instruções e Segurança",
             disclaimer: {
                 title: "AVISO LEGAL (DISCLAIMER)",
-                p1: "ESTA APLICAÇÃO É UMA FERRAMENTA DE TERCEIROS NÃO OFICIAL. NÃO ASSUMIMOS QUALQUER RESPONSABILIDADE PELO SEU USO. O USO DESTE APLICATIVO PODE POTENCIALMENTE CAUSAR DANOS À SUA CONTA STREMIO (ex: perda da ordem dos addons ou problemas de sincronização). USE POR SUA CONTA E RISCO. NÃO somos afiliados, endossados ou patrocinados pelo Stremio."
+                p1: "ESTA APLICAÇÃO É UMA FERRAMENTA DE TERCEIROS NÃO OFICIAL. O USO DESTE APLICATIVO PODE POTENCIALMENTE CAUSAR DANOS À SUA CONTA STREMIO. USE POR SUA CONTA E RISCO. NÃO somos afiliados ao Stremio."
             },
             login: {
-                title: "Login e Monitoramento",
-                p1: "Insira suas credenciais do Stremio. O aplicativo não salva sua senha; ele gera e usa uma 'authKey' temporária.",
+                title: "Login e Segurança AuthKey",
+                p1: "Insira suas credenciais do Stremio. O aplicativo não salva sua senha; ele gera e usa uma 'authKey' temporária. NUNCA compartilhe essa chave!",
                 p2: "Clique no título 5 vezes para desbloquear o 'Modo de Monitoramento', útil para visualizar a lista de addons de outro usuário (requer uma chave administrativa).",
             },
             profiles: {
                 title: "Gerenciamento de Perfis",
-                p1: "Salve sua sessão logada (Email e Chave de Autenticação) localmente para acesso rápido sem redigitar a senha. Clique no nome de um perfil para renomeá-lo.",
+                p1: "Os perfis salvam sua AuthKey no 'LocalStorage' do navegador. Use-os apenas em dispositivos pessoais seguros.",
             },
             list: {
                 title: "Gerenciamento de Addons",
@@ -2133,9 +2133,9 @@ const translations = {
                 p1: "Clique em 'Verificar Status dos Addons' para verificar se as URLs do manifesto respondem corretamente (o status se torna 🟢 OK ou 🔴 Erro).",
             },
             backup: {
-                title: "Backup e Importação",
-                p1: "Exporte um arquivo .json para salvar sua configuração completa (ordem, status, URL) em seu computador.",
-                p2: "Importe um arquivo .json para restaurar uma configuração anterior, substituindo a atual (confirmação necessária).",
+                title: "Backup e Compartilhamento Seguro",
+                p1: "Exportar Backup (.json): Salva todos os dados. Útil para backup pessoal.",
+                p2: "Link de Compartilhamento: Gera um link seguro contendo APENAS a lista de addons, SEM suas credenciais (AuthKey).",
                 p3: "Exportar Lista TXT é útil para compartilhar URLs rapidamente.",
             },
             share: {
