@@ -19,6 +19,9 @@ const PORT = process.env.PORT || 7860;
 
 app.set('trust proxy', 1);
 
+// Rimuovi header che rivela la tecnologia
+app.disable('x-powered-by');
+
 const MONITOR_KEY_SECRET = process.env.MONITOR_KEY;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 
@@ -38,8 +41,7 @@ const SANITIZE_MAX_DEPTH = 6;
 const SANITIZE_MAX_STRING = 2000;
 const SANITIZE_MAX_ARRAY = 200;
 
-
-// Helmet + CSP 
+// Helmet + CSP
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -53,7 +55,6 @@ app.use(helmet({
         "'self'",
         "https://fonts.googleapis.com",
         "https://cdnjs.cloudflare.com"
-        
       ],
       "font-src": ["'self'", "https://fonts.gstatic.com"],
       "connect-src": [
@@ -65,9 +66,9 @@ app.use(helmet({
         "https://unpkg.com",
         "https://cdnjs.cloudflare.com",
         "https://stream-organizer.vercel.app",
-        "https://*.vercel.app", // Per le preview di Vercel
+        "https://*.vercel.app",
         process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : ''
-      ].filter(Boolean), 
+      ].filter(Boolean),
       "img-src": ["'self'", "data:", "https:"]
     }
   }
@@ -82,6 +83,81 @@ app.use(express.json({ limit: MAX_JSON_PAYLOAD }));
 
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ---------------------------------------------------------------------
+// WEB APPLICATION FIREWALL (MINIMALE)
+// ---------------------------------------------------------------------
+// Blocca pattern comuni SQLi/XSS e request sospette prima che arrivino agli endpoint.
+// Puoi adattare/estendere 'badPatterns' secondo necessità.
+const badPatterns = [
+  /<script[\s\S]*?>[\s\S]*?<\/script>/i,
+  /<\s*iframe/i,
+  /onerror\s*=/i,
+  /onload\s*=/i,
+  /document\.cookie/i,
+  /javascript:/i,
+  /<\s*img/i,
+  /<\s*svg/i,
+  /eval\(/i,
+  /base64,/i,
+  /union\s+select/i,
+  /select\s+.*\s+from/i,
+  /insert\s+into/i,
+  /drop\s+table/i,
+  /alter\s+table/i,
+  /--\s*$/i,
+  /\/\*/i,
+  /sleep\(\s*\d+\s*\)/i,
+  /benchmark\(/i,
+  /load_file\(/i,
+  /xp_cmdshell/i
+];
+
+function miniWAF(req, res, next) {
+  try {
+    // Serializzazione controllata (limiti per evitare DoS)
+    let bodyStr = '';
+    try {
+      bodyStr = JSON.stringify(req.body || '');
+      if (bodyStr.length > 10000) bodyStr = bodyStr.slice(0, 10000); // tronca per sicurezza
+    } catch (e) {
+      bodyStr = '';
+    }
+
+    let queryStr = '';
+    try {
+      queryStr = JSON.stringify(req.query || '');
+      if (queryStr.length > 2000) queryStr = queryStr.slice(0, 2000);
+    } catch (e) {
+      queryStr = '';
+    }
+
+    const raw = `${req.path} ${req.method} ${req.headers['user-agent'] || ''} ${bodyStr} ${queryStr}`.toLowerCase();
+
+    for (const p of badPatterns) {
+      if (p.test(raw)) {
+        // Logga minimale info e blocca
+        console.warn(`WAF: bloccata richiesta per pattern ${p} - path: ${req.path}`);
+        return res.status(403).json({ error: { message: "Richiesta bloccata (policy di sicurezza)." } });
+      }
+    }
+
+    // Blocca richieste con UA vuoto o con header sospetti (semplice)
+    const ua = (req.headers['user-agent'] || '').toLowerCase();
+    if (!ua || ua.length < 6) {
+      return res.status(403).json({ error: { message: "User-Agent non consentito." } });
+    }
+
+    next();
+  } catch (err) {
+    // Se il WAF fallisce per qualunque motivo, non bloccare a priori, ma loggare e proseguire
+    console.error('WAF ERROR:', err);
+    next();
+  }
+}
+
+// Applica il WAF a tutte le route /api/
+app.use('/api/', miniWAF);
 
 // ---------------------------------------------------------------------
 // RATE LIMIT
@@ -152,7 +228,6 @@ const enforceOrigin = (req, res, next) => {
 
 app.use('/api/', enforceOrigin);
 // --- FINE FIX ---
-
 
 // ---------------------------------------------------------------------
 // FETCH CON TIMEOUT
