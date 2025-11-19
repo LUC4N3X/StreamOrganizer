@@ -25,4 +25,4 @@ USER node
 ENV PORT=7860
 EXPOSE 7860
 
-CMD ["node", "index.js"]
+CMD ["node", "server.js"]
