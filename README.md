@@ -170,7 +170,7 @@ Accedi subito alla versione web:
 
 
 
-👉 <a href="https://"https://luc4n3x-stream-organizer.hf.space" style="color:#7ee787;font-weight:bold;text-decoration:none;">StreamOrder Online su HuggingFace 🚀</a>
+👉 <a href="https://luc4n3x-stream-organizer.hf.space" style="color:#7ee787;font-weight:bold;text-decoration:none;">StreamOrder Online su HuggingFace 🚀</a>
 
 
 
