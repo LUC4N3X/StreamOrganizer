@@ -8,7 +8,7 @@ const translations = {
             login: "Controlla il caos. Domina i tuoi Addon.",
             monitoring: "Modalità Monitoraggio attiva",
             loggedIn: "Console rapida per gestire, ordinare e salvare gli addon",
-            security: "🛡️ Sicuro: Password non salvata. L'AuthKey resta sul tuo dispositivo."
+            security: "Sicuro: Password non salvata. L'AuthKey resta sul tuo dispositivo."
         },
         core: {
             themeLight: "Modalità Chiara Attiva! (Salvata)",
