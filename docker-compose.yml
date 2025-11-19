@@ -9,7 +9,7 @@ services:
     # Mappa la porta host:container
     # Accederai al sito via http://localhost:8080
     ports:
-      - "8080:7860"
+      - "7860:7860"
     
     # Carica le variabili d'ambiente (es. MONITOR_KEY) dal file .env
     env_file:
