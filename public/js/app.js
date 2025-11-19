@@ -1,3 +1,5 @@
+// public/js/app.js
+
 // Importa Vue (accede alla variabile globale Vue caricata dal CDN)
 const { createApp, ref, computed, onMounted, onBeforeUnmount, watch, nextTick } = Vue;
 
@@ -49,7 +51,7 @@ const app = createApp({
         // Inietta 'resetHistory' in 'useAuth'
         setResetHistory(resetHistory);
 
-        // --- 6. Funzione Logout ---
+        // --- 5. Funzione Logout ---
         const logout = () => { 
             sessionStorage.clear(); 
             email.value = '';
@@ -62,7 +64,7 @@ const app = createApp({
             resetHistory();
         };
 
-        // --- 7. Profili ---
+        // --- 6. Profili ---
         const {
             savedProfiles, 
             selectedProfileId, 
@@ -135,7 +137,7 @@ const app = createApp({
             cancelSaveProfile();
         };
 
-        // --- 8. Gestione Addons ---
+        // --- 7. Gestione Addons ---
         const {
             newAddonUrl, retrieveAddonsFromServer, refreshAddonList, saveOrder,
             addNewAddon, startEdit, finishEdit, moveUp, moveDown, moveTop, moveBottom,
@@ -146,7 +148,7 @@ const app = createApp({
             recordAction, showToast, t, mapAddon, hasUnsavedChanges
         );
 
-        // --- 9. Azioni Addon ---
+        // --- 8. Azioni Addon ---
         const {
             isAutoUpdateEnabled, lastUpdateCheck, isUpdating,
             checkAllAddonsStatus, toggleAddonDetails, testAddonSpeed, runAutoUpdate,
@@ -155,7 +157,7 @@ const app = createApp({
             (updating) => saveOrder(updating)
         );
 
-        // --- 10. Filtri e Selezione ---
+        // --- 9. Filtri e Selezione ---
         const {
             activeFilter, searchQuery, showSearchInput, searchInputRef,
             toggleSearch, hideSearchOnBlur, filteredAddons, draggableList,
@@ -165,7 +167,7 @@ const app = createApp({
             recordAction, showToast, t, debounce
         );
 
-        // --- 11. Import/Export ---
+        // --- 10. Import/Export ---
         const {
             fileInput, shareInput, shareUrl, importedConfigFromUrl,
             showImportConfirm, pendingImportData, importSource, pendingImportNames,
@@ -173,7 +175,7 @@ const app = createApp({
             closeImportConfirm, confirmImport, generateShareLink, copyShareLink, checkUrlImport
         } = useImportExport(ref, addons, isMonitoring, recordAction, showToast, t, mapAddon, hasUnsavedChanges);
 
-        // --- 12. Tour & Welcome ---
+        // --- 11. Tour & Welcome ---
         const {
             showWelcomeScreen, showWelcomeTourModal, dontShowWelcomeAgain,
             dismissWelcomeScreen, skipTour, beginTour, startTour
@@ -182,7 +184,7 @@ const app = createApp({
             importSource, importedConfigFromUrl
         );
 
-        // --- 6b. Completamento funzione Logout ---
+        // --- 12. Completamento funzione Logout ---
         const originalLogout = logout;
         const fullLogout = () => {
             if (hasUnsavedChanges.value && !confirm(t.value('list.logoutConfirm'))) return;
@@ -226,13 +228,18 @@ const app = createApp({
         setHistory(resetHistory);
         setProfileFns(savedProfiles, saveProfiles);
 
-        // --- 16. Eventi globali ---
+        // --- 16. Eventi globali (Ottimizzati) ---
         const beforeUnloadHandler = (event) => {
             if (hasUnsavedChanges.value) {
                 event.preventDefault();
                 event.returnValue = '';
             }
         };
+        
+        // Debounce per il resize: evita ricalcoli eccessivi su mobile/desktop
+        const handleResize = debounce(() => {
+            updateIsMobile();
+        }, 250);
 
         // --- 17. Watchers ---
         watch(lang, (newLang) => {
@@ -260,7 +267,7 @@ const app = createApp({
         // --- 18. Lifecycle Hooks ---
         onMounted(() => {
             window.addEventListener('beforeunload', beforeUnloadHandler);
-            window.addEventListener('resize', updateIsMobile);
+            window.addEventListener('resize', handleResize); // Usa la versione debounced
 
             initTheme();
             loadProfiles();
@@ -268,6 +275,7 @@ const app = createApp({
             checkUrlImport();
             initAutoUpdate();
 
+            // Restore Sessione con mapAddon aggiornato
             try {
                 const storedKey = sessionStorage.getItem('stremioAuthKey');
                 const storedList = sessionStorage.getItem('stremioAddonList');
@@ -292,7 +300,7 @@ const app = createApp({
 
         onBeforeUnmount(() => {
             window.removeEventListener('beforeunload', beforeUnloadHandler);
-            window.removeEventListener('resize', updateIsMobile);
+            window.removeEventListener('resize', handleResize);
         });
 
         // --- 19. Return ---
