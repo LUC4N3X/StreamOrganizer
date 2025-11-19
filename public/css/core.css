@@ -118,13 +118,6 @@ body {
     transition: background var(--transition-smooth), color var(--transition-smooth);
 }
 
-/* CLASSE DI UTILITÀ PER MODALE APERTO */
-body.modal-open {
-    overflow: hidden !important;
-    position: fixed;
-    width: 100%;
-}
-
 /* ====== TEXT SELECTION ====== */
 ::selection,
 ::-moz-selection {
@@ -159,9 +152,9 @@ html {
     scrollbar-color: color-mix(in srgb, var(--primary-color) 85%, black) var(--track-color);
 }
 
-/* ========================================================================= */
+/* ========================================================== */
 /* ====== MOBILE OVERRIDE (FORCED DARK MODE) ====== */
-/* ========================================================================= */
+/* ========================================================== */
 /*
  * Forza il tema scuro su schermi < 768px per coerenza visiva.
  * Questo previene conflitti con 'prefers-color-scheme: light' 
@@ -254,23 +247,4 @@ input,
 }
 .fade-enter-from, .fade-leave-to {
     opacity: 0;
-}
-
-/* ====== PERFORMANCE & ACCESSIBILITY ====== */
-/* Disabilita animazioni pesanti se l'utente richiede "Riduci movimento" */
-@media (prefers-reduced-motion: reduce) {
-    *, ::before, ::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-    }
-    
-    /* NON NASCONDIAMO PIÙ IL CANVAS, LO LASCIAMO VISIBILE */
-    /* #bgCanvas, .neon-glow-aura, .loader-spinner { display: none !important; }  <-- RIMOSSO */
-    
-    #app, .panel, .modal-content {
-        backdrop-filter: none !important;
-        box-shadow: 0 0 10px rgba(0,0,0,0.5) !important;
-    }
 }
