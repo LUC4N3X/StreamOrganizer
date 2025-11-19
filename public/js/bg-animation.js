@@ -1,20 +1,19 @@
 (function cyberNexusVioletVortex() {
     const canvas = document.getElementById('bgCanvas');
-    
-    // RIMOSSO il controllo 'prefersReducedMotion' che bloccava tutto
-    // Manteniamo solo il controllo dimensione schermo per evitare crash su mobile vecchissimi
-    if (!canvas || innerWidth <= 768) return;
 
-    const ctx = canvas.getContext('2d', { alpha: true });
+    // Controllo sicurezza: se il canvas non esiste o siamo su schermi molto piccoli (vecchi mobile), stop.
+    if (!canvas || window.innerWidth <= 768) return;
+
+    const ctx = canvas.getContext('2d', { alpha: false }); // alpha: false per performance migliori se lo sfondo è opaco
     let w, h;
     let t0 = performance.now();
+    let lastTime = t0;
     let running = true;
     const DPR = Math.min(window.devicePixelRatio || 1, 2);
     
-    const mouse = { x: innerWidth/2, y: innerHeight/2, tx: innerWidth/2, ty: innerHeight/2 };
+    const mouse = { x: window.innerWidth/2, y: window.innerHeight/2, tx: window.innerWidth/2, ty: window.innerHeight/2 };
 
-    // ... (IL RESTO DEL CODICE RIMANE INVARIATO, MA TE LO RIMETTO COMPLETO PER SICUREZZA) ...
-
+    // --- CONFIGURAZIONE ENTITÀ ---
     let bgCache = null;
     let atmosphereCache = null;
     let waveGrad = [];
@@ -55,11 +54,11 @@
     function buildCaches() {
         if (!w || !h) return;
 
+        // 1. Cache Sfondo
         bgCache = document.createElement('canvas');
-        bgCache.width = Math.round(w * DPR);
-        bgCache.height = Math.round(h * DPR);
+        bgCache.width = Math.ceil(w);
+        bgCache.height = Math.ceil(h);
         const bgCtx = bgCache.getContext('2d');
-        bgCtx.scale(DPR, DPR);
         
         const g = bgCtx.createLinearGradient(0, 0, w, h);
         g.addColorStop(0, 'rgba(40,10,50,1)');
@@ -68,11 +67,11 @@
         bgCtx.fillStyle = g;
         bgCtx.fillRect(0, 0, w, h);
         
+        // 2. Cache Atmosfera
         atmosphereCache = document.createElement('canvas');
-        atmosphereCache.width = Math.round(w * DPR);
-        atmosphereCache.height = Math.round(h * DPR);
+        atmosphereCache.width = Math.ceil(w);
+        atmosphereCache.height = Math.ceil(h);
         const atmCtx = atmosphereCache.getContext('2d');
-        atmCtx.scale(DPR, DPR);
         atmCtx.globalCompositeOperation = 'lighter';
         
         glows.forEach(g => {
@@ -94,6 +93,7 @@
             atmCtx.fillRect(0, 0, w, h);
         }
 
+        // Cache Gradienti Onde
         waveGrad = layers.map(L => {
             const grad = ctx.createLinearGradient(0, 0, w, 0);
             grad.addColorStop(0, `hsla(${L.hue},100%,55%,${L.alpha})`);
@@ -103,17 +103,26 @@
     }
 
     function resize() {
-        w = canvas.width = innerWidth;
-        h = canvas.height = innerHeight;
-        canvas.style.width = innerWidth + 'px';
-        canvas.style.height = innerHeight + 'px';
+        // --- FIX IMPORTANTE: Forza lo stile via JS per evitare il taglio ---
+        canvas.style.position = 'fixed';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.width = '100vw';
+        canvas.style.height = '100vh';
+        canvas.style.zIndex = '-1';
+        canvas.style.pointerEvents = 'none'; // Permette il click attraverso il canvas
+        // -------------------------------------------------------------------
+
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+
         initEntities();
         buildCaches();
         t0 = performance.now();
     }
 
     const drawBackground = () => {
-        if (bgCache) ctx.drawImage(bgCache, 0, 0, w, h);
+        if (bgCache) ctx.drawImage(bgCache, 0, 0);
     };
 
     const drawPulse = time => {
@@ -189,7 +198,7 @@
             const pulse = 0.75 + Math.sin(time * 0.001) * 0.25;
             ctx.globalAlpha = pulse;
             ctx.globalCompositeOperation = 'lighter';
-            ctx.drawImage(atmosphereCache, 0, 0, w, h);
+            ctx.drawImage(atmosphereCache, 0, 0);
             ctx.globalCompositeOperation = 'source-over';
             ctx.globalAlpha = 1;
         }
@@ -235,7 +244,9 @@
         mouse.y += (mouse.ty - mouse.y) * 0.09;
 
         ctx.globalCompositeOperation = 'source-over';
-        ctx.clearRect(0, 0, w, h);
+        // Non serve clearRect se disegniamo il bgCache opaco sopra, 
+        // ma per sicurezza lo lasciamo o usiamo fillRect nero
+        // ctx.clearRect(0, 0, w, h); 
         
         drawBackground();
         drawPulse(time);
@@ -254,7 +265,7 @@
     let resizeTimeout;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(resize, 250); 
+        resizeTimeout = setTimeout(resize, 200); 
     }, { passive: true });
 
     window.addEventListener('mousemove', (e) => {
@@ -269,9 +280,12 @@
     document.addEventListener('visibilitychange', () => {
         running = !document.hidden;
         if (running) {
-            t0 = performance.now() - (last || 0); // Resetta timer per evitare "salti"
-            last = performance.now();
+            // Fix: ricalcoliamo t0 per evitare salti temporali nell'animazione
+            t0 = performance.now() - (lastTime || 0);
             requestAnimationFrame(loop);
+        } else {
+            // Salviamo il tempo corrente dell'animazione
+            lastTime = performance.now() - t0;
         }
     });
 
