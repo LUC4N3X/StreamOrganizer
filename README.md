@@ -225,24 +225,38 @@ Una volta salvato, attendi qualche secondo e collegati a `https://il-tuo-dominio
 
 <div align="center">
   <br />
-  <table role="presentation" cellpadding="20" cellspacing="0" style="border:1px solid rgba(187,134,252,0.4); border-radius:14px; width:90%; max-width:700px; background: radial-gradient(circle at top left, rgba(30, 0, 40, 0.3), transparent);">
+  <table role="presentation" cellpadding="20" cellspacing="0" 
+         style="border:1px solid rgba(187,134,252,0.4); border-radius:16px; width:90%; max-width:700px; 
+                background: radial-gradient(circle at top left, rgba(30, 0, 40, 0.3), transparent); 
+                box-shadow: 0 0 25px rgba(187,134,252,0.3); transition: transform 0.3s;">
     <tr>
-      <td align="center" style="font-family:Segoe UI, Arial, sans-serif;">
-        <h3 style="margin-top:0; color:#bb86fc; font-size: 1.4em;">🌐 Prova la versione Cloud</h3>
-        <p style="margin:0 0 20px 0; font-size:1em; color:#a0a0a0;">
+      <td align="center" style="font-family: 'Segoe UI', Arial, sans-serif; color:#e0d4ff;">
+        <h3 style="margin-top:0; color:#bb86fc; font-size:1.5em; text-shadow:0 0 10px #bb86fc;">🌐 Prova la versione Cloud</h3>
+        <p style="margin:0 0 20px 0; font-size:1.1em; color:#c0c0c0;">
            Nessuna installazione necessaria. Scegli il provider che preferisci:
         </p>
-        <a href="https://luc4n3x-stream-organizer.hf.space" target="_blank">
-            <img src="https://img.shields.io/badge/🤗%20HuggingFace-Demo_Live-ffd21e?style=for-the-badge&logo=huggingface&logoColor=black&labelColor=1f1f1f" alt="HuggingFace Demo" height="35" style="border-radius: 6px; margin: 5px;">
-        </a>
-        <a href="https://stream-organizer.vercel.app" target="_blank">
-            <img src="https://img.shields.io/badge/▲%20Vercel-Demo_Live-000000?style=for-the-badge&logo=vercel&logoColor=white&labelColor=1f1f1f" alt="Vercel Demo" height="35" style="border-radius: 6px; margin: 5px;">
-        </a>
+        <p style="margin:5px 0; font-size:1.2em;">
+          👉 <a href="https://luc4n3x-stream-organizer.hf.space" target="_blank" 
+                 style="color:#7ee787; font-weight:bold; text-decoration:none; transition: all 0.3s;"
+                 onmouseover="this.style.color='#bb86fc'; this.style.textShadow='0 0 8px #7ee787';" 
+                 onmouseout="this.style.color='#7ee787'; this.style.textShadow='none';">
+              HuggingFace
+          </a>
+        </p>
+        <p style="margin:5px 0; font-size:1.2em;">
+          👉 <a href="https://stream-organizer.vercel.app" target="_blank" 
+                 style="color:#7ee787; font-weight:bold; text-decoration:none; transition: all 0.3s;"
+                 onmouseover="this.style.color='#bb86fc'; this.style.textShadow='0 0 8px #7ee787';" 
+                 onmouseout="this.style.color='#7ee787'; this.style.textShadow='none';">
+              Vercel
+          </a>
+        </p>
       </td>
     </tr>
   </table>
   <br />
 </div>
+
 
 ---
 ## 🧑‍💻 Crediti Cyberpunk
