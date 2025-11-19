@@ -124,7 +124,6 @@ body {
         color-mix(in srgb, var(--secondary-color) 80%, black));
     border-radius: 6px;
     border: 2px solid var(--track-color);
-    transition: background var(--transition-smooth), transform var(--transition-fast);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -171,7 +170,6 @@ html {
         color: #fff !important;
     }
 
-    /* Disabilita custom scrollbar su mobile → 0 repaint inutili */
     html {
         scrollbar-width: none;
     }
@@ -223,14 +221,4 @@ input,
 
 .fade-enter-from, .fade-leave-to {
     opacity: 0;
-}
-
-/* Accessibilità + performance extra */
-@media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-    }
 }
