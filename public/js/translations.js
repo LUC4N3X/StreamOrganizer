@@ -316,7 +316,7 @@ const translations = {
             login: "Control the chaos. Dominate your Addons.",
             monitoring: "Monitoring Mode active",
             loggedIn: "Quick console to manage, order, and save addons",
-            security: "🛡️ Secure: Password not saved. AuthKey remains on your device."
+            security: "Secure: Password not saved. AuthKey remains on your device."
         },
         core: {
             themeLight: "Light Mode Activated! (Saved)",
@@ -624,7 +624,7 @@ const translations = {
             login: "Contrôlez le chaos. Dominez vos addons.",
             monitoring: "Mode de surveillance actif",
             loggedIn: "Console rapide pour gérer, ordonner et sauvegarder les addons",
-            security: "🛡️ Sécurisé : Mot de passe non sauvegardé. Votre AuthKey reste sur cet appareil."
+            security: "Sécurisé : Mot de passe non sauvegardé. Votre AuthKey reste sur cet appareil."
         },
         core: {
             themeLight: "Mode Clair Activé ! (Sauvegardé)",
@@ -932,7 +932,7 @@ const translations = {
             login: "Kontrolliere das Chaos. Beherrsche deine Addons.",
             monitoring: "Überwachungsmodus aktiv",
             loggedIn: "Schnellkonsole zum Verwalten, Sortieren und Speichern von Addons",
-            security: "🛡️ Sicher: Passwort nicht gespeichert. AuthKey bleibt auf Ihrem Gerät."
+            security: "Sicher: Passwort nicht gespeichert. AuthKey bleibt auf Ihrem Gerät."
         },
         core: {
             themeLight: "Hellmodus aktiviert! (Gespeichert)",
@@ -1240,7 +1240,7 @@ const translations = {
             login: "Controla el caos. Domina tus addons.",
             monitoring: "Modo de monitorización activo",
             loggedIn: "Consola rápida para gestionar, ordenar y guardar addons",
-            security: "🛡️ Seguro: Contraseña no guardada. La AuthKey permanece en tu dispositivo."
+            security: "Seguro: Contraseña no guardada. La AuthKey permanece en tu dispositivo."
         },
         core: {
             themeLight: "¡Modo Claro Activado! (Guardado)",
@@ -1548,7 +1548,7 @@ const translations = {
             login: "Контролюй хаос. Пануй над своїми додатками.",
             monitoring: "Режим моніторингу активний",
             loggedIn: "Швидка консоль для керування, сортування та збереження додатків",
-            security: "🛡️ Безпечно: Пароль не зберігається. AuthKey залишається на вашому пристрої."
+            security: "Безпечно: Пароль не зберігається. AuthKey залишається на вашому пристрої."
         },
         core: {
             themeLight: "Світлий режим активовано! (Збережено)",
@@ -1856,7 +1856,7 @@ const translations = {
             login: "Controle o caos. Domine os seus addons.",
             monitoring: "Modo de Monitoramento Ativo",
             loggedIn: "Console rápido para gerenciar, ordenar e salvar addons",
-            security: "🛡️ Seguro: Senha não salva. A AuthKey permanece no seu dispositivo."
+            security: "Seguro: Senha não salva. A AuthKey permanece no seu dispositivo."
         },
         core: {
             themeLight: "Modo Claro Ativado! (Guardado)",
