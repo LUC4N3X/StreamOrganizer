@@ -13,7 +13,7 @@
       margin: 0;
       padding: 0;
       height: 100%;
-      /* Overflow-x hidden  */
+      /* Overflow-x hidden serve solo per evitare la barra laterale durante lo "scatto" del glitch */
       overflow-x: hidden; 
     }
 
@@ -36,7 +36,8 @@
       pointer-events: none;
     }
 
-   
+    /* L'app deve stare davanti. 
+       NOTA: Non metto display:flex o width qui, lascio che ci pensi il tuo layout.css */
     #app {
       position: relative;
       z-index: 1; /* Davanti */
