@@ -1,3 +1,4 @@
+/* ====== UNIVERSAL RESET ====== */
 *,
 *::before,
 *::after {
@@ -7,6 +8,7 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+/* ====== CSS VARIABLES (RGB-BASED DYNAMIC THEME) ====== */
 :root {
     --primary-rgb: 187, 134, 252;
     --secondary-rgb: 3, 218, 198;
@@ -19,11 +21,13 @@
     --text-muted-rgb: 230, 230, 230;
     --border-rgb: 255, 255, 255;
     --shadow-rgb: 0, 0, 0;
+    
     --glow-primary: 0.35;
     --glow-secondary: 0.22;
     --glow-accent: 0.28;
     --glow-soft: 0.15;
 
+    /* Variabili Calcolate */
     --primary-color: rgb(var(--primary-rgb));
     --secondary-color: rgb(var(--secondary-rgb));
     --accent-color: rgb(var(--accent-rgb));
@@ -39,6 +43,7 @@
     --neon-glow-secondary: rgba(var(--secondary-rgb), var(--glow-secondary));
     --neon-glow-accent: rgba(var(--accent-rgb), var(--glow-accent));
 
+    /* Light Mode RGB Defaults */
     --primary-light-rgb: 41, 121, 255;
     --secondary-light-rgb: 29, 233, 182;
     --error-light-rgb: 255, 23, 68;
@@ -46,16 +51,19 @@
     --bg-light-secondary-rgb: 244, 244, 244;
     --text-dark-rgb: 31, 31, 31;
 
+    /* Fonts */
     --font-main: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --font-title: 'Orbitron', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 
+    /* Utilities */
     --transition-fast: 0.15s ease;
     --transition-smooth: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     --neon-blur: blur(1px);
     --glitch-duration: 0.5s;
 }
 
+/* ====== LIGHT MODE (System Preference) ====== */
 @media (prefers-color-scheme: light) {
     :root {
         --primary-rgb: var(--primary-light-rgb);
@@ -87,6 +95,7 @@
     }
 }
 
+/* ====== BASE STYLES ====== */
 html,
 body {
     min-height: 100vh;
@@ -102,6 +111,7 @@ body {
     transition: background var(--transition-smooth), color var(--transition-smooth);
 }
 
+/* ====== SELECTION & SCROLLBAR (Desktop) ====== */
 ::selection,
 ::-moz-selection {
     background: var(--primary-color);
@@ -112,12 +122,10 @@ body {
 ::-webkit-scrollbar {
     width: 10px;
 }
-
 ::-webkit-scrollbar-track {
     background: var(--track-color);
     border-radius: 5px;
 }
-
 ::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg,
         color-mix(in srgb, var(--primary-color) 90%, black),
@@ -125,19 +133,19 @@ body {
     border-radius: 6px;
     border: 2px solid var(--track-color);
 }
-
 ::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
     box-shadow: 0 0 16px var(--neon-glow-primary);
 }
-
 html {
     scrollbar-width: thin;
     scrollbar-color: color-mix(in srgb, var(--primary-color) 85%, black) var(--track-color);
 }
 
+/* ====== MOBILE OVERRIDE (FORCED DARK MODE & NO SCROLLBAR) ====== */
 @media (max-width: 768px) {
     :root {
+        /* Forza colori Dark su mobile */
         --primary-rgb: 187, 134, 252;
         --secondary-rgb: 3, 218, 198;
         --error-rgb: 207, 102, 121;
@@ -170,6 +178,7 @@ html {
         color: #fff !important;
     }
 
+    /* Nascondi scrollbar su mobile (Miglioramento UX) */
     html {
         scrollbar-width: none;
     }
@@ -182,6 +191,7 @@ html {
     }
 }
 
+/* ====== TOUCH & ANIMATIONS ====== */
 button,
 a,
 input,
@@ -195,7 +205,6 @@ input,
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes softMove {
     0% { transform: translate(0, 0) skewX(0deg); }
     20% { transform: translate(-0.5px, 0.5px) skewX(0.3deg); }
@@ -204,12 +213,10 @@ input,
     80% { transform: translate(0.2px, -0.2px) skewX(-0.1deg); }
     100% { transform: translate(0, 0) skewX(0deg); }
 }
-
 @keyframes pulseGlow {
     0%, 100% { opacity: 0.3; }
     50% { opacity: 0.6; }
 }
-
 @keyframes glowLine {
     0% { filter: hue-rotate(0deg); }
     100% { filter: hue-rotate(360deg); }
@@ -218,7 +225,6 @@ input,
 .fade-enter-active, .fade-leave-active {
     transition: opacity .3s ease;
 }
-
 .fade-enter-from, .fade-leave-to {
     opacity: 0;
 }
