@@ -1,10 +1,11 @@
-// 'ref' viene passato come argomento dalla funzione setup principale
+// public/js/composables/useAppCore.js
+
 export function useAppCore(ref) {
     // --- Refs ---
     const isLoading = ref(false);
-    const apiBaseUrl = window.location.origin; // Corretto: non è un ref, è una costante
+    const apiBaseUrl = window.location.origin; 
     const isMobile = ref(window.innerWidth <= 960);
-    const isLightMode = ref(false);
+    const isLightMode = ref(false); // DEFAULT: Parte sempre in Dark
     const showInstructions = ref(false);
 
     // --- Toast Logic ---
@@ -21,40 +22,46 @@ export function useAppCore(ref) {
     // --- Mobile & Theme Logic ---
     const updateIsMobile = () => isMobile.value = window.innerWidth <= 960;
 
-    // Funzione "worker" che applica il tema al DOM e salva nel localStorage
+    // Funzione interna per applicare il tema
     const applyTheme = (isLight) => {
+        // Applica la classe CSS al body
         if (isLight) {
             document.body.classList.add('light-mode');
         } else {
             document.body.classList.remove('light-mode');
         }
+        
+        // Salva con la chiave CORRETTA (stremioTheme)
         try {
-            localStorage.setItem('stremioConsoleTheme', isLight ? 'light' : 'dark');
+            localStorage.setItem('stremioTheme', isLight ? 'light' : 'dark');
         } catch(e) {
             console.warn("Cannot save theme pref to localStorage.");
         }
     };
 
-    // Modifica: Ora 'toggleTheme' gestisce l'intero processo
     const toggleTheme = () => {
         isLightMode.value = !isLightMode.value; 
         applyTheme(isLightMode.value);          
     };
     
-    // Inizializza il tema al caricamento
+    // Inizializzazione
     const initTheme = () => {
         try {
-            const savedTheme = localStorage.getItem('stremioConsoleTheme');
+            // Usa la chiave CORRETTA: 'stremioTheme'
+            const savedTheme = localStorage.getItem('stremioTheme');
+            
             if (savedTheme) {
-                // 1. Priorità: tema salvato dall'utente
+                // Se esiste un salvataggio, usalo
                 isLightMode.value = savedTheme === 'light';
             } else {
-                // 2. Fallback: preferenza di sistema
-                isLightMode.value = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+                // Se NON esiste salvataggio, forza DARK (false)
+                isLightMode.value = false;
             }
+            
+            // Applica subito visivamente
             applyTheme(isLightMode.value); 
         } catch(e) { 
-            console.warn("Error reading theme from localStorage or getting system preference.");
+            console.warn("Error reading theme from localStorage.");
             isLightMode.value = false; 
             applyTheme(isLightMode.value);
         }
