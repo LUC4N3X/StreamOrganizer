@@ -126,40 +126,116 @@
 
 # 🚀 Installazione
 
-### 🐳 Metodo **Docker** (🔥 Consigliato)
+🐳 Installazione con Docker (🔥 Metodo Consigliato)
 
-```bash
-# 1️⃣ Clona il repository
+> Questo metodo è ottimizzato per l’uso con Nginx Proxy Manager, Traefik, Caddy o qualsiasi reverse proxy HTTPS.
+Sicuro, pulito e pronto per la produzione.
+
+
+
+
+---
+
+🚀 1️⃣ Setup Iniziale
+
+Clona il repository ed entra nella cartella:
+
 git clone https://github.com/Luca1234105/StreamOrder.git
 cd StreamOrder
 
-# 2️⃣ Crea un file .env nella root del progetto
+
+---
+
+🔧 2️⃣ Configurazione Ambiente (.env)
+
+Crea velocemente il file .env con:
+
+# Genera il file .env (sostituisci i valori!)
 cat > .env <<EOL
-GITHUB_TOKEN=la_tua_chiave_github
+GITHUB_TOKEN=la_tua_chiave_github_opzionale
+MONITOR_KEY=una_password_segreta_a_tua_scelta
 PORT=7860
 EOL
 
-# 3️⃣ Costruisci l'immagine Docker
+📌 Variabili disponibili
+
+Variabile	Descrizione
+
+GITHUB_TOKEN	(Opzionale) Aumenta i limiti API GitHub
+MONITOR_KEY	Password obbligatoria per proteggere la dashboard
+PORT	Porta interna dell’app (default 7860)
+
+
+
+---
+
+🏗️ 3️⃣ Build & Deploy
+
+🔨 Costruisci l'immagine
+
 docker build -t streamorder .
 
-# 4️⃣ Avvia il container in background caricando le variabili d'ambiente
-docker run -d -p 7860:7860 --env-file .env --name streamorder-app streamorder
+▶️ Avvia il container
+
+docker run -d \
+  -p 7860:7860 \
+  --env-file .env \
+  --restart unless-stopped \
+  --name streamorder-app \
+  streamorder
 
 
-```
-📦 Deploy & Build Manuale (Senza Docker)
-```bash
-# 1️⃣ Clona il repository
-git clone https://github.com/Luca1234105/StreamOrder.git
-cd StreamOrder
+---
 
-# 2️⃣ Installa le dipendenze
-npm install
+⚡️ Configurazione Avanzata
 
-# 3️⃣ Avvia StreamOrder in modalità sviluppo
-npm start
-```
-<div align="center"> <table role="presentation" cellpadding="14" cellspacing="0" style="background:linear-gradient(135deg,#0a0014,#130022);border:1px solid rgba(187,134,252,0.4);border-radius:14px;box-shadow:0 0 20px rgba(187,134,252,0.3);width:80%;max-width:700px;"> <tr> <td align="center" style="color:#e0d4ff;font-family:Segoe UI,Arial,sans-serif;"> <p style="margin:0;font-size:1.1em;"> 🟢 <strong>Dopo l’avvio</strong>, StreamOrder sarà accessibile su:
+🔒 HTTPS & Reverse Proxy (Fondamentale)
+
+> [!IMPORTANT]
+Per motivi di sicurezza, NON usare l'app in HTTP diretto.
+I browser moderni non salveranno i cookie → niente login.
+
+
+
+Target reverse proxy:
+http://INDIRIZZO-IP:7860
+
+
+---
+
+🛠 Cambiare la Porta (Modalità Esperto)
+
+> [!WARNING]
+Non basta cambiare il mapping -p 8080:7860.
+Ci sono controlli CORS, CSP e validazioni di sicurezza nel codice.
+
+
+
+Per usare una nuova porta (es: 8080), devi:
+
+1️⃣ Modificare il Dockerfile
+
+ENV PORT=8080
+EXPOSE 8080
+
+2️⃣ Modificare server.js
+
+const PORT = process.env.PORT || 8080;
+
+const allowedOrigins = [
+    "https://tuodominio.com",
+    "https://altrodominio.it",
+    "http://localhost:8080"
+];
+
+3️⃣ Aggiornare il .env
+
+PORT=8080
+
+4️⃣ Ricostruire l’immagine
+
+docker build -t streamorder .
+
 
 
 
