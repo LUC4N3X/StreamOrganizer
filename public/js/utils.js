@@ -30,14 +30,20 @@ export const mapAddon = (addon) => ({
     githubInfo: null,
     isLoadingGithub: false,
 
-    
     resourceNames: getResourceNames(addon.manifest.resources)
 });
 
 /**
- * Esegue una clonazione profonda di un oggetto serializzabile JSON
+ * Esegue una clonazione profonda di un oggetto.
+ * Usa la moderna API 'structuredClone' se disponibile (più veloce e gestisce Date/Map/Set),
+ * altrimenti usa il fallback JSON per compatibilità con vecchi WebView/Smart TV.
  */
-export const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
+export const deepClone = (obj) => {
+    if (typeof structuredClone === 'function') {
+        return structuredClone(obj);
+    }
+    return JSON.parse(JSON.stringify(obj));
+};
 
 /**
  * Ottiene una stringa formattata dei nomi delle risorse di un addon
