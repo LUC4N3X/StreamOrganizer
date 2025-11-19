@@ -227,6 +227,16 @@ Accedi subito alla versione web:
 </div>
 
 ---
+<div align="center">
+
+[![LUC4N3X](https://img.shields.io/badge/SYSTEM-LUC4N3X-ff00ff?style=for-the-badge&logo=github&logoColor=white)](https://github.com/LUC4N3X)
+[![License](https://img.shields.io/badge/LICENSE-MIT-00f2ea?style=for-the-badge&logo=open-source-initiative&logoColor=white)](https://opensource.org/licenses/MIT)
+[![Status](https://img.shields.io/badge/LINK-EST._2025-7000ff?style=for-the-badge)](https://github.com/LUC4N3X)
+
+</div>
+
+<br />
+
 # MIT License
 
 **Copyright (c) 2025 LUC4N3X**
@@ -251,19 +261,15 @@ SOFTWARE.
 
 ---
 
-<div align="center" style="background:linear-gradient(135deg,#0a0014,#130022);padding:25px;border-radius:14px;box-shadow:0 0 25px rgba(255,0,255,0.45), 0 0 12px rgba(100,0,255,0.25) inset;">
+<div align="center">
 
-<h2 style="color:#ff66ff;font-family:'Orbitron',sans-serif;text-shadow:0 0 10px #ff00ff;margin-bottom:10px;">
-⚡ LUC4N3X SYSTEMS ⚡
-</h2>
+<h3>⚡ LUC4N3X SYSTEMS ⚡</h3>
 
-<p style="color:#d9caff;font-family:'Roboto Mono',monospace;font-size:1.1em;margin:8px 0;text-shadow:0 0 6px #ff66ff;">
-💠 Bend the neon streams, master your addons, and may your cyberdeck always run clean.
-</p>
+<code>> Bend the neon streams. Master your addons.</code><br>
+<code>> May your cyberdeck always run clean.</code>
 
-<p style="color:#7ee787;font-family:'Orbitron',sans-serif;font-size:1em;margin:10px 0;text-shadow:0 0 6px #00ffff;">
-🌌 Use wisely. Code boldly. Shine neon.
-</p>
+<br>
+
+🌌 **USE WISELY // CODE BOLDLY** 🌌
 
 </div>
-
