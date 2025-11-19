@@ -128,20 +128,24 @@
 
 Benvenuto nella guida all'installazione di StreamOrder. Segui questi passaggi per configurare la tua istanza personale in pochi minuti.
 
+> [!IMPORTANT]
+> **🔒 HTTPS è Obbligatorio**
+> Questa applicazione **NON** funzionerà correttamente se aperta direttamente tramite `http://localhost:7860`.
+> I browser moderni bloccano i cookie di sessione (necessari per il login) su connessioni non sicure.
+> È **necessario** utilizzare un Reverse Proxy (come Nginx) configurato con un certificato SSL (HTTPS).
+
 ## 📋 Prerequisiti
 
-Prima di iniziare, assicurati di avere installato:
+Prima di iniziare, assicurati di avere:
 
 * [Docker](https://www.docker.com/)
-* [Git](https://git-scm.com/)
+* Un dominio (es. `stream.tuodominio.com`)
+* Un Reverse Proxy (Nginx, Apache, Traefik, ecc.)
+* Certificati SSL (es. tramite Let's Encrypt/Certbot)
 
-## 🐳 Installazione con Docker (Consigliato)
-
-Questa configurazione è pensata per essere eseguita dietro un Reverse Proxy (come Nginx, Traefik o Nginx Proxy Manager).
+## 🐳 Installazione con Docker
 
 ### 1️⃣ Clona il Repository
-
-Apri il terminale e scarica i file del progetto:
 
 ```bash
 git clone [https://github.com/Luca1234105/StreamOrder.git](https://github.com/Luca1234105/StreamOrder.git)
@@ -179,14 +183,45 @@ docker run -d \
   streamorder
 
 ```
-⚡️ Configurazione Avanzata
-[!IMPORTANT] 🔒 HTTPS è Fondamentale Per garantire che il login funzioni correttamente, l'applicazione deve essere eseguita dietro un Reverse Proxy con HTTPS (es. un dominio con certificato SSL). Senza HTTPS, i browser moderni potrebbero bloccare i cookie di sessione.
+> [!WARNING]
+> **🛠 Cambiare la Porta (Solo per Esperti)**
+> La porta predefinita è `7860`. Se vuoi usare la porta `8080` o altre, **NON** basta cambiare il comando docker.
+> Devi modificare manualmente questi file prima di fare la build:
+>
+> * `Dockerfile`: Modifica `EXPOSE 7860` e `ENV PORT=7860`
+> * `server.js`: Modifica la variabile `PORT`
+> * `.env`: Modifica la variabile `PORT`
 
-[!WARNING] 🛠 Cambiare la Porta (Solo per Esperti) La porta predefinita è 7860. Se vuoi usare la porta 8080 o altre, NON basta cambiare il comando docker. Devi modificare manualmente questi file prima di fare la build:
 
-* `Dockerfile`: Modifica `EXPOSE 7860` e `ENV PORT=7860`
-* `server.js`: Modifica la variabile `PORT`
-* `.env`: Modifica la variabile `PORT`
+## 🌐 Configurazione con Nginx Proxy Manager
+
+Se utilizzi Nginx Proxy Manager, segui questi passaggi nell'interfaccia grafica per configurare l'accesso sicuro (HTTPS).
+
+> [!IMPORTANT]
+> **Non usare `localhost`**
+> Nel campo "Forward Hostname / IP", **NON** inserire `127.0.0.1` o `localhost`. Poiché Nginx Proxy Manager gira in un container, `localhost` si riferirebbe al container stesso, non alla macchina dove gira StreamOrder.
+> Usa l'**IP della macchina** (es. `192.168.x.x`) o il nome del container se sono sulla stessa rete Docker.
+
+### 1️⃣ Tab "Details"
+Crea un nuovo **Proxy Host** e compila così:
+
+* **Domain Names:** `il-tuo-dominio.com`
+* **Scheme:** `http`
+* **Forward Hostname / IP:** `IP_DEL_TUO_SERVER` (l'IP della macchina dove hai lanciato Docker)
+* **Forward Port:** `7860`
+* **Cache Assets:** Disattivato
+* **Block Common Exploits:** ✅ Attivo
+* **Websockets Support:** ✅ Attivo (Fondamentale)
+
+### 2️⃣ Tab "SSL"
+Questa parte è cruciale per far funzionare il login.
+
+* **SSL Certificate:** Seleziona "Request a new SSL Certificate" (o usane uno esistente).
+* **Force SSL:** ✅ **OBBLIGATORIO** (Senza questo, i cookie di login non funzionano).
+* **HTTP/2 Support:** ✅ Attivo
+* **HSTS Enabled:** ✅ Attivo
+
+Una volta salvato, attendi qualche secondo e collegati a `https://il-tuo-dominio.com`.
 
 👉 <a href="http://localhost:8080" style="color:#bb86fc;font-weight:bold;text-decoration:none;">http://localhost:8080</a> </p> </td> </tr> </table> </div> <div align="center"> <table role="presentation" cellpadding="14" cellspacing="0" style="background:linear-gradient(135deg,#0a0014,#130022);border:1px solid rgba(187,134,252,0.4);border-radius:14px;box-shadow:0 0 20px rgba(187,134,252,0.3);width:80%;max-width:700px;"> <tr> <td align="center" style="color:#e0d4ff;font-family:Segoe UI,Arial,sans-serif;"> <h3 style="margin-top:0;color:#bb86fc;">🌐 Oppure prova la versione online!</h3> <p style="margin:0;font-size:1.1em;"> 💻 <strong>Nessuna installazione necessaria!</strong>
 
