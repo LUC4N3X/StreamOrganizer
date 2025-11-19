@@ -124,76 +124,53 @@
 
 ---
 
-🚀 StreamOrder
-Benvenuto nella guida all'installazione di StreamOrder. Configurazione pronta in pochi minuti.
+# 🚀 StreamOrder
 
-### 📋 Prerequisiti
-- Docker
-- Git
+Benvenuto nella guida all'installazione di StreamOrder. Segui questi passaggi per configurare la tua istanza personale in pochi minuti.
 
-### 🐳 Installazione con Docker (Consigliato)
-Questa configurazione è pensata per essere eseguita dietro un Reverse Proxy con HTTPS (Nginx, Traefik, Nginx Proxy Manager, Caddy, ecc.).
+## 📋 Prerequisiti
 
-#### 1️⃣ Clona il Repository
+Prima di iniziare, assicurati di avere installato:
+
+* [Docker](https://www.docker.com/)
+* [Git](https://git-scm.com/)
+
+## 🐳 Installazione con Docker (Consigliato)
+
+Questa configurazione è pensata per essere eseguita dietro un Reverse Proxy (come Nginx, Traefik o Nginx Proxy Manager).
+
+### 1️⃣ Clona il Repository
+
+Apri il terminale e scarica i file del progetto:
+
 ```bash
-git clone https://github.com/Luca1234105/StreamOrder.git
+git clone [https://github.com/Luca1234105/StreamOrder.git](https://github.com/Luca1234105/StreamOrder.git)
 cd StreamOrder
 ```
 2️⃣ Crea il file di Configurazione (.env)
-Metodo consigliato (più sicuro e professionale per GitHub)
-Il repository contiene già il file .env.example. Usa questo comando:
-Bashcp .env.example .env
-Poi apri .env con il tuo editor e modifica almeno la MONITOR_KEY.
-Metodo alternativo (se per qualche motivo non hai .env.example)
-Usa questo comando che crea direttamente un .env già commentato e con valori placeholder sicuri:
-
-cat > .env <<'EOL'
-# ========================================
-# StreamOrder - File di configurazione (.env)
-# ========================================
-# ⚠️  NON committare mai questo file su GitHub con dati reali!
-# Usa .gitignore per escludere .env e committa solo .env.example
-
-# MONITOR_KEY
-# ✅ OBBLIGATORIA
-# Password per accedere al pannello /monitor
-# Deve essere lunga e forte (minimo 16-20 caratteri consigliati)
-# Esempio: usa un generatore o una frase casuale
-MONITOR_KEY=cambia_questa_password_subito_con_una_molto_lunga_e_sicura_123!
-
-# PORT
-# ❌ Opzionale (default: 7860)
-# Porta interna del container Docker
-# Cambiala solo se sai che 7860 è già occupata
+Crea un file chiamato .env nella cartella principale. Puoi farlo manualmente o copiando questo comando nel terminale:
+```
+# Crea il file .env con le variabili necessarie
+# NOTA: Cambia "la_tua_password" con una password vera!
+cat > .env <<EOL
+GITHUB_TOKEN=token_opzionale_se_lo_hai
+MONITOR_KEY=la_tua_password_segreta
 PORT=7860
-
-# GITHUB_TOKEN
-# ❌ Opzionale
-# Token GitHub personale (PAT) con scope "repo" e "workflow"
-# Serve solo se fai MOLTE richieste (centinaia di repo al giorno)
-# Senza token → 60 richieste/ora
-# Con token → 5000 richieste/ora
-# Crea qui: https://github.com/settings/tokens/new
-GITHUB_TOKEN=
-
-# ========================================
-# Variabili avanzate (raramente necessarie)
-# ========================================
-
-# TIMEZONE
-# Opzionale - default UTC
-# TIMEZONE=Europe/Rome
-
-# LOG_LEVEL
-# Opzionale - debug, info, warn, error (default: info)
-# LOG_LEVEL=info
-
 EOL
+```
+| Variabile | Obbligatoria? | Descrizione |
+| :--- | :---: | :--- |
+| `MONITOR_KEY` | ✅ Sì | La password per accedere al pannello di amministrazione. |
+| `PORT` | ❌ No | La porta interna (default: `7860`). |
+| `GITHUB_TOKEN` | ❌ No | Utile solo se fai molte richieste alle API di GitHub. |
 
-# Costruisci l'immagine
+3️⃣ Avvia il Container
+Esegui questi comandi per costruire e avviare l'app:
+```
+# 1. Costruisci l'immagine Docker
 docker build -t streamorder .
 
-# Avvia il container
+# 2. Avvia il container in background
 docker run -d \
   -p 7860:7860 \
   --env-file .env \
@@ -201,6 +178,15 @@ docker run -d \
   --name streamorder-app \
   streamorder
 
+```
+⚡️ Configurazione Avanzata
+[!IMPORTANT] 🔒 HTTPS è Fondamentale Per garantire che il login funzioni correttamente, l'applicazione deve essere eseguita dietro un Reverse Proxy con HTTPS (es. un dominio con certificato SSL). Senza HTTPS, i browser moderni potrebbero bloccare i cookie di sessione.
+
+[!WARNING] 🛠 Cambiare la Porta (Solo per Esperti) La porta predefinita è 7860. Se vuoi usare la porta 8080 o altre, NON basta cambiare il comando docker. Devi modificare manualmente questi file prima di fare la build:
+
+* `Dockerfile`: Modifica `EXPOSE 7860` e `ENV PORT=7860`
+* `server.js`: Modifica la variabile `PORT`
+* `.env`: Modifica la variabile `PORT`
 
 👉 <a href="http://localhost:8080" style="color:#bb86fc;font-weight:bold;text-decoration:none;">http://localhost:8080</a> </p> </td> </tr> </table> </div> <div align="center"> <table role="presentation" cellpadding="14" cellspacing="0" style="background:linear-gradient(135deg,#0a0014,#130022);border:1px solid rgba(187,134,252,0.4);border-radius:14px;box-shadow:0 0 20px rgba(187,134,252,0.3);width:80%;max-width:700px;"> <tr> <td align="center" style="color:#e0d4ff;font-family:Segoe UI,Arial,sans-serif;"> <h3 style="margin-top:0;color:#bb86fc;">🌐 Oppure prova la versione online!</h3> <p style="margin:0;font-size:1.1em;"> 💻 <strong>Nessuna installazione necessaria!</strong>
 
