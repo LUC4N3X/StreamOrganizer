@@ -1,3 +1,5 @@
+// public/js/translations.js
+
 const translations = {
     it: {
         meta: { title: "StreamOrder ⚡ Console di Comando Addon" },
@@ -2076,7 +2078,7 @@ const translations = {
             selectAll: "Selecionar Todos",
             deselectAll: "Desmarcar Todos",
             enabledSuccess: "Ativados {{count}} addons selecionados. Clique em Salvar.",
-            disabledSuccess: "Desativados {{count}} addons selecionados. Clique em Salvar.",
+            disabledSuccess: "Desactivados {{count}} addons selecionados. Clique em Salvar.",
             removeSuccess: "Removidos {{count}} addons selecionados. Clique em Salvar.",
             noneToEnable: "Nenhum addon selecionado para ativar.",
             noneToDisable: "Nenhum addon selecionado para desativar."
@@ -2124,7 +2126,7 @@ const translations = {
             },
             bulk: {
                 title: "Ações em Massa",
-                p1: "Selecione um ou mais addons através da caixa de seleção e, em seguida, use os botões 'Ativar', 'Desativar' ou 'Remover' para aplicar a ação a todos os selecionados simultaneamente.",
+                p1: "Selecione um ou mais addons através da caixa de seleção e, em seguida, use os botões 'Ativar', 'Desactivar' ou 'Remover' para aplicar a ação a todos os selecionados simultaneamente.",
             },
             status: {
                 title: "Verificação de Status",
@@ -2156,3 +2158,5 @@ const translations = {
         }
     }
 };
+
+export default translations;
