@@ -223,35 +223,14 @@ Questa parte è cruciale per far funzionare il login.
 
 Una volta salvato, attendi qualche secondo e collegati a `https://il-tuo-dominio.com`.
 
-<div align="center">
-  <br />
-  <table role="presentation" cellpadding="25" cellspacing="0" style="border: 1px solid #333; border-radius: 8px; width: 90%; max-width: 700px; background-color: #050505; background-image: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #000000 100%); box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);">
-    <tr>
-      <td align="center" style="font-family: 'Courier New', Courier, monospace;">
-        
-        <h3 style="margin-top:0; color: #fff; font-size: 1.6em; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px #bb86fc;">
-          ⚡ SYSTEM ONLINE ⚡
-        </h3>
-        
-        <p style="margin:0 0 30px 0; font-size: 1em; color: #888;">
-           [ ACCESS TERMINAL: CHOOSE PROVIDER ]
-        </p>
+### 🌐 Prova la versione Cloud
 
-        <a href="https://luc4n3x-stream-organizer.hf.space" target="_blank" 
-           style="display: inline-block; margin: 10px; padding: 12px 25px; font-size: 1em; font-weight: bold; color: #ff00ff; text-decoration: none; background-color: #000; border: 2px solid #ff00ff; border-radius: 4px; box-shadow: 0 0 10px #ff00ff, inset 0 0 10px rgba(255, 0, 255, 0.2); text-shadow: 0 0 5px #ff00ff; letter-spacing: 1px;">
-             >_ HUGGINGFACE
-        </a>
+Nessuna installazione necessaria. Scegli il provider che preferisci:
 
-        <a href="https://stream-organizer.vercel.app" target="_blank" 
-           style="display: inline-block; margin: 10px; padding: 12px 25px; font-size: 1em; font-weight: bold; color: #00f3ff; text-decoration: none; background-color: #000; border: 2px solid #00f3ff; border-radius: 4px; box-shadow: 0 0 10px #00f3ff, inset 0 0 10px rgba(0, 243, 255, 0.2); text-shadow: 0 0 5px #00f3ff; letter-spacing: 1px;">
-             >_ VERCEL
-        </a>
+[![🤗 HuggingFace](https://img.shields.io/badge/🤗%20HuggingFace-Demo_Live-ffd21e?style=for-the-badge&logo=huggingface&logoColor=black&labelColor=1f1f1f)](https://luc4n3x-stream-organizer.hf.space)
 
-      </td>
-    </tr>
-  </table>
-  <br />
-</div>
+[![▲ Vercel](https://img.shields.io/badge/▲%20Vercel-Demo_Live-000000?style=for-the-badge&logo=vercel&logoColor=white&labelColor=1f1f1f)](https://stream-organizer.vercel.app)
+
 
 
 
