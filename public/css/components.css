@@ -1,7 +1,3 @@
-/* ========================================================================= */
-/* === LAYOUT / CONTAINER STYLES (FROM ORIGINAL FILE 2) === */
-/* ========================================================================= */
-
 .main-content {
     display: flex;
     flex-direction: column;
@@ -240,9 +236,8 @@ input:focus {
     transform: scaleY(1);
     transform-origin: top;
 }
-/* CORREZIONE: Applica softMove qui */
 .addon-item:hover .addon-details h3 {
-    animation: softMove 2s ease-in-out infinite; /* RIPRISTINATO */
+    animation: softMove 2s ease-in-out infinite;
     color: #7FF7E1;
 }
 .addon-item:hover { transform: translateY(-4px); box-shadow: 0 14px 42px rgba(11,8,20,0.75); }
@@ -641,7 +636,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 /* === 5. MODAL / TOAST / LOADER === */
 /* ========================================================================= */
 
-/* --- Modal --- */
+/* --- Modal (SCROLL FIX APPLIED) --- */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -656,19 +651,26 @@ input:checked + .slider:before { transform: translateX(20px); }
     visibility: hidden;
     transition: opacity 0.35s, visibility 0.35s;
     overflow-y: auto;
+    
+    /* FIX SCROLL MOBILE */
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 }
-.modal-overlay.visible { opacity: 1; visibility: visible; /* animation: fadeIn 0.35s ease-out; */ }
+.modal-overlay.visible { opacity: 1; visibility: visible; }
 .modal-content {
     background: linear-gradient(135deg, rgba(18, 12, 24, 0.92), rgba(24, 16, 30, 0.88));
     border-radius: 14px;
     border: 1px solid rgba(var(--primary-rgb), 0.12); /* OPTIMIZED */
     padding: 2rem;
-    max-width: 900px; /* ALLARGATO */
+    max-width: 900px;
     width: calc(100% - 40px);
     box-shadow: 0 15px 52px rgba(0,0,0,0.85);
     position: relative;
     transform: scale(0.92);
     transition: transform 0.35s ease-out;
+    
+    /* FIX SCROLL MOBILE */
+    overscroll-behavior: contain;
 }
 .modal-overlay.visible .modal-content { transform: scale(1); }
 .modal-close-btn { 
@@ -1348,13 +1350,9 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 /* === 8. RESPONSIVE OVERRIDES (Component Level) === */
 
-
-/* === MODIFICA AGGIUNTA === */
-
 .modal-content.modal-tour-wow {
     position: relative;
     overflow: hidden;
-    /* Usa il box-shadow del pannello super-wow per coerenza */
     box-shadow: 0 0 30px rgba(var(--primary-rgb), 0.55), 0 0 60px rgba(0,255,255,0.18), 0 15px 52px rgba(0,0,0,0.85);
 }
 
@@ -1401,7 +1399,6 @@ input:checked + .slider:before { transform: translateX(20px); }
 .modal-content.modal-tour-wow:hover::after {
     animation: scanlines 1.2s linear infinite;
 }
-/* ======================== */
 
 
 @media (max-width: 768px) {
