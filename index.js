@@ -7,7 +7,7 @@ const Joi = require('joi');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 
-// --- FIX: Aggiunta libreria per sanificare input (prevenire Stored XSS) ---
+// ---  Aggiunta libreria per sanificare input (prevenire Stored XSS) ---
 const sanitizeHtml = require('sanitize-html');
 
 // --- FIX SSRF: Aggiunti moduli 'dns' e 'net' ---
