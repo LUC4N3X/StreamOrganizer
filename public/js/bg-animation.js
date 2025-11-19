@@ -1,7 +1,7 @@
 (function cyberNexusVioletVortex() {
     const canvas = document.getElementById('bgCanvas');
 
-    // Controllo sicurezza: se il canvas non esiste o siamo su schermi molto piccoli (vecchi mobile), stop.
+    // Controllo sicurezza: se  canvas non esiste o siamo su schermi molto piccoli (vecchi mobile), stop.
     if (!canvas || window.innerWidth <= 768) return;
 
     const ctx = canvas.getContext('2d', { alpha: false }); // alpha: false per performance migliori se lo sfondo è opaco
