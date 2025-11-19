@@ -23,18 +23,49 @@
   <link rel="stylesheet" href="css/style.css?v=1.0">
 
   <style>
-    /* Definiamo l'animazione qui per renderla immediata, 
-       prima ancora che il file CSS esterno venga caricato. */
+    /* DEFINIZIONE ANIMAZIONE */
     @keyframes fadeInPage {
         from { opacity: 0; transform: translateY(-10px); }
         to { opacity: 1; transform: translateY(0); }
     }
 
+    /* FIX IMPORTANTE: 
+       Rimosso l'animazione da html/body. 
+       Il body deve essere statico per permettere al canvas di essere 'fixed'.
+    */
     html, body {
-        /* Nasconde tutto all'avvio */
-        opacity: 0;
-        /* Avvia l'animazione subito */
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        min-height: 100vh;
+        background-color: #0d0d0d; /* Colore di fondo di sicurezza */
+        overflow-x: hidden; /* Evita scroll orizzontale indesiderato */
+    }
+
+    /* FIX CANVAS: 
+       Ora che il body non ha 'transform', 'position: fixed' funzionerà correttamente
+       e lo sfondo rimarrà bloccato anche scrollando la pagina.
+    */
+    #bgCanvas {
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: -1; /* Dietro a tutto */
+        pointer-events: none;
+        display: block;
+    }
+
+    /* L'animazione viene applicata SOLO al contenitore dell'app (#app).
+       In questo modo il contenuto sfuma in entrata, ma lo sfondo resta fisso.
+    */
+    #app {
+        opacity: 0; /* Parte invisibile */
         animation: fadeInPage 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
     }
   </style>
 </head>
