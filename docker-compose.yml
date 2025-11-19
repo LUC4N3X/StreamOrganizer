@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   streamorganizer:
+    # Costruisce l'immagine usando il Dockerfile nella cartella corrente
     build: .
     container_name: streamorganizer_app
     
@@ -10,19 +11,20 @@ services:
     ports:
       - "8080:7860"
     
+    # Carica le variabili d'ambiente (es. MONITOR_KEY) dal file .env
     env_file:
       - ./.env
     
     environment:
       # --- IMPORTANTE PER SELF-HOSTING ---
-      # Se usi HTTPS (con Nginx/Traefik), metti: production
-      # Se usi HTTP (IP locale/test), metti: development
-      # 'development' permette al login di funzionare senza certificato SSL
+      # 'development' disabilita il requisito "Secure Cookie" (necessario per HTTP locale)
+      # Se usi HTTPS (es. tramite Nginx), cambialo in 'production'
       - NODE_ENV=development
       
-      # Forza la porta interna (opzionale, ma sicuro)
+      # Definisce la porta interna dell'applicazione
       - PORT=7860
       
+    # Riavvia il container automaticamente se si spegne o crasha
     restart: unless-stopped
     networks:
       - streamorganizer_net
