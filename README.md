@@ -223,14 +223,33 @@ Questa parte è cruciale per far funzionare il login.
 
 Una volta salvato, attendi qualche secondo e collegati a `https://il-tuo-dominio.com`.
 
-### 🌐 Prova la versione Cloud
+<div align="center">
+  <br />
+  <table cellspacing="0" cellpadding="20" style="border: 2px solid #bb86fc; border-radius: 10px; width: 90%; max-width: 700px; background-color: #0d1117; color: #ffffff;">
+    <tr>
+      <td align="center" style="font-family: monospace;">
+        
+        <h3 style="color: #bb86fc; text-transform: uppercase; letter-spacing: 2px; margin-top: 0;">
+          ⚡ SYSTEM ONLINE ⚡
+        </h3>
+        
+        <p style="color: #8b949e; margin-bottom: 30px;">
+          [ ACCESS TERMINAL: CHOOSE PROVIDER ]
+        </p>
 
-Nessuna installazione necessaria. Scegli il provider che preferisci:
+        <a href="https://luc4n3x-stream-organizer.hf.space" target="_blank">
+          <img src="https://img.shields.io/badge/>_ HUGGINGFACE-FF00FF?style=for-the-badge&logo=huggingface&logoColor=white&labelColor=black" alt="HuggingFace" height="50" />
+        </a>
 
-[![🤗 HuggingFace](https://img.shields.io/badge/🤗%20HuggingFace-Demo_Live-ffd21e?style=for-the-badge&logo=huggingface&logoColor=black&labelColor=1f1f1f)](https://luc4n3x-stream-organizer.hf.space)
+        &nbsp;&nbsp; <a href="https://stream-organizer.vercel.app" target="_blank">
+          <img src="https://img.shields.io/badge/>_ VERCEL-00F3FF?style=for-the-badge&logo=vercel&logoColor=black&labelColor=black" alt="Vercel" height="50" />
+        </a>
 
-[![▲ Vercel](https://img.shields.io/badge/▲%20Vercel-Demo_Live-000000?style=for-the-badge&logo=vercel&logoColor=white&labelColor=1f1f1f)](https://stream-organizer.vercel.app)
-
+      </td>
+    </tr>
+  </table>
+  <br />
+</div>
 
 
 
