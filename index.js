@@ -1,27 +1,28 @@
 const express = require('express');
-const fetch = require('node-fetch');
+// Usa fetch nativo se disponibile (Node 18+), altrimenti usa il pacchetto
+const fetch = global.fetch || require('node-fetch');
 const cors = require('cors');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
 const Joi = require('joi');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
-
-// ---  Aggiunta libreria per sanificare input (prevenire Stored XSS) ---
 const sanitizeHtml = require('sanitize-html');
-
-// --- FIX SSRF: Aggiunti moduli 'dns' e 'net' ---
 const dns = require('dns').promises;
 const net = require('net');
+
+// Polyfill per AbortController su vecchie versioni di Node
+if (!global.AbortController) {
+  global.AbortController = require('abort-controller').AbortController;
+}
 
 const app = express();
 const PORT = process.env.PORT || 7860;
 
 app.set('trust proxy', 1);
-
-// Rimuovi header che rivela la tecnologia
 app.disable('x-powered-by');
 
+// --- CONFIGURAZIONE E COSTANTI ---
 const MONITOR_KEY_SECRET = process.env.MONITOR_KEY;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 
@@ -32,16 +33,16 @@ const ADDONS_SET_URL = `${STREMIO_API_BASE}addonCollectionSet`;
 
 const FETCH_TIMEOUT = 10000;
 
-// Costanti per i limiti
-const MAX_JSON_PAYLOAD = '250kb'; // Limite per il body parser
-const MAX_MANIFEST_SIZE_BYTES = 250 * 1024; // 250KB per manifest
-const MAX_API_RESPONSE_BYTES = 5 * 1024 * 1024; // 5MB per risposte API (lista addon)
-const MAX_LOGIN_RESPONSE_BYTES = 1 * 1024 * 1024; // 1MB per login/set
+// Limiti di sicurezza
+const MAX_JSON_PAYLOAD = '250kb';
+const MAX_MANIFEST_SIZE_BYTES = 250 * 1024; // 250KB
+const MAX_API_RESPONSE_BYTES = 5 * 1024 * 1024; // 5MB
+const MAX_LOGIN_RESPONSE_BYTES = 1 * 1024 * 1024; // 1MB
 const SANITIZE_MAX_DEPTH = 6;
 const SANITIZE_MAX_STRING = 2000;
 const SANITIZE_MAX_ARRAY = 200;
 
-// Helmet + CSP
+// --- HELMET & CSP ---
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -74,21 +75,12 @@ app.use(helmet({
   }
 }));
 
-// ---------------------------------------------------------------------
-// MIDDLEWARE GENERALI
-// ---------------------------------------------------------------------
-
-// --- FIX: Limita la dimensione del payload JSON per prevenire DoS ---
+// --- MIDDLEWARE BASE ---
 app.use(express.json({ limit: MAX_JSON_PAYLOAD }));
-
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ---------------------------------------------------------------------
-// WEB APPLICATION FIREWALL (MINIMALE)
-// ---------------------------------------------------------------------
-// Blocca pattern comuni SQLi/XSS e request sospette prima che arrivino agli endpoint.
-// Puoi adattare/estendere 'badPatterns' secondo necessità.
+// --- WAF MINIMALE ---
 const badPatterns = [
   /<script[\s\S]*?>[\s\S]*?<\/script>/i,
   /<\s*iframe/i,
@@ -115,53 +107,45 @@ const badPatterns = [
 
 function miniWAF(req, res, next) {
   try {
-    // Serializzazione controllata (limiti per evitare DoS)
+    // Ottimizzazione: se non c'è body o query, salta controlli pesanti
+    if (!req.body && !req.query) return next();
+
     let bodyStr = '';
     try {
       bodyStr = JSON.stringify(req.body || '');
-      if (bodyStr.length > 10000) bodyStr = bodyStr.slice(0, 10000); // tronca per sicurezza
-    } catch (e) {
-      bodyStr = '';
-    }
+      if (bodyStr.length > 10000) bodyStr = bodyStr.slice(0, 10000);
+    } catch (e) { bodyStr = ''; }
 
     let queryStr = '';
     try {
       queryStr = JSON.stringify(req.query || '');
       if (queryStr.length > 2000) queryStr = queryStr.slice(0, 2000);
-    } catch (e) {
-      queryStr = '';
-    }
+    } catch (e) { queryStr = ''; }
 
     const raw = `${req.path} ${req.method} ${req.headers['user-agent'] || ''} ${bodyStr} ${queryStr}`.toLowerCase();
 
     for (const p of badPatterns) {
       if (p.test(raw)) {
-        // Logga minimale info e blocca
-        console.warn(`WAF: bloccata richiesta per pattern ${p} - path: ${req.path}`);
+        console.warn(`WAF: bloccata richiesta sospetta - path: ${req.path}`);
         return res.status(403).json({ error: { message: "Richiesta bloccata (policy di sicurezza)." } });
       }
     }
 
-    // Blocca richieste con UA vuoto o con header sospetti (semplice)
     const ua = (req.headers['user-agent'] || '').toLowerCase();
-    if (!ua || ua.length < 6) {
-      return res.status(403).json({ error: { message: "User-Agent non consentito." } });
+    if (!ua || ua.length < 5) {
+      return res.status(403).json({ error: { message: "User-Agent non valido." } });
     }
 
     next();
   } catch (err) {
-    // Se il WAF fallisce per qualunque motivo, non bloccare a priori, ma loggare e proseguire
-    console.error('WAF ERROR:', err);
+    console.error('WAF ERROR:', err.message);
     next();
   }
 }
 
-// Applica il WAF a tutte le route /api/
 app.use('/api/', miniWAF);
 
-// ---------------------------------------------------------------------
-// RATE LIMIT
-// ---------------------------------------------------------------------
+// --- RATE LIMIT ---
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: process.env.RATE_LIMIT_MAX || 100,
@@ -177,33 +161,24 @@ const loginLimiter = rateLimit({
 app.use('/api/', apiLimiter);
 app.use('/api/login', loginLimiter);
 
-// ---------------------------------------------------------------------
-// CORS
-// ---------------------------------------------------------------------
+// --- CORS & CSRF HARDENING ---
 const allowedOrigins = [
   'http://localhost:7860',
   'https://stream-organizer.vercel.app'
 ];
-
-if (process.env.VERCEL_URL)
-  allowedOrigins.push(`https://${process.env.VERCEL_URL}`);
+if (process.env.VERCEL_URL) allowedOrigins.push(`https://${process.env.VERCEL_URL}`);
 
 app.use(cors({
   origin: (origin, callback) => {
-    // La logica CORS permette !origin (per server-to-server o test locali)
     if (!origin) return callback(null, true);
-    if (
-      allowedOrigins.includes(origin) ||
-      (process.env.VERCEL_ENV === 'preview' && origin.endsWith('.vercel.app'))
-    ) {
+    if (allowedOrigins.includes(origin) || (process.env.VERCEL_ENV === 'preview' && origin.endsWith('.vercel.app'))) {
       return callback(null, true);
     }
-    return callback(new Error('Origine non autorizzata dalla policy CORS'), false);
+    return callback(new Error('Origine non autorizzata (CORS)'), false);
   },
   credentials: true
 }));
 
-// --- FIX: Middleware per CSRF Hardening ---
 const enforceOrigin = (req, res, next) => {
   if (req.method === 'POST') {
     const origin = req.header('Origin');
@@ -216,8 +191,7 @@ const enforceOrigin = (req, res, next) => {
 
     if (requestOrigin) {
       const isAllowed = allowedOrigins.includes(requestOrigin) ||
-                      (process.env.VERCEL_ENV === 'preview' && requestOrigin.endsWith('.vercel.app'));
-
+                        (process.env.VERCEL_ENV === 'preview' && requestOrigin.endsWith('.vercel.app'));
       if (!isAllowed) {
         return res.status(403).json({ error: { message: 'Origine richiesta non valida (CSRF check).' } });
       }
@@ -225,66 +199,9 @@ const enforceOrigin = (req, res, next) => {
   }
   return next();
 };
-
 app.use('/api/', enforceOrigin);
-// --- FINE FIX ---
 
-// ---------------------------------------------------------------------
-// FETCH CON TIMEOUT
-// ---------------------------------------------------------------------
-if (!global.AbortController)
-  global.AbortController = require('abort-controller').AbortController;
-
-async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(id);
-    return res;
-  } catch (err) {
-    clearTimeout(id);
-    if (err.name === 'AbortError') throw new Error('Richiesta al server scaduta (timeout).');
-    throw err;
-  }
-}
-
-// ---------------------------------------------------------------------
-// COOKIE OPTIONS
-// ---------------------------------------------------------------------
-const cookieOptions = {
-  httpOnly: true,
-  // --- FIX: Cookie sicuri solo in produzione (per dev locale) ---
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
-  maxAge: 30 * 24 * 60 * 60 * 1000
-};
-
-// ---------------------------------------------------------------------
-// JOI SCHEMAS
-// ---------------------------------------------------------------------
-const schemas = {
-  authKey: Joi.object({ authKey: Joi.string().min(1).required() }),
-  login: Joi.object({ email: Joi.string().email().required(), password: Joi.string().min(6).required() }),
-  manifestUrl: Joi.object({ manifestUrl: Joi.string().uri().required() }),
-  setAddons: Joi.object({
-    addons: Joi.array().min(1).required(),
-    email: Joi.string().email().allow(null)
-  }),
-  // --- FIX: Schema Joi per validazione Manifest ---
-  manifestCore: Joi.object({
-    id: Joi.string().max(100).required(),
-    version: Joi.string().max(50).required(),
-    name: Joi.string().max(250).required(),
-    description: Joi.string().max(5000).allow('').optional(),
-    resources: Joi.array().max(50),
-    types: Joi.array().max(50),
-  }).unknown(true) // Permetti altri campi non definiti
-};
-
-// ---------------------------------------------------------------------
-// --- FIX SSRF: Funzioni helper per controllo IP ---
-// ---------------------------------------------------------------------
+// --- HELPERS SICUREZZA (SSRF & Sanitizzazione) ---
 function isPrivateIp(ip) {
   if (net.isIPv6(ip) && ip.startsWith('::ffff:')) { ip = ip.substring(7); }
   if (net.isIPv4(ip)) {
@@ -300,81 +217,80 @@ function isPrivateIp(ip) {
   }
   return false;
 }
+
 async function isSafeUrl(urlString) {
   try {
     const parsed = new URL(urlString);
-    if (!['http:', 'https:'].includes(parsed.protocol)) { return false; }
+    if (!['http:', 'https:'].includes(parsed.protocol)) return false;
     const hostname = parsed.hostname;
-    if (hostname.toLowerCase() === 'localhost') { return false; }
-    if (net.isIP(hostname)) { return !isPrivateIp(hostname); }
-    let ips = [];
-    try {
-      const addressesInfo = await dns.lookup(hostname, { all: true });
-      ips = addressesInfo.map(info => info.address);
-    } catch (dnsErr) { return false; }
-    if (ips.length === 0) { return false; }
-    if (ips.some(isPrivateIp)) { return false; }
+    if (hostname.toLowerCase() === 'localhost') return false;
+    if (net.isIP(hostname)) return !isPrivateIp(hostname);
+    
+    const addressesInfo = await dns.lookup(hostname, { all: true });
+    const ips = addressesInfo.map(info => info.address);
+    if (ips.length === 0 || ips.some(isPrivateIp)) return false;
+    
     return true;
   } catch (err) { return false; }
 }
 
-// ---------------------------------------------------------------------
-// --- FIX XSS: Funzioni helper per sanificazione ricorsiva (con limiti) ---
-// ---------------------------------------------------------------------
 const sanitizeOptions = { allowedTags: [], allowedAttributes: {} };
-
 const sanitize = (text) => text ? sanitizeHtml(text.trim(), sanitizeOptions) : '';
 
-function sanitizeObject(data, currentDepth = 0) {
-  // 1. Limite di profondità
-  if (currentDepth > SANITIZE_MAX_DEPTH) {
-    return "[Profondità oggetto eccessiva]";
-  }
+// --- FIX: Aggiunto 'seen' WeakSet per prevenire crash da loop infiniti ---
+function sanitizeObject(data, currentDepth = 0, seen = new WeakSet()) {
+  if (currentDepth > SANITIZE_MAX_DEPTH) return "[Depth Limit]";
 
-  // 2. Caso base: stringa (con limite di lunghezza)
-  if (typeof data === 'string') {
-    if (data.length > SANITIZE_MAX_STRING) {
-      data = data.substring(0, SANITIZE_MAX_STRING) + "... [troncato]";
+  // Controllo tipi primitivi
+  if (data === null || typeof data !== 'object') {
+    if (typeof data === 'string') {
+        if (data.length > SANITIZE_MAX_STRING) {
+            return sanitize(data.substring(0, SANITIZE_MAX_STRING)) + "...";
+        }
+        return sanitize(data);
     }
-    return sanitize(data);
+    return data;
   }
 
-  // 3. Caso Array (con limite di lunghezza)
+  // Protezione Riferimenti Circolari
+  if (seen.has(data)) return "[Circular Reference]";
+  seen.add(data);
+
   if (Array.isArray(data)) {
     if (data.length > SANITIZE_MAX_ARRAY) {
-      data = data.slice(0, SANITIZE_MAX_ARRAY);
+       data = data.slice(0, SANITIZE_MAX_ARRAY);
     }
-    return data.map(item => sanitizeObject(item, currentDepth + 1));
+    return data.map(item => sanitizeObject(item, currentDepth + 1, seen));
   }
-  
-  // 4. Caso Oggetto
-  if (data && typeof data === 'object' && data.constructor === Object) {
+
+  if (data.constructor === Object) {
     const newObj = {};
     for (const key in data) {
       if (Object.prototype.hasOwnProperty.call(data, key)) {
-        newObj[key] = sanitizeObject(data[key], currentDepth + 1);
+        newObj[key] = sanitizeObject(data[key], currentDepth + 1, seen);
       }
     }
     return newObj;
   }
-  
-  // 5. Altri tipi (numeri, booleani, null)
-  return data; 
+
+  return data;
 }
-// --- FINE FIX ---
 
+// --- UTILS FETCH ---
+async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (err) {
+    clearTimeout(id);
+    if (err.name === 'AbortError') throw new Error('Richiesta al server scaduta (timeout).');
+    throw err;
+  }
+}
 
-// ---------------------------------------------------------------------
-// WRAPPER ASYNC
-// ---------------------------------------------------------------------
-const asyncHandler = fn => (req, res, next) =>
-  Promise.resolve(fn(req, res, next)).catch(next);
-
-// ---------------------------------------------------------------------
-// FUNZIONI STREMIO
-// ---------------------------------------------------------------------
-
-// --- FIX: Funzione helper per validare risposte API ---
 function validateApiResponse(res, maxSize = MAX_API_RESPONSE_BYTES) {
   const contentType = res.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) {
@@ -386,97 +302,118 @@ function validateApiResponse(res, maxSize = MAX_API_RESPONSE_BYTES) {
   }
 }
 
+// --- VALIDAZIONE SCHEMA (JOI) ---
+const schemas = {
+  authKey: Joi.object({ authKey: Joi.string().min(1).required() }),
+  login: Joi.object({ email: Joi.string().email().required(), password: Joi.string().min(6).required() }),
+  manifestUrl: Joi.object({ manifestUrl: Joi.string().uri().required() }),
+  setAddons: Joi.object({
+    addons: Joi.array().min(1).required(),
+    email: Joi.string().email().allow(null)
+  }),
+  manifestCore: Joi.object({
+    id: Joi.string().max(100).required(),
+    version: Joi.string().max(50).required(),
+    name: Joi.string().max(250).required(),
+    description: Joi.string().max(5000).allow('').optional(),
+    resources: Joi.array().max(50),
+    types: Joi.array().max(50),
+  }).unknown(true)
+};
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict',
+  maxAge: 30 * 24 * 60 * 60 * 1000
+};
+
+// --- WRAPPER ---
+const asyncHandler = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+
+// --- LOGICA STREMIO ---
 async function getAddonsByAuthKey(authKey) {
   const { error } = schemas.authKey.validate({ authKey });
   if (error) throw new Error("AuthKey non valida.");
+  
   const res = await fetchWithTimeout(ADDONS_GET_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ authKey: authKey.trim() })
   });
-
-  validateApiResponse(res, MAX_API_RESPONSE_BYTES); // FIX: Valida risposta
-
+  validateApiResponse(res, MAX_API_RESPONSE_BYTES);
+  
   const data = await res.json();
-  if (!data.result || data.error)
-    throw new Error(data.error?.message || "Errore recupero addon.");
+  if (!data.result || data.error) throw new Error(data.error?.message || "Errore recupero addon.");
   return data.result.addons || [];
 }
 
 async function getStremioData(email, password) {
   const { error } = schemas.login.validate({ email, password });
   if (error) throw new Error("Email o password non valide.");
+  
   const res = await fetchWithTimeout(LOGIN_API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: email.trim(), password })
   });
-
-  validateApiResponse(res, MAX_LOGIN_RESPONSE_BYTES); // FIX: Valida risposta
+  validateApiResponse(res, MAX_LOGIN_RESPONSE_BYTES);
   
   const data = await res.json();
-  if (!data.result?.authKey || data.error)
-    throw new Error(data.error?.message || "Credenziali non valide.");
+  if (!data.result?.authKey || data.error) throw new Error(data.error?.message || "Credenziali non valide.");
+  
   const addons = await getAddonsByAuthKey(data.result.authKey);
   return { addons, authKey: data.result.authKey };
 }
 
-// ---------------------------------------------------------------------
-// ENDPOINTS
-// ---------------------------------------------------------------------
+// --- ENDPOINTS ---
 
-// LOGIN
+// Login
 app.post('/api/login', asyncHandler(async (req, res) => {
   const { email, password, authKey: providedAuthKey } = req.body;
   let data;
   if (email && password) data = await getStremioData(email, password);
   else if (providedAuthKey) {
-    const trimmedAuthKey = providedAuthKey.trim();
-    data = { addons: await getAddonsByAuthKey(trimmedAuthKey), authKey: trimmedAuthKey };
+    const trimmed = providedAuthKey.trim();
+    data = { addons: await getAddonsByAuthKey(trimmed), authKey: trimmed };
+  } else {
+    return res.status(400).json({ error: { message: "Email/password o authKey richiesti." } });
   }
-  else return res.status(400).json({ error: { message: "Email/password o authKey richiesti." } });
-
   res.cookie('authKey', data.authKey, cookieOptions);
   res.json({ addons: data.addons });
 }));
 
-// GET ADDONS
+// Get Addons
 app.post('/api/get-addons', asyncHandler(async (req, res) => {
   const { authKey } = req.cookies;
   const { email } = req.body;
-  if (!authKey || !email)
-    return res.status(400).json({ error: { message: "Cookie authKey mancante o email mancante." } });
+  if (!authKey || !email) return res.status(400).json({ error: { message: "Dati mancanti." } });
   res.json({ addons: await getAddonsByAuthKey(authKey) });
 }));
 
-
-// SET ADDONS
+// Set Addons
 app.post('/api/set-addons', asyncHandler(async (req, res) => {
   const { authKey } = req.cookies;
-  if (!authKey)
-    return res.status(401).json({ error: { message: "Cookie authKey mancante." } });
-
+  if (!authKey) return res.status(401).json({ error: { message: "Non autorizzato." } });
+  
   const { error } = schemas.setAddons.validate(req.body);
-  if (error)
-    return res.status(400).json({ error: { message: error.details[0].message } });
+  if (error) return res.status(400).json({ error: { message: error.details[0].message } });
 
   const addonsToSave = req.body.addons.map(a => {
+    // Copia profonda
     let clean = JSON.parse(JSON.stringify(a));
-    
     delete clean.isEditing;
     delete clean.newLocalName;
     if (clean.manifest) {
       delete clean.manifest.isEditing;
       delete clean.manifest.newLocalName;
     }
-    
-    // --- FIX XSS: Sanifica l'INTERO oggetto 'clean' con limiti ---
+    // Sanitizzazione con protezione loop
     clean = sanitizeObject(clean);
 
     if (clean.manifest && !clean.manifest.id) {
       clean.manifest.id = `external-${Math.random().toString(36).substring(2, 9)}`;
     }
-
     return clean;
   });
 
@@ -485,122 +422,89 @@ app.post('/api/set-addons', asyncHandler(async (req, res) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ authKey: authKey.trim(), addons: addonsToSave })
   });
-
-  validateApiResponse(resSet, MAX_LOGIN_RESPONSE_BYTES); // FIX: Valida risposta
+  validateApiResponse(resSet, MAX_LOGIN_RESPONSE_BYTES);
 
   const dataSet = await resSet.json();
-  if (dataSet.error)
-    throw new Error(dataSet.error.message || "Errore salvataggio addon.");
-
-  res.json({ success: true, message: "Addon salvati con successo." });
+  if (dataSet.error) throw new Error(dataSet.error.message || "Errore salvataggio.");
+  
+  res.json({ success: true, message: "Salvataggio riuscito." });
 }));
 
-// FETCH MANIFEST
+// Fetch Manifest
 app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
   const { error } = schemas.manifestUrl.validate(req.body);
-  if (error)
-    return res.status(400).json({ error: { message: "URL manifesto non valido." } });
-
+  if (error) return res.status(400).json({ error: { message: "URL non valido." } });
+  
   const { manifestUrl } = req.body;
   
-  // --- FIX SSRF: isSafeUrl ora è ASINCRONO ---
-  if (!(await isSafeUrl(manifestUrl))) {
-    return res.status(400).json({ error: { message: "URL non sicuro o risolve a un IP privato." } });
-  }
+  // Controllo SSRF Asincrono
+  const isSafe = await isSafeUrl(manifestUrl);
+  if (!isSafe) return res.status(400).json({ error: { message: "URL non consentito (SSRF/Private IP)." } });
 
   const headers = {};
   const parsedUrl = new URL(manifestUrl);
-  const allowedTokenHosts = ['api.github.com', 'raw.githubusercontent.com'];
-  if (GITHUB_TOKEN && allowedTokenHosts.includes(parsedUrl.hostname)) {
+  if (GITHUB_TOKEN && ['api.github.com', 'raw.githubusercontent.com'].includes(parsedUrl.hostname)) {
     headers['Authorization'] = `token ${GITHUB_TOKEN}`;
   }
 
-  // (Manteniamo il fix anti-redirect)
-  const fetchOptions = {
-    headers,
-    redirect: 'error' 
-  };
-
-  const resp = await fetchWithTimeout(manifestUrl, fetchOptions);
-  if (!resp.ok)
-    throw new Error(`Status ${resp.status}`);
-
-  // --- FIX: Mitigazione TOCTOU DNS ---
-  validateApiResponse(resp, MAX_MANIFEST_SIZE_BYTES);
-
-  const manifest = await resp.json(); 
+  const resp = await fetchWithTimeout(manifestUrl, { headers, redirect: 'error' });
+  if (!resp.ok) throw new Error(`Errore fetch: ${resp.status}`);
   
-  // --- FIX: Validazione schema Joi del manifest ---
+  validateApiResponse(resp, MAX_MANIFEST_SIZE_BYTES);
+  const manifest = await resp.json();
+
+  // Validazione Contenuto
   const { error: manifestError } = schemas.manifestCore.validate(manifest);
-  if (manifestError) {
-    throw new Error(`Manifesto non valido: ${manifestError.details[0].message}`);
-  }
-  // --- FINE FIX ---
+  if (manifestError) throw new Error(`Manifesto non conforme: ${manifestError.details[0].message}`);
 
   res.json(manifest);
 }));
 
-// ADMIN MONITOR (DISABILITATO)
+// Monitor (Disabilitato)
 app.post('/api/admin/monitor', asyncHandler(async (req, res) => {
-  const { adminKey, targetEmail } = req.body;
-  if (!MONITOR_KEY_SECRET || adminKey !== MONITOR_KEY_SECRET)
-    return res.status(401).json({ error: { message: "Chiave amministratore non valida." } });
-  if (!targetEmail)
-    return res.status(400).json({ error: { message: "Email target richiesta." } });
-  return res.status(403).json({ error: { message: `Accesso ai dati di ${targetEmail} non consentito.` } });
+  return res.status(403).json({ error: { message: "Accesso negato." } });
 }));
 
-// LOGOUT
+// Logout
 app.post('/api/logout', (req, res) => {
   res.cookie('authKey', '', { ...cookieOptions, maxAge: 0 });
-  res.json({ success: true, message: "Logout effettuato." });
+  res.json({ success: true });
 });
 
 // 404
-app.use('/api/*', (req, res) =>
-  res.status(404).json({ error: { message: 'Endpoint non trovato.' } })
-);
+app.use('/api/*', (req, res) => res.status(404).json({ error: { message: 'Endpoint inesistente.' } }));
 
-// HTTPS REDIRECT IN PRODUZIONE
+// Redirect HTTPS in Prod
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
     if (req.header('x-forwarded-proto') !== 'https') {
-      // --- FIX: Usa req.hostname per prevenire Host Header Injection ---
       return res.redirect(301, `https://${req.hostname}${req.url}`);
     }
     next();
   });
 }
 
-// ERRORE GLOBALE
+// Error Handler
 app.use((err, req, res, next) => {
-  // --- ★★★ FIX: Logging sicuro per evitare leak di dati ★★★ ---
-  // Logga solo il messaggio e lo stack, non l'intero oggetto 'err'
-  console.error(`ERRORE: ${err.message}`);
+  // Log sicuro: niente stack trace in produzione
+  console.error(`[ERROR] ${req.method} ${req.path}: ${err.message}`);
   if (process.env.NODE_ENV !== 'production' && err.stack) {
     console.error(err.stack);
   }
-  // --- FINE FIX ---
-  
+
   const status = err.status || 500;
   let message = 'Errore interno del server.';
-
-  // Se l'errore è causato dal redirect bloccato
-  if (err.message.includes('redirect')) {
-      message = 'Recupero del manifesto non riuscito (redirect bloccato).';
-  } 
-  else if (err.message.includes('timeout')) {
-      message = 'Richiesta al server scaduta (timeout).';
-  }
-  else if (status < 500) {
-      message = err.message;
-  }
   
+  if (err.message.includes('redirect')) message = 'Redirect non consentiti.';
+  else if (err.message.includes('timeout')) message = 'Timeout richiesta.';
+  else if (status < 500) message = err.message;
+
   res.status(status).json({ error: { message } });
 });
 
-// AVVIO LOCALE
-if (!process.env.VERCEL_ENV)
-  app.listen(PORT, () => console.log(`Server avviato sulla porta ${PORT}`));
+// Avvio
+if (!process.env.VERCEL_ENV) {
+  app.listen(PORT, () => console.log(`Server attivo su porta ${PORT}`));
+}
 
 module.exports = app;
