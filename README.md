@@ -194,7 +194,7 @@ Accedi subito alla versione web:
 </p>
 
 <p style="margin-top:20px;color:#ff99ff;font-family:'Orbitron',sans-serif;font-size:1em;text-shadow:0 0 6px #ff00ff;">
-    "Ordine, potenza e stile neon in ogni comando." 🚀
+    "Ordine, potenza e stile in ogni comando." 🚀
 </p>
 
 </div>
