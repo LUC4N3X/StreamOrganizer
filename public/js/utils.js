@@ -1,59 +1,71 @@
 // public/js/utils.js
 
 /**
- * Funzione di utilità debounce per limitare la frequenza di esecuzione di una funzione
+ * Debounce: ritarda l’esecuzione della funzione finché non smette di essere chiamata.
  */
-export const debounce = (fn, delay) => {
+export const debounce = (fn, delay = 250) => {
     let timeoutId;
-    return function(...args) {
+    return (...args) => {
         clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-            fn.apply(this, args);
-        }, delay);
+        timeoutId = setTimeout(() => fn(...args), delay);
     };
 };
 
 /**
- * Mappa un addon grezzo del server in un oggetto reattivo per il frontend
+ * Trasforma un addon grezzo in un oggetto ricco e reattivo per il frontend.
  */
-export const mapAddon = (addon) => ({ 
-    ...addon, 
-    isEditing: false, 
-    newLocalName: addon.manifest.name, 
-    newTransportUrl: addon.transportUrl,
-    status: 'unchecked', 
-    selected: false, 
-    errorDetails: null, 
-    isEnabled: addon.isEnabled !== undefined ? addon.isEnabled : true, 
-    isExpanded: false,
-    disableAutoUpdate: addon.disableAutoUpdate !== undefined ? addon.disableAutoUpdate : false,
-    githubInfo: null,
-    isLoadingGithub: false,
+export const mapAddon = (addon = {}) => {
+    const {
+        manifest = {},
+        transportUrl = '',
+        isEnabled = true,
+        disableAutoUpdate = false,
+    } = addon;
 
-    resourceNames: getResourceNames(addon.manifest.resources)
-});
+    return {
+        ...addon,
+        isEditing: false,
+        newLocalName: manifest.name || 'Unnamed Addon',
+        newTransportUrl: transportUrl,
+        status: 'unchecked',
+        selected: false,
+        errorDetails: null,
+        isEnabled,
+        isExpanded: false,
+        disableAutoUpdate,
+        githubInfo: null,
+        isLoadingGithub: false,
+        resourceNames: getResourceNames(manifest.resources)
+    };
+};
 
 /**
- * Esegue una clonazione profonda di un oggetto.
- * Usa la moderna API 'structuredClone' se disponibile (più veloce e gestisce Date/Map/Set),
- * altrimenti usa il fallback JSON per compatibilità con vecchi WebView/Smart TV.
+ * Deep clone moderno con fallback.
+ * Usa structuredClone se disponibile (molto più veloce).
  */
 export const deepClone = (obj) => {
-    if (typeof structuredClone === 'function') {
-        return structuredClone(obj);
+    if (globalThis.structuredClone) {
+        try {
+            return structuredClone(obj);
+        } catch {
+            // Alcuni oggetti non sono clonabili (es: function, DOM Node)
+        }
     }
     return JSON.parse(JSON.stringify(obj));
 };
 
 /**
- * Ottiene una stringa formattata dei nomi delle risorse di un addon
+ * Ritorna i nomi delle risorse di un addon in una stringa leggibile.
  */
 export const getResourceNames = (resources) => {
-    if (!Array.isArray(resources)) return 'N/A'; 
+    if (!Array.isArray(resources)) return 'N/A';
     if (resources.length === 0) return 'None';
-    return resources.map(res => { 
-        if (typeof res === 'string') return res; 
-        if (typeof res === 'object' && res.name) return res.name; 
-        return 'unknown'; 
-    }).join(', ');
+
+    return resources
+        .map(res => {
+            if (typeof res === 'string') return res;
+            if (res && typeof res === 'object' && 'name' in res) return res.name;
+            return 'unknown';
+        })
+        .join(', ');
 };
