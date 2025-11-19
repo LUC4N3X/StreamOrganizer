@@ -1,10 +1,11 @@
 {
   "name": "stremio-addon-manager",
   "version": "1.0.0",
-  "description": "Stremio Addon Manager API and Frontend",
-  "main": "index.js",
+  "description": "Stremio Addon Manager",
+  "main": "index.js", 
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "start:docker": "node server.js"
   },
   "dependencies": {
     "express": "^4.19.2",
