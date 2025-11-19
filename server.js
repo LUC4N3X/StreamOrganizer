@@ -17,6 +17,7 @@ if (!global.AbortController) {
 const app = express();
 const PORT = process.env.PORT || 7860;
 
+// Fondamentale per il Rate Limit se sei dietro proxy (Render, Heroku, Docker, Nginx)
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
@@ -37,48 +38,45 @@ const SANITIZE_MAX_DEPTH = 6;
 const SANITIZE_MAX_STRING = 2000;
 const SANITIZE_MAX_ARRAY = 200;
 
-// --- HELMET (OTTIMIZZATO PER SELF-HOSTING) ---
+// --- MIDDLEWARE DI SICUREZZA ---
+
+// 1. Helmet (Configurazione permissiva per uso pubblico)
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "'unsafe-eval'", "https://unpkg.com", "https://cdnjs.cloudflare.com"],
-      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
-      "connect-src": ["'self'", "https://api.strem.io", "https://api.github.com", "https://unpkg.com", "https://cdnjs.cloudflare.com"],
-      "img-src": ["'self'", "data:", "https:"]
+      "script-src": ["'self'", "'unsafe-eval'", "'unsafe-inline'", "https:", "http:"], // Permissivo per frontend esterni
+      "style-src": ["'self'", "'unsafe-inline'", "https:", "http:"],
+      "connect-src": ["'self'", "https:", "http:"], // Permette connessioni ovunque
+      "img-src": ["'self'", "data:", "https:", "http:"]
     }
   },
-  hsts: false, // Disabilitato per evitare problemi con HTTP/Proxy
+  hsts: false, 
   crossOriginOpenerPolicy: false,
   originAgentCluster: false
 }));
+
+// 2. Rate Limiting (ESSENZIALE per progetti pubblici per evitare crash da troppi utenti)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minuti
+  max: 200, // Aumentato a 200 richieste per IP (più tollerante per uso pubblico)
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { message: "Troppe richieste. Riprova tra qualche minuto." } }
+});
+
+app.use('/api/', apiLimiter);
 
 app.use(express.json({ limit: MAX_JSON_PAYLOAD }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- CORS CONFIGURATION ---
-const allowedOrigins = [
-  'http://localhost:7860',
-  'http://localhost:8080',
-  'http://localhost:8081',
-  'http://127.0.0.1:8081',
-  'http://127.0.0.1:7860',
-  'https://omg-luca.ydns.eu' // Il tuo dominio
-];
-
-if (process.env.APP_URL) allowedOrigins.push(process.env.APP_URL);
-
+// --- CORS CONFIGURATION (APERTA A TUTTI) ---
+// Impostando origin: true, il server riflette l'origine della richiesta.
+// Questo permette a QUALSIASI sito (Stremio Web, app locali, ecc.) di connettersi.
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    // Accetta origini nella lista o se contengono l'IP della VPS (per sicurezza)
-    if (allowedOrigins.includes(origin) || origin.includes('185.229.239.195')) {
-      return callback(null, true);
-    }
-    return callback(new Error('CORS non consentito'), false);
-  },
-  credentials: true
+  origin: true, // <--- QUESTA È LA CHIAVE PER L'ACCESSO PUBBLICO
+  credentials: true // Permette il passaggio dei cookie di sessione
 }));
 
 // --- HELPERS SICUREZZA ---
@@ -100,6 +98,8 @@ async function isSafeUrl(urlString) {
     if (!['http:', 'https:'].includes(parsed.protocol)) return false;
     const hostname = parsed.hostname;
     if (hostname.toLowerCase() === 'localhost') return false;
+    // Nota: Per un servizio pubblico, potresti voler permettere connessioni anche a IP locali
+    // se l'utente sta usando un addon locale, ma per sicurezza SSRF teniamo il filtro base.
     if (net.isIP(hostname)) return !isPrivateIp(hostname);
     
     const addressesInfo = await dns.lookup(hostname, { all: true });
@@ -191,23 +191,40 @@ app.post('/api/login', asyncHandler(async (req, res) => {
   } else {
     return res.status(400).json({ error: { message: "Email/password o authKey richiesti." } });
   }
-  // Cookie non-secure per permettere il funzionamento anche su HTTP
-  res.cookie('authKey', data.authKey, { httpOnly: true, secure: false, sameSite: 'lax' });
+  
+  // IMPORTANTE PER USO PUBBLICO:
+  // sameSite: 'none' e secure: true sono necessari se il backend è su un dominio diverso dal frontend (es. Vercel vs VPS).
+  // Se sei su HTTP (non HTTPS), usa sameSite: 'lax' e secure: false.
+  // Qui mettiamo una logica ibrida che tenta di funzionare ovunque.
+  const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  
+  res.cookie('authKey', data.authKey, { 
+    httpOnly: true, 
+    secure: isSecure, // True solo se siamo in HTTPS
+    sameSite: isSecure ? 'none' : 'lax' // 'none' serve per Cross-Site cookies su HTTPS
+  });
+  
   res.json({ addons: data.addons });
 }));
 
 // GET ADDONS
 app.post('/api/get-addons', asyncHandler(async (req, res) => {
   const { authKey } = req.cookies;
+  // Fallback: controlla anche il body se i cookie non funzionano (cross-site issues)
+  const authKeyFinal = authKey || req.body.authKey;
   const { email } = req.body;
-  if (!authKey || !email) return res.status(400).json({ error: { message: "Dati mancanti." } });
-  res.json({ addons: await getAddonsByAuthKey(authKey) });
+  
+  if (!authKeyFinal || !email) return res.status(400).json({ error: { message: "Dati mancanti (Sessione scaduta)." } });
+  res.json({ addons: await getAddonsByAuthKey(authKeyFinal) });
 }));
 
 // SET ADDONS
 app.post('/api/set-addons', asyncHandler(async (req, res) => {
   const { authKey } = req.cookies;
-  if (!authKey) return res.status(401).json({ error: { message: "Non autorizzato." } });
+  const authKeyFinal = authKey || req.body.authKey; // Fallback
+
+  if (!authKeyFinal) return res.status(401).json({ error: { message: "Non autorizzato." } });
+  
   const { error } = schemas.setAddons.validate(req.body);
   if (error) return res.status(400).json({ error: { message: error.details[0].message } });
 
@@ -223,7 +240,7 @@ app.post('/api/set-addons', asyncHandler(async (req, res) => {
   const resSet = await fetchWithTimeout(ADDONS_SET_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ authKey: authKey.trim(), addons: addonsToSave })
+    body: JSON.stringify({ authKey: authKeyFinal.trim(), addons: addonsToSave })
   });
   validateApiResponse(resSet, MAX_LOGIN_RESPONSE_BYTES);
   const dataSet = await resSet.json();
@@ -264,10 +281,12 @@ app.post('/api/logout', (req, res) => {
 
 app.use('/api/*', (req, res) => res.status(404).json({ error: { message: 'Endpoint inesistente.' } }));
 
-// ERROR HANDLER
+// ERROR HANDLER GLOBALE
 app.use((err, req, res, next) => {
   console.error(`[ERROR] ${req.method} ${req.path}: ${err.message}`);
-  res.status(err.status || 500).json({ error: { message: err.message || 'Errore interno.' } });
+  const status = err.status || 500;
+  const message = status === 500 ? 'Errore interno del server.' : err.message;
+  res.status(status).json({ error: { message } });
 });
 
 // LOGICA BUSINESS
@@ -301,4 +320,4 @@ async function getStremioData(email, password) {
 }
 
 // AVVIO
-app.listen(PORT, () => console.log(`Docker Server running on ${PORT}`));
+app.listen(PORT, () => console.log(`Docker Server running on ${PORT} (Public Mode)`));
