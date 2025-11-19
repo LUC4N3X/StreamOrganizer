@@ -237,6 +237,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
+```
 <div align="center" style="margin-top:40px;color:#ff00ff;font-family:'Orbitron',sans-serif;text-shadow:0 0 6px #ff00ff;"> 🔮 Keep your addons neon, your code secure, and your cyberdeck powered ⚡ </div>```
 
