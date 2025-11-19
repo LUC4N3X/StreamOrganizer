@@ -1,25 +1,28 @@
-# Usa immagine base Node.js ufficiale slim
+# Usa immagine base sicura
 FROM node:20-slim@sha256:12541e65a3777c6035245518eb43006ed08ca8c684e68cd04ecb4653bdf6cfe1
 
-# Imposta la directory di lavoro
 WORKDIR /usr/src/app
 
-# Copia package.json e package-lock.json (se presente)
 COPY package*.json ./
 
-
-RUN npm install --omit=dev
-
+# --- CORREZIONE FONDAMENTALE ---
+# Installiamo TUTTE le dipendenze (anche quelle di sviluppo come Vite)
+# altrimenti non possiamo costruire il frontend.
+RUN npm install
 
 COPY . .
 
+# --- PASSAGGIO MANCANTE ---
+# Costruiamo il frontend (compila il codice Vue in HTML/JS leggibile dal browser)
+RUN npm run build
+
+# Opzionale: rimuove i tool di sviluppo dopo il build per alleggerire (facoltativo ma consigliato)
+# RUN npm prune --production
 
 RUN chown -R node:node /usr/src/app
 USER node
 
-# Espone la porta
 ENV PORT=7860
-EXPOSE ${PORT}
+EXPOSE 7860
 
-# Comando di avvio
 CMD ["node", "index.js"]
