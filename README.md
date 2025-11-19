@@ -223,7 +223,24 @@ Questa parte è cruciale per far funzionare il login.
 
 Una volta salvato, attendi qualche secondo e collegati a `https://il-tuo-dominio.com`.
 
-👉 <a href="http://localhost:8080" style="color:#bb86fc;font-weight:bold;text-decoration:none;">http://localhost:8080</a> </p> </td> </tr> </table> </div> <div align="center"> <table role="presentation" cellpadding="14" cellspacing="0" style="background:linear-gradient(135deg,#0a0014,#130022);border:1px solid rgba(187,134,252,0.4);border-radius:14px;box-shadow:0 0 20px rgba(187,134,252,0.3);width:80%;max-width:700px;"> <tr> <td align="center" style="color:#e0d4ff;font-family:Segoe UI,Arial,sans-serif;"> <h3 style="margin-top:0;color:#bb86fc;">🌐 Oppure prova la versione online!</h3> <p style="margin:0;font-size:1.1em;"> 💻 <strong>Nessuna installazione necessaria!</strong>
+<div align="center">
+  <br />
+  <table role="presentation" cellpadding="20" cellspacing="0" style="border:1px solid rgba(187,134,252,0.4); border-radius:14px; width:80%; max-width:700px;">
+    <tr>
+      <td align="center" style="font-family:Segoe UI, Arial, sans-serif;">
+        <h3 style="margin-top:0; color:#bb86fc;">🌐 Oppure prova la versione online!</h3>
+        <p style="margin:0; font-size:1.1em; color:#e0d4ff;">
+           💻 <strong>Nessuna installazione necessaria!</strong>
+        </p>
+        <br />
+        <a href="#" style="background-color:#bb86fc; color:#121212; padding:10px 20px; text-decoration:none; border-radius:5px; font-weight:bold;">
+          Vai alla Demo 🚀
+        </a>
+      </td>
+    </tr>
+  </table>
+  <br />
+</div>
 
 
 Accedi subito alla versione web:
