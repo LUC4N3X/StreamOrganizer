@@ -1,8 +1,3 @@
-// public/js/utils.js
-
-/**
- * Debounce: ritarda l’esecuzione della funzione finché non smette di essere chiamata.
- */
 export const debounce = (fn, delay = 250) => {
     let timeoutId;
     return (...args) => {
@@ -48,7 +43,7 @@ export const deepClone = (obj) => {
         try {
             return structuredClone(obj);
         } catch {
-            // Alcuni oggetti non sono clonabili (es: function, DOM Node)
+            // Alcuni oggetti non sono clonabili (es: function, DOM Node) o environment vecchi
         }
     }
     return JSON.parse(JSON.stringify(obj));
@@ -68,4 +63,23 @@ export const getResourceNames = (resources) => {
             return 'unknown';
         })
         .join(', ');
+};
+
+/**
+ * Esegue una lista di operazioni asincrone in lotti (batch) per non sovraccaricare la rete.
+ * Utile per checkStatus e autoUpdate quando si hanno molti addon.
+ * * @param {Array} items - Array di elementi da processare
+ * @param {number} batchSize - Numero massimo di operazioni parallele
+ * @param {Function} fn - Funzione asincrona da eseguire per ogni item
+ * @returns {Promise<Array>} - Risultati
+ */
+export const processInBatches = async (items, batchSize, fn) => {
+    const results = [];
+    for (let i = 0; i < items.length; i += batchSize) {
+        const batch = items.slice(i, i + batchSize);
+        // Esegue il lotto in parallelo e attende che finiscano tutti
+        const batchResults = await Promise.all(batch.map(item => fn(item)));
+        results.push(...batchResults);
+    }
+    return results;
 };
