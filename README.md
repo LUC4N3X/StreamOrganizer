@@ -177,13 +177,29 @@ Accedi subito alla versione web:
 👉 <a href="https://stream-organizer.vercel.app" style="color:#7ee787;font-weight:bold;text-decoration:none;">StreamOrder Online su Vercel ⚡</a> </p> </td> </tr> </table> </div>
 
 ---
-## 🧑‍💻 Crediti
+## 🧑‍💻 Crediti Cyberpunk
 
-<p align="center">
-👨‍🚀 **Autore:** LUC4N3X  <br>
-⚙️ **Progetto:** StreamOrder  <br>
-💡 **Concept:** Cyberpunk Addon Console per Stremio  <br>
+<div align="center" style="background:linear-gradient(135deg,#0a0014,#130022);padding:25px;border-radius:14px;box-shadow:0 0 20px rgba(255,0,255,0.4), 0 0 10px rgba(100,0,255,0.2) inset;">
+
+<p style="font-size:1.3em;color:#ff66ff;font-family:'Orbitron',sans-serif;margin:10px 0;text-shadow:0 0 8px #ff00ff;">
+    👨‍🚀 Autore: <strong>LUC4N3X</strong>
 </p>
+
+<p style="font-size:1.2em;color:#7ee787;font-family:'Orbitron',sans-serif;margin:10px 0;text-shadow:0 0 6px #00ffff;">
+    ⚙️ Progetto: <strong>StreamOrder</strong>
+</p>
+
+<p style="font-size:1.1em;color:#d9caff;font-family:'Roboto Mono',monospace;margin:10px 0;text-shadow:0 0 4px #ff00ff;">
+    💡 Concept: Cyberpunk Addon Console per Stremio
+</p>
+
+<p style="margin-top:20px;">
+    <img src="https://img.shields.io/badge/Code-Powered%20by%20Node.js-brightgreen?style=for-the-badge&logo=node.js" alt="Node.js" />
+    <img src="https://img.shields.io/badge/UI-Neon%20Cyberpunk-pink?style=for-the-badge&logo=css3" alt="Cyberpunk UI" />
+    <img src="https://img.shields.io/badge/Cloud-Sync-blueviolet?style=for-the-badge&logo=cloudflare" alt="Cloud Sync" />
+</p>
+
+</div>
 
 ---
 
