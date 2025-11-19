@@ -225,33 +225,28 @@ Una volta salvato, attendi qualche secondo e collegati a `https://il-tuo-dominio
 
 <div align="center">
   <br />
-  <table role="presentation" cellpadding="20" cellspacing="0" style="border:1px solid rgba(187,134,252,0.4); border-radius:14px; width:80%; max-width:700px;">
+  <table role="presentation" cellpadding="20" cellspacing="0" style="border:1px solid rgba(187,134,252,0.4); border-radius:14px; width:90%; max-width:700px; background: radial-gradient(circle at top left, rgba(30, 0, 40, 0.3), transparent);">
     <tr>
       <td align="center" style="font-family:Segoe UI, Arial, sans-serif;">
-        <h3 style="margin-top:0; color:#bb86fc;">🌐 Oppure prova la versione online!</h3>
-        <p style="margin:0; font-size:1.1em; color:#e0d4ff;">
-           💻 <strong>Nessuna installazione necessaria!</strong>
+        
+        <h3 style="margin-top:0; color:#bb86fc; font-size: 1.4em;">🌐 Prova la versione Cloud</h3>
+        <p style="margin:0 0 20px 0; font-size:1em; color:#a0a0a0;">
+           Nessuna installazione necessaria. Scegli il provider che preferisci:
         </p>
-        <br />
-        <a href="#" style="background-color:#bb86fc; color:#121212; padding:10px 20px; text-decoration:none; border-radius:5px; font-weight:bold;">
-          Vai alla Demo 🚀
+
+        <a href="https://luc4n3x-stream-organizer.hf.space" target="_blank">
+            <img src="https://img.shields.io/badge/🤗%20HuggingFace-Demo_Live-ffd21e?style=for-the-badge&logo=huggingface&logoColor=black&labelColor=1f1f1f" alt="HuggingFace Demo" height="35" style="border-radius: 6px; margin: 5px;">
         </a>
+
+        <a href="https://stream-organizer.vercel.app" target="_blank">
+            <img src="https://img.shields.io/badge/▲%20Vercel-Demo_Live-000000?style=for-the-badge&logo=vercel&logoColor=white&labelColor=1f1f1f" alt="Vercel Demo" height="35" style="border-radius: 6px; margin: 5px;">
+        </a>
+
       </td>
     </tr>
   </table>
   <br />
 </div>
-
-
-Accedi subito alla versione web:
-
-
-
-👉 <a href="https://luc4n3x-stream-organizer.hf.space" style="color:#7ee787;font-weight:bold;text-decoration:none;">StreamOrder Online su HuggingFace 🚀</a>
-
-
-
-👉 <a href="https://stream-organizer.vercel.app" style="color:#7ee787;font-weight:bold;text-decoration:none;">StreamOrder Online su Vercel ⚡</a> </p> </td> </tr> </table> </div>
 
 ---
 ## 🧑‍💻 Crediti Cyberpunk
