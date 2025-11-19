@@ -1,16 +1,26 @@
-Ignora la configurazione Git 
-​.git
+Ignora la configurazione Git
+
+.git
 .gitignore
-​Ignora i file di Docker stesso
-​Dockerfile
+
+Ignora i file di Docker stesso
+
+Dockerfile
 .dockerignore
-​File di configurazione e documentazione
-​README.md
+docker-compose.yml
+
+File di configurazione e documentazione
+
+README.md
 .env
 .env.*
-​Ignora le dipendenze locali 
-​node_modules
-​Log e file di sistema
-​npm-debug.log*
+
+Ignora le dipendenze locali (FONDAMENTALE)
+
+node_modules
+
+Log e file di sistema
+
+npm-debug.log*
 *.log
 .DS_Store
