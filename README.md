@@ -213,29 +213,26 @@ Accedi subito alla versione web:
 > Utilizza **StreamOrder** a tuo rischio e pericolo, solo per **scopi educativi** o di **testing locale**.
 
 ---
-<div align="center" style="background:linear-gradient(135deg,#0a0014,#130022);border-radius:12px;padding:25px;margin:20px 0;box-shadow:0 0 25px rgba(255,0,255,0.4), 0 0 10px rgba(100,0,255,0.2) inset;">
-<h1 style="font-size:2.2em;color:#ff00ff;margin:0;font-family:'Orbitron', sans-serif;text-shadow:0 0 8px #ff00ff;">
-    📜 Licenza
-</h1>
-  <p style="color:#e0d4ff;font-size:1.1em;margin:15px 0 0 0;font-family:'Roboto Mono', monospace;line-height:1.6;">
-    StreamOrder è rilasciato sotto licenza <strong>MIT</strong>.<br>
-    Puoi leggere il file completo <a href="LICENSE" style="color:#7ee787;font-weight:bold;text-decoration:none;">LICENSE</a> incluso nel repository.
-  </p>
-  <p style="color:#d9caff;font-size:0.95em;margin-top:20px;font-family:'Roboto Mono', monospace;">
-    "La libertà di creare, condividere e modificare, con responsabilità e stile cyberpunk." 🚀
-  </p>
-</div>
-
----
 <div align="center">
 
 [![LUC4N3X](https://img.shields.io/badge/SYSTEM-LUC4N3X-ff00ff?style=for-the-badge&logo=github&logoColor=white)](https://github.com/LUC4N3X)
 [![License](https://img.shields.io/badge/LICENSE-MIT-00f2ea?style=for-the-badge&logo=open-source-initiative&logoColor=white)](https://opensource.org/licenses/MIT)
-[![Status](https://img.shields.io/badge/LINK-EST._2025-7000ff?style=for-the-badge)](https://github.com/LUC4N3X)
+[![StreamOrder](https://img.shields.io/badge/PROJECT-StreamOrder-7000ff?style=for-the-badge&logo=media-fire&logoColor=white)](https://github.com/LUC4N3X)
+
+<br />
+
+<code><span style="color:#ff00ff">>></span> INITIATING LICENSE PROTOCOL...</code><br>
+<code><span style="color:#00f2ea">>></span> TARGET: StreamOrder</code><br>
+<code><span style="color:#7000ff">>></span> ACCESS: OPEN SOURCE (MIT)</code>
 
 </div>
 
 <br />
+
+> 💡 **StreamOrder è rilasciato sotto licenza MIT.**
+> La libertà di creare, condividere e modificare, con responsabilità e stile cyberpunk. 🚀
+
+---
 
 # MIT License
 
