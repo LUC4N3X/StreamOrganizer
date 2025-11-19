@@ -3,18 +3,17 @@
     // Controllo esistenza canvas e preferenza "Riduci Movimento" dell'OS
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     
-    // Se schermo troppo piccolo o utente vuole meno movimento, fermiamo tutto subito (risparmio CPU)
+    // Se schermo troppo piccolo o utente vuole meno movimento, fermiamo tutto.
     if (!canvas || innerWidth <= 960 || prefersReducedMotion) return;
 
-    const ctx = canvas.getContext('2d', { alpha: true }); // alpha: true permette trasparenze migliori
-    let w = canvas.width = innerWidth;
-    let h = canvas.height = innerHeight;
+    const ctx = canvas.getContext('2d', { alpha: true });
+    let w, h; // Definiamo le variabili, le riempiremo con resize()
     let t0 = performance.now();
     let running = true;
     const DPR = Math.min(window.devicePixelRatio || 1, 2);
     
     // Mouse state
-    const mouse = { x: w/2, y: h/2, tx: w/2, ty: h/2 };
+    const mouse = { x: innerWidth/2, y: innerHeight/2, tx: innerWidth/2, ty: innerHeight/2 };
 
     // ==========================================================
     // ▼▼▼ CACHE & DATI ▼▼▼
@@ -23,7 +22,6 @@
     let atmosphereCache = null;
     let waveGrad = [];
     
-    // Configurazione Livelli Onde
     const layers = [
         { amp: 55, wave: 0.006, speed: 0.0014, hue: 260, alpha: 0.30, thick: 1.6 },
         { amp: 85, wave: 0.004, speed: 0.0009, hue: 280, alpha: 0.24, thick: 2.1 },
@@ -48,7 +46,7 @@
         particles = Array.from({ length: PARTICLE_COUNT }, () => ({
             x: R(0, w), y: R(0, h), r: R(0.4, 1.5),
             speed: R(0.12, 0.38), alpha: R(0.12, 0.32),
-            z: R(0.6, 1.1) // Parallasse 3D
+            z: R(0.6, 1.1)
         }));
         glows = Array.from({ length: GLOWS_COUNT }, () => ({
             x: R(0, w), y: R(0, h),
@@ -58,9 +56,11 @@
     }
 
     // ==========================================================
-    // ▼▼▼ RESIZE & BUILD CACHES (OTTIMIZZATO) ▼▼▼
+    // ▼▼▼ RESIZE & BUILD CACHES ▼▼▼
     // ==========================================================
     function buildCaches() {
+        if (!w || !h) return;
+
         // Cache Sfondo
         bgCache = document.createElement('canvas');
         bgCache.width = Math.round(w * DPR);
@@ -91,7 +91,6 @@
             atmCtx.fillRect(0, 0, w, h);
         });
         
-        // Extra glows centrali
         for (let i = 0; i < 3; i++) {
             const x = w * 0.5 + R(-0.12, 0.12) * w;
             const y = h * 0.5 + R(-0.12, 0.12) * h;
@@ -103,7 +102,6 @@
             atmCtx.fillRect(0, 0, w, h);
         }
 
-        // Cache Gradienti Onde
         waveGrad = layers.map(L => {
             const grad = ctx.createLinearGradient(0, 0, w, 0);
             grad.addColorStop(0, `hsla(${L.hue},100%,55%,${L.alpha})`);
@@ -113,13 +111,12 @@
     }
 
     function resize() {
-        // Ricalcola dimensioni
+        // Impostiamo sia il buffer interno che lo stile CSS (FONDAMENTALE)
         w = canvas.width = innerWidth;
         h = canvas.height = innerHeight;
         canvas.style.width = innerWidth + 'px';
         canvas.style.height = innerHeight + 'px';
         
-        // Rigenera entità e cache
         initEntities();
         buildCaches();
         t0 = performance.now();
@@ -189,7 +186,6 @@
         particles.forEach(p => {
             const d = Math.hypot(p.x - mouse.x, p.y - mouse.y);
             const a = p.alpha + (d < 110 ? (110 - d) / 280 : 0);
-            // const r = p.r * p.z; // (Opzionale) Raggio in base alla Z
             const finalAlpha = Math.min(1, a * p.z);
             
             ctx.beginPath();
@@ -254,14 +250,12 @@
         if (!running) return;
         requestAnimationFrame(loop);
 
-        // Throttle FPS
         const dt = now - last;
         if (dt < MIN_DELTA) return;
         last = now - (dt % MIN_DELTA);
         
         const time = now - t0;
         
-        // Smooth mouse easing
         mouse.x += (mouse.tx - mouse.x) * 0.09;
         mouse.y += (mouse.ty - mouse.y) * 0.09;
 
@@ -284,14 +278,13 @@
     }
 
     // ==========================================================
-    // ▼▼▼ GESTIONE EVENTI (DEBOUNCED) ▼▼▼
+    // ▼▼▼ GESTIONE EVENTI ▼▼▼
     // ==========================================================
     
-    // Debounce sul resize: evita crash durante il trascinamento finestra
     let resizeTimeout;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(resize, 250); // Aspetta 250ms prima di ricalcolare
+        resizeTimeout = setTimeout(resize, 250); 
     }, { passive: true });
 
     window.addEventListener('mousemove', (e) => {
@@ -303,7 +296,6 @@
         clickPulse(e.clientX, e.clientY);
     }, { passive: true });
 
-    // Metti in pausa se la tab non è visibile
     document.addEventListener('visibilitychange', () => {
         running = !document.hidden;
         if (running) {
@@ -314,12 +306,10 @@
     });
 
     // ==========================================================
-    // ▼▼▼ AVVIO ▼▼▼
+    // ▼▼▼ AVVIO CORRETTO ▼▼▼
     // ==========================================================
-    initEntities();
-    buildCaches();
-    // Non chiamiamo resize() qui per evitare doppio calcolo all'avvio,
-    // initEntities e buildCaches usano già le variabili globali w/h inizializzate all'inizio
+    // Chiamiamo resize SUBITO per impostare Width/Height correttamente
+    resize(); 
     requestAnimationFrame(loop);
 
 })();
