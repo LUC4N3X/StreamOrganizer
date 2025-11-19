@@ -229,8 +229,8 @@ Accedi subito alla versione web:
 
 <br />
 
-> 💡 **StreamOrder è rilasciato sotto licenza MIT.**
-> La libertà di creare, condividere e modificare, con responsabilità e stile cyberpunk. 🚀
+> 🔓 **StreamOrder è rilasciato sotto licenza MIT.**
+> La libertà di creare, condividere e modificare, con responsabilità e stile cyberpunk. 👾
 
 ---
 
