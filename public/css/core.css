@@ -266,13 +266,11 @@ input,
         scroll-behavior: auto !important;
     }
     
-    /* Disabilita effetti pesanti per GPU */
-    #bgCanvas, .neon-glow-aura, .loader-spinner {
-        display: none !important;
-    }
+    /* NON NASCONDIAMO PIÙ IL CANVAS, LO LASCIAMO VISIBILE */
+    /* #bgCanvas, .neon-glow-aura, .loader-spinner { display: none !important; }  <-- RIMOSSO */
     
     #app, .panel, .modal-content {
         backdrop-filter: none !important;
-        box-shadow: 0 0 10px rgba(0,0,0,0.5) !important; /* Ombra semplice */
+        box-shadow: 0 0 10px rgba(0,0,0,0.5) !important;
     }
 }
