@@ -1,17 +1,28 @@
 version: '3.8'
-<!-- =================== HEADER README CYBERPUNK GITHUB =================== -->
+
 services:
   streamorganizer:
-    # Costruisce l'immagine usando il Dockerfile nella cartella corrente
     build: .
     container_name: streamorganizer_app
-    # Mappa la porta 8080  alla porta interna 7860
+    
+    # Mappa la porta host:container
+    # Accederai al sito via http://localhost:8080
     ports:
       - "8080:7860"
-    # Carica le variabili d'ambiente (per la MONITOR_KEY) dal file .env
+    
     env_file:
       - ./.env
-    # Riavvia il container automaticamente se si spegne o crasha
+    
+    environment:
+      # --- IMPORTANTE PER SELF-HOSTING ---
+      # Se usi HTTPS (con Nginx/Traefik), metti: production
+      # Se usi HTTP (IP locale/test), metti: development
+      # 'development' permette al login di funzionare senza certificato SSL
+      - NODE_ENV=development
+      
+      # Forza la porta interna (opzionale, ma sicuro)
+      - PORT=7860
+      
     restart: unless-stopped
     networks:
       - streamorganizer_net
