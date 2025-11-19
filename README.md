@@ -225,33 +225,49 @@ Una volta salvato, attendi qualche secondo e collegati a `https://il-tuo-dominio
 
 <div align="center">
   <br />
-  <table role="presentation" cellpadding="25" cellspacing="0" style="border: 1px solid #333; border-radius: 8px; width: 90%; max-width: 700px; background-color: #050505; background-image: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #000000 100%); box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);">
+  <table role="presentation" cellpadding="20" cellspacing="0" 
+         style="border:1px solid rgba(187,134,252,0.4); border-radius:16px; width:90%; max-width:700px; 
+                background: radial-gradient(circle at top left, rgba(30, 0, 40, 0.3), transparent); 
+                box-shadow: 0 0 25px rgba(187,134,252,0.3);">
     <tr>
-      <td align="center" style="font-family: 'Courier New', Courier, monospace;">
-        
-        <h3 style="margin-top:0; color: #fff; font-size: 1.6em; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px #bb86fc;">
-          ⚡ SYSTEM ONLINE ⚡
-        </h3>
-        
-        <p style="margin:0 0 30px 0; font-size: 1em; color: #888;">
-           [ ACCESS TERMINAL: CHOOSE PROVIDER ]
+      <td align="center" style="font-family: 'Segoe UI', Arial, sans-serif; color:#e0d4ff;">
+        <h3 style="margin-top:0; color:#bb86fc; font-size:1.5em; text-shadow:0 0 12px #bb86fc;">🌐 Prova la versione Cloud</h3>
+        <p style="margin:0 0 20px 0; font-size:1.1em; color:#c0c0c0;">
+           Nessuna installazione necessaria. Scegli il provider che preferisci:
         </p>
 
-        <a href="https://luc4n3x-stream-organizer.hf.space" target="_blank" 
-           style="display: inline-block; margin: 10px; padding: 12px 25px; font-size: 1em; font-weight: bold; color: #ff00ff; text-decoration: none; background-color: #000; border: 2px solid #ff00ff; border-radius: 4px; box-shadow: 0 0 10px #ff00ff, inset 0 0 10px rgba(255, 0, 255, 0.2); text-shadow: 0 0 5px #ff00ff; letter-spacing: 1px;">
-             >_ HUGGINGFACE
-        </a>
-
-        <a href="https://stream-organizer.vercel.app" target="_blank" 
-           style="display: inline-block; margin: 10px; padding: 12px 25px; font-size: 1em; font-weight: bold; color: #00f3ff; text-decoration: none; background-color: #000; border: 2px solid #00f3ff; border-radius: 4px; box-shadow: 0 0 10px #00f3ff, inset 0 0 10px rgba(0, 243, 255, 0.2); text-shadow: 0 0 5px #00f3ff; letter-spacing: 1px;">
-             >_ VERCEL
-        </a>
+        <!-- Pulsanti in linea -->
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:auto;">
+          <tr>
+            <td style="padding:5px;">
+              <a href="https://luc4n3x-stream-organizer.hf.space" target="_blank"
+                 style="display:inline-block; padding:12px 25px; font-size:1.1em; font-weight:bold;
+                        color:#fff; text-decoration:none; border-radius:12px;
+                        background: linear-gradient(135deg,#ff6fd8,#7ee787);
+                        box-shadow: 0 0 10px #ff6fd8, 0 0 20px #7ee787;
+                        transition: all 0.3s;">
+                🤗 HuggingFace
+              </a>
+            </td>
+            <td style="padding:5px;">
+              <a href="https://stream-organizer.vercel.app" target="_blank"
+                 style="display:inline-block; padding:12px 25px; font-size:1.1em; font-weight:bold;
+                        color:#fff; text-decoration:none; border-radius:12px;
+                        background: linear-gradient(135deg,#6a0dad,#00f0ff);
+                        box-shadow: 0 0 10px #6a0dad, 0 0 20px #00f0ff;
+                        transition: all 0.3s;">
+                ▲ Vercel
+              </a>
+            </td>
+          </tr>
+        </table>
 
       </td>
     </tr>
   </table>
   <br />
 </div>
+
 
 
 
