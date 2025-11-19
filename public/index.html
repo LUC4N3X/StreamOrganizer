@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  
   <title>{{ t('meta.title') }}</title>
-  <link rel="icon" type="image/png" href="favicon.png?v=<%= new Date().getTime() %>">
+
+  <link rel="icon" type="image/png" href="favicon.png">
   <meta name="description" content="{{ t('meta.description') }}">
   <meta name="theme-color" content="#0d0d0d">
 
@@ -12,72 +14,35 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 
-  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-  <script src="https://unpkg.com/vuedraggable@next/dist/vuedraggable.umd.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js" defer></script>
+  <script src="https://unpkg.com/vuedraggable@next/dist/vuedraggable.umd.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js" defer></script>
 
   <link href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/introjs.min.css" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.min.js" defer></script>
 
-  <link rel="stylesheet" href="css/style.css?v=1.0">
+  <link rel="stylesheet" href="css/core.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/vendor.css">
+  <link rel="stylesheet" href="css/theme-light.css">
 
-  <style>
-    /* DEFINIZIONE ANIMAZIONE */
-    @keyframes fadeInPage {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* FIX IMPORTANTE: 
-       Rimosso l'animazione da html/body. 
-       Il body deve essere statico per permettere al canvas di essere 'fixed'.
-    */
-    html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        min-height: 100vh;
-        background-color: #0d0d0d; /* Colore di fondo di sicurezza */
-        overflow-x: hidden; /* Evita scroll orizzontale indesiderato */
-    }
-
-    /* FIX CANVAS: 
-       Ora che il body non ha 'transform', 'position: fixed' funzionerà correttamente
-       e lo sfondo rimarrà bloccato anche scrollando la pagina.
-    */
-    #bgCanvas {
-        position: fixed !important;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        z-index: -1; /* Dietro a tutto */
-        pointer-events: none;
-        display: block;
-    }
-
-    /* L'animazione viene applicata SOLO al contenitore dell'app (#app).
-       In questo modo il contenuto sfuma in entrata, ma lo sfondo resta fisso.
-    */
-    #app {
-        opacity: 0; /* Parte invisibile */
-        animation: fadeInPage 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        position: relative;
-        z-index: 1;
-        min-height: 100vh;
-    }
-  </style>
 </head>
 <body :class="{'light-mode': isLightMode}">
   <canvas id="bgCanvas"></canvas>
 
-  <div id="app" :lang="lang" :class="{'not-logged-in': !isLoggedIn}">
-        <div :class="['global-loader', { visible: isLoading }]">
-      <div class="loader-spinner"></div>
+  <div id="app" :lang="lang" :class="{'not-logged-in': !isLoggedIn}" v-cloak>
+    
+    <div :class="['global-loader', { visible: isLoading }]">
+      <div class="loader-spinner">
+        <div class="loader-particle"></div>
+        <div class="loader-particle"></div>
+        <div class="loader-particle"></div>
+      </div>
     </div>
 
-        <teleport to="body">
+    <teleport to="body">
       <div id="toast-container">
         <transition-group name="toast" tag="div">
           <div v-for="toast in toasts" :key="toast.id" :class="['toast', toast.type]">
@@ -87,7 +52,7 @@
       </div>
     </teleport>
 
-        <header class="main-header">
+    <header class="main-header">
       <div class="neon-glow-aura"></div>
       <h1 @click="incrementAdminClick" data-tour="step-1">
         {{ t('h1') }}
@@ -99,7 +64,7 @@
           {{ t('subtitle.login') }}
         </div>
         <div v-else-if="isMonitoring" class="subtitle monitoring">
-        {{ t('subtitle.monitoring') }}
+          {{ t('subtitle.monitoring') }}
         </div>
         <div v-else-if="isLoggedIn && (showWelcomeScreen || showWelcomeTourModal)" class="subtitle welcome">
           {{ t('welcome.title') }}
@@ -130,7 +95,7 @@
         <div class="theme-switcher">
           <span>🌙</span>
           <label class="toggle-switch" :title="isLightMode ? t('footer.darkMode') : t('footer.lightMode')">
-            <input type="checkbox" v-model="isLightMode" @change="toggleTheme">
+            <input type="checkbox" v-model="isLightMode" @change="initTheme">
             <span class="slider"></span>
             <span class="slider-ball"></span>
           </label>
@@ -141,7 +106,7 @@
       <button @click="showInstructions = true" class="instructions-btn" :title="t('instructions.buttonTitle')">?</button>
     </header>
 
-        <div v-if="!isLoggedIn" class="welcome-info-panel-container">
+    <div v-if="!isLoggedIn" class="welcome-info-panel-container">
       <div class="welcome-panel super-wow">
         <h3>{{ t('welcome.title') }}</h3>
         <p class="subtitle">{{ t('welcome.panel_p1') }}</p>
@@ -157,11 +122,11 @@
       </div>
     </div>
 
-        <div v-if="isLoggedIn && !showWelcomeScreen && !showWelcomeTourModal" class="stats-panel-container" data-tour="step-2">
+    <div v-if="isLoggedIn && !showWelcomeScreen && !showWelcomeTourModal" class="stats-panel-container" data-tour="step-2">
       <div class="stats-panel">
         <h3>{{ t('stats.title') }}</h3>
 
-              <div v-if="!isMonitoring" style="margin-bottom: 20px; text-align: center;">
+        <div v-if="!isMonitoring" style="margin-bottom: 20px; text-align: center;">
           <button @click="saveProfile()" class="btn-special-green" style="width: 100%;">👤 {{ t('profiles.saveButton') }}</button>
         </div>
 
@@ -198,8 +163,9 @@
       </div>
     </div>
 
-        <div class="main-content">
-            <div class="panel panel-login-cyberpunk" v-if="!isLoggedIn">
+    <div class="main-content">
+      
+      <div class="panel panel-login-cyberpunk" v-if="!isLoggedIn">
         <form @submit.prevent="login" v-if="!showAdminInput" style="margin-bottom:0;">
           <h2 style="margin:0 0 8px 0; color:#BB86FC; font-family:'Orbitron',sans-serif;">{{ t('login.title') }}</h2>
 
@@ -218,7 +184,7 @@
           </button>
         </form>
 
-              <div class="profile-management" v-if="!showAdminInput && savedProfiles.length > 0">
+        <div class="profile-management" v-if="!showAdminInput && savedProfiles.length > 0">
           <h3 style="margin: 0 0 10px 0; color:#7FF7E1; font-family:'Orbitron',sans-serif; font-size:1.05rem; border-top: 1px solid rgba(187,134,252,0.1); padding:0; padding-top: 15px;">{{ t('profiles.title') }}</h3>
           <p style="font-size: 0.9rem; margin-bottom: 15px; color: rgba(230,230,230,0.8);">{{ t('profiles.p1') }}</p>
 
@@ -259,7 +225,7 @@
           </div>
         </div>
 
-              <form v-if="showAdminInput" @submit.prevent="monitorLogin" class="panel" style="margin-top:10px; padding:12px;">
+        <form v-if="showAdminInput" @submit.prevent="monitorLogin" class="panel" style="margin-top:10px; padding:12px;">
           <h2 style="margin:0 0 8px 0; color:#FFA500; font-family:'Orbitron',sans-serif;">{{ t('monitor.title') }}</h2>
           <div class="form-group" style="margin-bottom:10px;"><input type="password" v-model="adminKey" :placeholder="t('monitor.keyPlaceholder')" required></div>
           <div class="form-group" style="margin-bottom:12px;"><input type="email" v-model="targetEmail" :placeholder="t('monitor.emailPlaceholder')" required></div>
@@ -267,7 +233,7 @@
         </form>
       </div>
 
-            <div v-if="isLoggedIn && showWelcomeScreen" class="panel welcome-panel panel-login-cyberpunk">
+      <div v-if="isLoggedIn && showWelcomeScreen" class="panel welcome-panel panel-login-cyberpunk">
         <h2>{{ t('welcome.title') }}</h2>
         <p>{{ t('welcome.p1') }}</p>
 
@@ -288,7 +254,7 @@
         </div>
       </div>
 
-            <div v-if="isLoggedIn && !showWelcomeScreen && !showWelcomeTourModal">
+      <div v-if="isLoggedIn && !showWelcomeScreen && !showWelcomeTourModal">
         <div style="margin-bottom:12px;">
           <button @click="saveOrder" :class="['primary-btn', { 'unsaved-changes': hasUnsavedChanges }]" :disabled="isLoading || isMonitoring" style="width:100%;" data-tour="step-7">
             <span v-if="hasUnsavedChanges" class="unsaved-indicator"></span>
@@ -380,7 +346,7 @@
             </div>
           </div>
 
-                    <draggable v-if="filteredAddons.length > 0" v-model="draggableList" @end="onDragEnd" item-key="transportUrl" class="addon-list" v-bind="dragOptions" data-tour="step-4">
+          <draggable v-if="filteredAddons.length > 0" v-model="draggableList" @end="onDragEnd" item-key="transportUrl" class="addon-list" v-bind="dragOptions" data-tour="step-4">
             <template #item="{ element: addon }">
               <li :class="['addon-item', { disabled: !addon.isEnabled }]">
                 <input type="checkbox" :checked="addon.selected" @change.stop="handleToggleSelected(addon, $event)" class="addon-checkbox" :disabled="isMonitoring">
@@ -469,11 +435,11 @@
       </div>
     </div>
 
-        <button v-if="isLoggedIn && !isMonitoring && !showWelcomeScreen && !showWelcomeTourModal" @click="saveOrder" :class="['floating-save-btn', { visible: hasUnsavedChanges }]" :disabled="isLoading || !hasUnsavedChanges" data-tour="step-8">
+    <button v-if="isLoggedIn && !isMonitoring && !showWelcomeScreen && !showWelcomeTourModal" @click="saveOrder" :class="['floating-save-btn', { visible: hasUnsavedChanges }]" :disabled="isLoading || !hasUnsavedChanges" data-tour="step-8">
       <span v-if="hasUnsavedChanges" class="unsaved-indicator"></span> 💾
     </button>
 
-        <div :class="['modal-overlay', { visible: showInstructions }]" @click.self="showInstructions = false" role="dialog" aria-modal="true">
+    <div :class="['modal-overlay', { visible: showInstructions }]" @click.self="showInstructions = false" role="dialog" aria-modal="true">
       <div class="modal-content">
         <button @click="showInstructions = false" class="modal-close-btn">&times;</button>
         <h2>{{ t('instructions.title') }}</h2>
@@ -530,7 +496,7 @@
       </div>
     </div>
 
-        <div :class="['modal-overlay', { visible: showImportConfirm }]" @click.self="closeImportConfirm">
+    <div :class="['modal-overlay', { visible: showImportConfirm }]" @click.self="closeImportConfirm">
       <div class="modal-content">
         <button @click="closeImportConfirm" class="modal-close-btn">&times;</button>
         <h2>{{ t('importConfirm.title') }}</h2>
@@ -552,7 +518,7 @@
       </div>
     </div>
 
-        <div :class="['modal-overlay', { visible: showWelcomeTourModal }]" style="z-index:2000;">
+    <div :class="['modal-overlay', { visible: showWelcomeTourModal }]" style="z-index:2000;">
       <div class="modal-content modal-tour-wow">
         <h2>{{ t('tour.welcome.title') }}</h2>
         <p>{{ t('tour.welcome.p1') }}</p>
@@ -608,8 +574,9 @@
     </div>
   </div>
 
-  <script src="js/translations.js" defer></script>
   <script src="js/bg-animation.js" defer></script>
-  <script type="module" src="js/app.js" defer></script>
+  
+  <script type="module" src="js/app.js"></script>
+
 </body>
 </html>
