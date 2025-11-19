@@ -197,6 +197,46 @@ Accedi subito alla versione web:
 > ⚡ **Nota d’uso:**  
 > Utilizza **StreamOrder** a tuo rischio e pericolo, solo per **scopi educativi** o di **testing locale**.
 
+---
+<div align="center" style="background:linear-gradient(135deg,#0a0014,#130022);border-radius:12px;padding:25px;margin:20px 0;box-shadow:0 0 25px rgba(255,0,255,0.4), 0 0 10px rgba(100,0,255,0.2) inset;">
+<h1 style="font-size:2.2em;color:#ff00ff;margin:0;font-family:'Orbitron', sans-serif;text-shadow:0 0 8px #ff00ff;">
+    📜 Licenza
+</h1>
+  <p style="color:#e0d4ff;font-size:1.1em;margin:15px 0 0 0;font-family:'Roboto Mono', monospace;line-height:1.6;">
+    StreamOrder è rilasciato sotto licenza <strong>MIT</strong>.<br>
+    Puoi leggere il file completo <a href="LICENSE" style="color:#7ee787;font-weight:bold;text-decoration:none;">LICENSE</a> incluso nel repository.
+  </p>
+  <p style="color:#d9caff;font-size:0.95em;margin-top:20px;font-family:'Roboto Mono', monospace;">
+    "La libertà di creare, condividere e modificare, con responsabilità e stile cyberpunk." 🚀
+  </p>
+</div>
 
+---
 
+### 🔖 Contenuto del file LICENSE
+
+```text
+MIT License
+
+Copyright (c) 2025 LUC4N3X
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+<div align="center" style="margin-top:40px;color:#ff00ff;font-family:'Orbitron',sans-serif;text-shadow:0 0 6px #ff00ff;"> 🔮 Keep your addons neon, your code secure, and your cyberdeck powered ⚡ </div>```
 
