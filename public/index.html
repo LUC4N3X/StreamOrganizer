@@ -6,6 +6,73 @@
   
   <title>{{ t('meta.title') }}</title>
 
+  <style>
+    /* 1. Sfondo nero per evitare flash bianchi */
+    html, body {
+      background-color: #0d0d0d;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      /* Overflow-x hidden  */
+      overflow-x: hidden; 
+    }
+
+    /* 2. APPLICAZIONE ANIMAZIONE (Sincronizzata) */
+    #app, #bgCanvas {
+      opacity: 0; /* Partono invisibili */
+      /* Animazione Glitch: 0.85s di durata */
+      animation: glitchSnap 0.85s cubic-bezier(0.1, 0.9, 0.2, 1) 0s forwards;
+    }
+
+    /* 3. POSIZIONAMENTO LIVELLI (Z-INDEX) */
+    /* Il canvas deve stare dietro, fisso */
+    #bgCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1; /* Dietro */
+      pointer-events: none;
+    }
+
+   
+    #app {
+      position: relative;
+      z-index: 1; /* Davanti */
+    }
+
+    /* 4. DEFINIZIONE EFFETTO GLITCH */
+    @keyframes glitchSnap {
+      0% {
+        opacity: 0;
+        transform: scale(1.05);
+        filter: brightness(5) blur(10px);
+      }
+      5% {
+        opacity: 1;
+        transform: scale(1.02) skewX(5deg);
+        filter: contrast(2) drop-shadow(-5px 0 0 rgba(255,0,0,0.8)) drop-shadow(5px 0 0 rgba(0,255,255,0.8));
+      }
+      15% {
+        transform: scale(0.99) skewX(-5deg);
+        filter: contrast(1.5) drop-shadow(3px 0 0 rgba(255,0,0,0.8)) drop-shadow(-3px 0 0 rgba(0,255,255,0.8));
+      }
+      30% {
+        transform: scale(1.01) skewX(2deg);
+        filter: contrast(1.2) drop-shadow(0 0 0 transparent);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: none;
+      }
+    }
+
+    /* Nasconde i baffi di Vue */
+    [v-cloak] { display: none !important; }
+  </style>
+
   <link rel="icon" type="image/png" href="favicon.png">
   <meta name="description" content="{{ t('meta.description') }}">
   <meta name="theme-color" content="#0d0d0d">
@@ -30,6 +97,7 @@
 
 </head>
 <body :class="{'light-mode': isLightMode}">
+  
   <canvas id="bgCanvas"></canvas>
 
   <div id="app" :lang="lang" :class="{'not-logged-in': !isLoggedIn}" v-cloak>
