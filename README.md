@@ -126,57 +126,58 @@
 
 # 🚀 Installazione
 
-🐳 Installazione con Docker (🔥 Metodo Consigliato)
+🚀 Installazione Self-Hosted
 
-> Questo metodo è ottimizzato per l’uso con Nginx Proxy Manager, Traefik, Caddy o qualsiasi reverse proxy HTTPS.
-Sicuro, pulito e pronto per la produzione.
+Questa guida ti accompagnerà nella configurazione di StreamOrder sul tuo server personale. La configurazione è ottimizzata per l'uso con Docker.
 
+🐳 Metodo Docker (🔥 Consigliato)
 
+Questa configurazione è progettata per funzionare dietro un Reverse Proxy (come Nginx, Traefik o Nginx Proxy Manager).
 
+1️⃣ Setup Iniziale
 
----
+Clona il repository e posizionati nella cartella del progetto:
 
-🚀 1️⃣ Setup Iniziale
-
-Clona il repository ed entra nella cartella:
-
-git clone https://github.com/Luca1234105/StreamOrder.git
+git clone [https://github.com/Luca1234105/StreamOrder.git](https://github.com/Luca1234105/StreamOrder.git)
 cd StreamOrder
 
 
----
+2️⃣ Configurazione Ambiente (.env)
 
-🔧 2️⃣ Configurazione Ambiente (.env)
+Crea il file .env necessario per la configurazione. Puoi usare il comando rapido qui sotto per generarlo automaticamente:
 
-Crea velocemente il file .env con:
-
-# Genera il file .env (sostituisci i valori!)
+# Genera il file .env (Sostituisci i valori con i tuoi dati!)
 cat > .env <<EOL
 GITHUB_TOKEN=la_tua_chiave_github_opzionale
 MONITOR_KEY=una_password_segreta_a_tua_scelta
 PORT=7860
 EOL
 
-📌 Variabili disponibili
 
-Variabile	Descrizione
+Variabile
 
-GITHUB_TOKEN	(Opzionale) Aumenta i limiti API GitHub
-MONITOR_KEY	Password obbligatoria per proteggere la dashboard
-PORT	Porta interna dell’app (default 7860)
+Descrizione
 
+GITHUB_TOKEN
 
+(Opzionale) Token per aumentare i limiti API di GitHub.
 
----
+MONITOR_KEY
 
-🏗️ 3️⃣ Build & Deploy
+Richiesto. Una password sicura scelta da te per proteggere l'accesso.
 
-🔨 Costruisci l'immagine
+PORT
 
+Porta interna del container (Default: 7860).
+
+3️⃣ Build & Deploy
+
+Costruisci l'immagine e avvia il container in background:
+
+# Costruisci l'immagine
 docker build -t streamorder .
 
-▶️ Avvia il container
-
+# Avvia il container (Mappa porta 7860:7860)
 docker run -d \
   -p 7860:7860 \
   --env-file .env \
@@ -185,57 +186,29 @@ docker run -d \
   streamorder
 
 
----
-
 ⚡️ Configurazione Avanzata
 
+[!IMPORTANT]
 🔒 HTTPS & Reverse Proxy (Fondamentale)
+Per garantire la sicurezza dei cookie di sessione (login), l'applicazione DEVE essere eseguita dietro un Reverse Proxy con HTTPS abilitato (es. Nginx Proxy Manager, Traefik, Caddy).
 
-> [!IMPORTANT]
-Per motivi di sicurezza, NON usare l'app in HTTP diretto.
-I browser moderni non salveranno i cookie → niente login.
+Target: Configura il proxy per inoltrare il traffico a http://indirizzo-ip-server:7860
 
+Warning: L'accesso diretto tramite IP/HTTP (senza SSL) potrebbe impedire il salvataggio dei cookie sui browser moderni.
 
-
-Target reverse proxy:
-http://INDIRIZZO-IP:7860
-
-
----
-
+[!WARNING]
 🛠 Cambiare la Porta (Modalità Esperto)
+La porta predefinita è 7860. Se hai necessità di cambiarla (es. usare la 8080), NON basta modificare il mapping di Docker (-p 8080:7860).
 
-> [!WARNING]
-Non basta cambiare il mapping -p 8080:7860.
-Ci sono controlli CORS, CSP e validazioni di sicurezza nel codice.
+A causa dei rigorosi controlli di sicurezza CORS e CSP integrati nel codice, devi seguire questa procedura manuale:
 
+🐳 Dockerfile: Aggiorna le righe EXPOSE e ENV PORT.
 
+⚙️ server.js: Aggiorna la variabile PORT e aggiungi la nuova porta/dominio all'array allowedOrigins.
 
-Per usare una nuova porta (es: 8080), devi:
+📄 .env: Aggiorna la variabile PORT.
 
-1️⃣ Modificare il Dockerfile
-
-ENV PORT=8080
-EXPOSE 8080
-
-2️⃣ Modificare server.js
-
-const PORT = process.env.PORT || 8080;
-
-const allowedOrigins = [
-    "https://tuodominio.com",
-    "https://altrodominio.it",
-    "http://localhost:8080"
-];
-
-3️⃣ Aggiornare il .env
-
-PORT=8080
-
-4️⃣ Ricostruire l’immagine
-
-docker build -t streamorder .
-
+🏁 Rebuild: Esegui docker build -t streamorder . per applicare le modifiche.
 
 
 
