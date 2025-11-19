@@ -124,7 +124,7 @@
 
 ---
 
-# 🚀 StreamOrder
+# # 🚀 Installazione
 
 Benvenuto nella guida all'installazione di StreamOrder. Segui questi passaggi per configurare la tua istanza personale in pochi minuti.
 
