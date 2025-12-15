@@ -2,7 +2,7 @@
   "name": "stremio-addon-manager",
   "version": "1.0.0",
   "description": "Stremio Addon Manager",
-  "main": "index.js", 
+  "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "start:docker": "node server.js"
@@ -15,6 +15,9 @@
     "express-rate-limit": "^7.3.1",
     "joi": "^17.13.3",
     "cookie-parser": "^1.4.6",
-    "sanitize-html": "^2.13.0"
+    "sanitize-html": "^2.13.0",
+    "express-session": "^1.18.0",
+    "lusca": "^1.7.0",
+    "abort-controller": "^3.0.0"
   }
 }
