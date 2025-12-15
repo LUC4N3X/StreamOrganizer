@@ -11,9 +11,6 @@ const dns = require('dns');
 const net = require('net');
 const http = require('http');
 const https = require('https');
-
-// --- NUOVI MODULI PER CSRF ---
-// Assicurati di fare: npm install express-session lusca
 const session = require('express-session');
 const lusca = require('lusca');
 
@@ -25,7 +22,6 @@ const app = express();
 const PORT = process.env.PORT || 7860;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
-// Fondamentale per il Rate Limit se sei dietro proxy (Render, Heroku, Docker, Nginx)
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
@@ -47,9 +43,7 @@ const SANITIZE_MAX_DEPTH = 6;
 const SANITIZE_MAX_STRING = 2000;
 const SANITIZE_MAX_ARRAY = 200;
 
-// --- MIDDLEWARE DI SICUREZZA ---
-
-// 1. Helmet
+// --- MIDDLEWARE ---
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -65,7 +59,6 @@ app.use(helmet({
   originAgentCluster: false
 }));
 
-// 2. Rate Limiting
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
@@ -75,42 +68,37 @@ const apiLimiter = rateLimit({
 });
 
 app.use('/api/', apiLimiter);
-
 app.use(express.json({ limit: MAX_JSON_PAYLOAD }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 3. Sessioni (Necessario per Lusca CSRF) [FIX CODEQL]
-// Nota: In produzione, l'uso di MemoryStore (default) non è raccomandato per alte performance,
-// ma è sufficiente per addon semplici.
 app.use(session({
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
     cookie: {
-        secure: IS_PRODUCTION, // true su HTTPS
+        secure: IS_PRODUCTION,
         httpOnly: true,
         sameSite: IS_PRODUCTION ? 'none' : 'lax'
     }
 }));
 
-// 4. Protezione CSRF (Lusca) [FIX CODEQL]
 app.use(lusca.csrf({
-    cookie: false // Usiamo la sessione per il token
+    cookie: false
 }));
 
-// Endpoint per permettere al frontend di ottenere il token CSRF
 app.get('/api/csrf-token', (req, res) => {
     res.json({ csrfToken: res.locals._csrf });
 });
 
-// --- CORS CONFIGURATION ---
 app.use(cors({
   origin: true,
   credentials: true
 }));
 
-// --- SISTEMA DI SICUREZZA SSRF ---
+// --- SICUREZZA DI RETE (SSRF & DNS REBINDING) ---
+
+// 1. Validazione Statica IP
 function isPrivateIp(ip) {
   if (net.isIPv6(ip) && ip.startsWith('::ffff:')) { ip = ip.substring(7); }
   if (net.isIPv4(ip)) {
@@ -123,6 +111,7 @@ function isPrivateIp(ip) {
   return false;
 }
 
+// 2. Lookup Sicuro (Protezione dinamica)
 function secureLookup(hostname, options, callback) {
   dns.lookup(hostname, options, (err, address, family) => {
     if (err) return callback(err);
@@ -136,7 +125,61 @@ function secureLookup(hostname, options, callback) {
 const httpAgent = new http.Agent({ lookup: secureLookup });
 const httpsAgent = new https.Agent({ lookup: secureLookup });
 
-// --- HELPERS ---
+// 3. Validazione URL pre-fetch (PER CODEQL)
+function validateUrlBeforeFetch(urlString) {
+  try {
+    const parsed = new URL(urlString);
+    // Protocollo deve essere http o https
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      throw new Error('Protocollo non valido');
+    }
+    // Se l'host è esplicitamente un IP, controlliamo subito se è privato
+    if (net.isIP(parsed.hostname) && isPrivateIp(parsed.hostname)) {
+      throw new Error('IP Privato non consentito');
+    }
+    // Blocchiamo localhost esplicito
+    if (parsed.hostname.toLowerCase() === 'localhost') {
+      throw new Error('Localhost non consentito');
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// --- CORE FETCH FUNCTION ---
+async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
+  // [FIX CODEQL] Controllo esplicito dell'URL prima di usarlo
+  if (!validateUrlBeforeFetch(url)) {
+    throw new Error("URL non valido o non sicuro (Validazione statica).");
+  }
+
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  
+  let agent;
+  try {
+    const parsedUrl = new URL(url);
+    agent = parsedUrl.protocol === 'https:' ? httpsAgent : httpAgent;
+  } catch (e) {
+    clearTimeout(id);
+    throw new Error("URL non valido.");
+  }
+
+  try {
+    // Usiamo l'URL validato e l'Agente sicuro
+    const res = await fetch(url, { ...options, agent: agent, signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (err) {
+    clearTimeout(id);
+    if (err.name === 'AbortError') throw new Error('Richiesta al server scaduta (timeout).');
+    if (err.message && err.message.includes('ERR_SSRF')) throw new Error("URL non consentito (IP Privato rilevato).");
+    throw err;
+  }
+}
+
+// --- HELPERS E SANITIZE ---
 const sanitizeOptions = { allowedTags: [], allowedAttributes: {} };
 const sanitize = (text) => text ? sanitizeHtml(text.trim(), sanitizeOptions) : '';
 
@@ -167,31 +210,6 @@ function sanitizeObject(data, currentDepth = 0, seen = new WeakSet()) {
   return data;
 }
 
-async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  
-  let agent;
-  try {
-    const parsedUrl = new URL(url);
-    agent = parsedUrl.protocol === 'https:' ? httpsAgent : httpAgent;
-  } catch (e) {
-    clearTimeout(id);
-    throw new Error("URL non valido.");
-  }
-
-  try {
-    const res = await fetch(url, { ...options, agent: agent, signal: controller.signal });
-    clearTimeout(id);
-    return res;
-  } catch (err) {
-    clearTimeout(id);
-    if (err.name === 'AbortError') throw new Error('Richiesta al server scaduta (timeout).');
-    if (err.message && err.message.includes('ERR_SSRF')) throw new Error("URL non consentito (IP Privato rilevato).");
-    throw err;
-  }
-}
-
 function validateApiResponse(res, maxSize = MAX_API_RESPONSE_BYTES) {
   const contentType = res.headers.get('content-type');
   if (!contentType || !contentType.includes('application/json')) throw new Error('Risposta API non valida (Content-Type non JSON).');
@@ -219,7 +237,6 @@ const asyncHandler = fn => (req, res, next) => Promise.resolve(fn(req, res, next
 
 // --- ENDPOINTS API ---
 
-// LOGIN
 app.post('/api/login', asyncHandler(async (req, res) => {
   const { email, password, authKey: providedAuthKey } = req.body;
   let data;
@@ -232,31 +249,21 @@ app.post('/api/login', asyncHandler(async (req, res) => {
   }
   
   const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
-  
-  res.cookie('authKey', data.authKey, { 
-    httpOnly: true, 
-    secure: isSecure,
-    sameSite: isSecure ? 'none' : 'lax'
-  });
-  
+  res.cookie('authKey', data.authKey, { httpOnly: true, secure: isSecure, sameSite: isSecure ? 'none' : 'lax' });
   res.json({ addons: data.addons });
 }));
 
-// GET ADDONS
 app.post('/api/get-addons', asyncHandler(async (req, res) => {
   const { authKey } = req.cookies;
   const authKeyFinal = authKey || req.body.authKey;
   const { email } = req.body;
-  
-  if (!authKeyFinal || !email) return res.status(400).json({ error: { message: "Dati mancanti (Sessione scaduta)." } });
+  if (!authKeyFinal || !email) return res.status(400).json({ error: { message: "Dati mancanti." } });
   res.json({ addons: await getAddonsByAuthKey(authKeyFinal) });
 }));
 
-// SET ADDONS
 app.post('/api/set-addons', asyncHandler(async (req, res) => {
   const { authKey } = req.cookies;
   const authKeyFinal = authKey || req.body.authKey; 
-
   if (!authKeyFinal) return res.status(401).json({ error: { message: "Non autorizzato." } });
   
   const { error } = schemas.setAddons.validate(req.body);
@@ -282,7 +289,6 @@ app.post('/api/set-addons', asyncHandler(async (req, res) => {
   res.json({ success: true, message: "Salvataggio riuscito." });
 }));
 
-// FETCH MANIFEST
 app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
   const { error } = schemas.manifestUrl.validate(req.body);
   if (error) return res.status(400).json({ error: { message: "URL non valido." } });
@@ -295,7 +301,6 @@ app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
   }
   
   const resp = await fetchWithTimeout(manifestUrl, { headers, redirect: 'error' });
-  
   if (!resp.ok) throw new Error(`Errore fetch: ${resp.status}`);
   validateApiResponse(resp, MAX_MANIFEST_SIZE_BYTES);
   
@@ -316,19 +321,16 @@ app.post('/api/logout', (req, res) => {
 
 app.use('/api/*', (req, res) => res.status(404).json({ error: { message: 'Endpoint inesistente.' } }));
 
-// ERROR HANDLER GLOBALE
 app.use((err, req, res, next) => {
   console.error(`[ERROR] ${req.method} ${req.path}: ${err.message}`);
-  // Gestione specifica per errore CSRF
   if (err.code === 'EBADCSRFTOKEN') {
-      return res.status(403).json({ error: { message: "Sessione non valida o scaduta (Errore CSRF). Ricarica la pagina." } });
+      return res.status(403).json({ error: { message: "Sessione scaduta (CSRF). Ricarica la pagina." } });
   }
   const status = err.status || 500;
   const message = status === 500 ? 'Errore interno del server.' : err.message;
   res.status(status).json({ error: { message } });
 });
 
-// LOGICA BUSINESS
 async function getAddonsByAuthKey(authKey) {
   const { error } = schemas.authKey.validate({ authKey });
   if (error) throw new Error("AuthKey non valida.");
@@ -360,6 +362,4 @@ async function getStremioData(email, password) {
   return { addons, authKey: data.result.authKey };
 }
 
-// AVVIO
 app.listen(PORT, () => console.log(`Docker Server running on ${PORT} (Secure Mode)`));
-
