@@ -7,10 +7,15 @@ const Joi = require('joi');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const sanitizeHtml = require('sanitize-html');
-const dns = require('dns'); // Modificato: usa dns standard, non promises, per la compatibilità con lookup
+const dns = require('dns');
 const net = require('net');
-const http = require('http');   // NUOVO: Necessario per l'Agent sicuro
-const https = require('https'); // NUOVO: Necessario per l'Agent sicuro
+const http = require('http');
+const https = require('https');
+
+// --- NUOVI MODULI PER CSRF ---
+// Assicurati di fare: npm install express-session lusca
+const session = require('express-session');
+const lusca = require('lusca');
 
 if (!global.AbortController) {
   global.AbortController = require('abort-controller').AbortController;
@@ -18,6 +23,7 @@ if (!global.AbortController) {
 
 const app = express();
 const PORT = process.env.PORT || 7860;
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 // Fondamentale per il Rate Limit se sei dietro proxy (Render, Heroku, Docker, Nginx)
 app.set('trust proxy', 1);
@@ -30,6 +36,7 @@ const ADDONS_GET_URL = `${STREMIO_API_BASE}addonCollectionGet`;
 const ADDONS_SET_URL = `${STREMIO_API_BASE}addonCollectionSet`;
 const FETCH_TIMEOUT = 10000;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const SESSION_SECRET = process.env.SESSION_SECRET || 'cambia_questa_stringa_secreta_in_produzione_32byte';
 
 // Limiti
 const MAX_JSON_PAYLOAD = '250kb';
@@ -40,9 +47,9 @@ const SANITIZE_MAX_DEPTH = 6;
 const SANITIZE_MAX_STRING = 2000;
 const SANITIZE_MAX_ARRAY = 200;
 
-// --- MIDDLEWARE DI SICUREZZA --
+// --- MIDDLEWARE DI SICUREZZA ---
 
-// 1. Helmet (Configurazione permissiva per uso pubblico)
+// 1. Helmet
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -60,7 +67,7 @@ app.use(helmet({
 
 // 2. Rate Limiting
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minuti
+  windowMs: 15 * 60 * 1000,
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
@@ -73,14 +80,37 @@ app.use(express.json({ limit: MAX_JSON_PAYLOAD }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 3. Sessioni (Necessario per Lusca CSRF) [FIX CODEQL]
+// Nota: In produzione, l'uso di MemoryStore (default) non è raccomandato per alte performance,
+// ma è sufficiente per addon semplici.
+app.use(session({
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+        secure: IS_PRODUCTION, // true su HTTPS
+        httpOnly: true,
+        sameSite: IS_PRODUCTION ? 'none' : 'lax'
+    }
+}));
+
+// 4. Protezione CSRF (Lusca) [FIX CODEQL]
+app.use(lusca.csrf({
+    cookie: false // Usiamo la sessione per il token
+}));
+
+// Endpoint per permettere al frontend di ottenere il token CSRF
+app.get('/api/csrf-token', (req, res) => {
+    res.json({ csrfToken: res.locals._csrf });
+});
+
 // --- CORS CONFIGURATION ---
 app.use(cors({
   origin: true,
   credentials: true
 }));
 
-// --- SISTEMA DI SICUREZZA SSRF (FIX CODEQL) ---
-
+// --- SISTEMA DI SICUREZZA SSRF ---
 function isPrivateIp(ip) {
   if (net.isIPv6(ip) && ip.startsWith('::ffff:')) { ip = ip.substring(7); }
   if (net.isIPv4(ip)) {
@@ -93,27 +123,20 @@ function isPrivateIp(ip) {
   return false;
 }
 
-// Funzione di lookup DNS personalizzata che blocca gli IP privati
-// Questa viene eseguita DENTRO il processo di connessione, prevenendo il DNS Rebinding
 function secureLookup(hostname, options, callback) {
   dns.lookup(hostname, options, (err, address, family) => {
     if (err) return callback(err);
-    
-    // Se l'indirizzo risolto è privato, blocchiamo tutto PRIMA di inviare dati
     if (isPrivateIp(address)) {
       return callback(new Error(`ERR_SSRF: Accesso a IP privato ${address} non consentito.`));
     }
-    
     callback(null, address, family);
   });
 }
 
-// Agenti HTTP/HTTPS configurati con il lookup sicuro
 const httpAgent = new http.Agent({ lookup: secureLookup });
 const httpsAgent = new https.Agent({ lookup: secureLookup });
 
-// --- ALTRI HELPERS ---
-
+// --- HELPERS ---
 const sanitizeOptions = { allowedTags: [], allowedAttributes: {} };
 const sanitize = (text) => text ? sanitizeHtml(text.trim(), sanitizeOptions) : '';
 
@@ -148,33 +171,22 @@ async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   
-  // Seleziona l'agente corretto in base al protocollo dell'URL
   let agent;
   try {
     const parsedUrl = new URL(url);
-    if (parsedUrl.protocol === 'https:') {
-      agent = httpsAgent;
-    } else {
-      agent = httpAgent;
-    }
+    agent = parsedUrl.protocol === 'https:' ? httpsAgent : httpAgent;
   } catch (e) {
     clearTimeout(id);
     throw new Error("URL non valido.");
   }
 
   try {
-    // Passiamo l'agente che esegue il secureLookup
-    const res = await fetch(url, { 
-      ...options, 
-      agent: agent, 
-      signal: controller.signal 
-    });
+    const res = await fetch(url, { ...options, agent: agent, signal: controller.signal });
     clearTimeout(id);
     return res;
   } catch (err) {
     clearTimeout(id);
     if (err.name === 'AbortError') throw new Error('Richiesta al server scaduta (timeout).');
-    // Rilanciamo l'errore SSRF se proviene dal nostro lookup
     if (err.message && err.message.includes('ERR_SSRF')) throw new Error("URL non consentito (IP Privato rilevato).");
     throw err;
   }
@@ -276,10 +288,6 @@ app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
   if (error) return res.status(400).json({ error: { message: "URL non valido." } });
   
   const { manifestUrl } = req.body;
-  
-  // NOTA: isSafeUrl non serve più qui perché fetchWithTimeout usa secureLookup internamente.
-  // Qualsiasi tentativo di accesso a IP privati (Localhost/LAN) verrà bloccato dall'agente.
-
   const headers = {};
   const parsedUrl = new URL(manifestUrl);
   if (GITHUB_TOKEN && ['api.github.com', 'raw.githubusercontent.com'].includes(parsedUrl.hostname)) {
@@ -311,6 +319,10 @@ app.use('/api/*', (req, res) => res.status(404).json({ error: { message: 'Endpoi
 // ERROR HANDLER GLOBALE
 app.use((err, req, res, next) => {
   console.error(`[ERROR] ${req.method} ${req.path}: ${err.message}`);
+  // Gestione specifica per errore CSRF
+  if (err.code === 'EBADCSRFTOKEN') {
+      return res.status(403).json({ error: { message: "Sessione non valida o scaduta (Errore CSRF). Ricarica la pagina." } });
+  }
   const status = err.status || 500;
   const message = status === 500 ? 'Errore interno del server.' : err.message;
   res.status(status).json({ error: { message } });
@@ -321,7 +333,6 @@ async function getAddonsByAuthKey(authKey) {
   const { error } = schemas.authKey.validate({ authKey });
   if (error) throw new Error("AuthKey non valida.");
   
-  // Qui usiamo fetchWithTimeout per sicurezza, anche se ci fidiamo delle API Stremio
   const res = await fetchWithTimeout(ADDONS_GET_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -350,4 +361,5 @@ async function getStremioData(email, password) {
 }
 
 // AVVIO
-app.listen(PORT, () => console.log(`Docker Server running on ${PORT} (Secure SSRF Mode)`));
+app.listen(PORT, () => console.log(`Docker Server running on ${PORT} (Secure Mode)`));
+
