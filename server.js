@@ -40,7 +40,7 @@ const SANITIZE_MAX_DEPTH = 6;
 const SANITIZE_MAX_STRING = 2000;
 const SANITIZE_MAX_ARRAY = 200;
 
-// --- MIDDLEWARE DI SICUREZZA ---
+// --- MIDDLEWARE DI SICUREZZA --
 
 // 1. Helmet (Configurazione permissiva per uso pubblico)
 app.use(helmet({
