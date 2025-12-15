@@ -7,8 +7,10 @@ const Joi = require('joi');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const sanitizeHtml = require('sanitize-html');
-const dns = require('dns').promises;
+const dns = require('dns'); // Modificato: usa dns standard, non promises, per la compatibilità con lookup
 const net = require('net');
+const http = require('http');   // NUOVO: Necessario per l'Agent sicuro
+const https = require('https'); // NUOVO: Necessario per l'Agent sicuro
 
 if (!global.AbortController) {
   global.AbortController = require('abort-controller').AbortController;
@@ -45,9 +47,9 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "'unsafe-eval'", "'unsafe-inline'", "https:", "http:"], // Permissivo per frontend esterni
+      "script-src": ["'self'", "'unsafe-eval'", "'unsafe-inline'", "https:", "http:"],
       "style-src": ["'self'", "'unsafe-inline'", "https:", "http:"],
-      "connect-src": ["'self'", "https:", "http:"], // Permette connessioni ovunque
+      "connect-src": ["'self'", "https:", "http:"],
       "img-src": ["'self'", "data:", "https:", "http:"]
     }
   },
@@ -56,10 +58,10 @@ app.use(helmet({
   originAgentCluster: false
 }));
 
-// 2. Rate Limiting (ESSENZIALE per progetti pubblici per evitare crash da troppi utenti)
+// 2. Rate Limiting
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minuti
-  max: 200, // Aumentato a 200 richieste per IP (più tollerante per uso pubblico)
+  max: 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: { message: "Troppe richieste. Riprova tra qualche minuto." } }
@@ -71,15 +73,14 @@ app.use(express.json({ limit: MAX_JSON_PAYLOAD }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- CORS CONFIGURATION (APERTA A TUTTI) ---
-// Impostando origin: true, il server riflette l'origine della richiesta.
-// Questo permette a QUALSIASI sito (Stremio Web, app locali, ecc.) di connettersi.
+// --- CORS CONFIGURATION ---
 app.use(cors({
-  origin: true, // <--- QUESTA È LA CHIAVE PER L'ACCESSO PUBBLICO
-  credentials: true // Permette il passaggio dei cookie di sessione
+  origin: true,
+  credentials: true
 }));
 
-// --- HELPERS SICUREZZA ---
+// --- SISTEMA DI SICUREZZA SSRF (FIX CODEQL) ---
+
 function isPrivateIp(ip) {
   if (net.isIPv6(ip) && ip.startsWith('::ffff:')) { ip = ip.substring(7); }
   if (net.isIPv4(ip)) {
@@ -92,22 +93,26 @@ function isPrivateIp(ip) {
   return false;
 }
 
-async function isSafeUrl(urlString) {
-  try {
-    const parsed = new URL(urlString);
-    if (!['http:', 'https:'].includes(parsed.protocol)) return false;
-    const hostname = parsed.hostname;
-    if (hostname.toLowerCase() === 'localhost') return false;
-    // Nota: Per un servizio pubblico, potresti voler permettere connessioni anche a IP locali
-    // se l'utente sta usando un addon locale, ma per sicurezza SSRF teniamo il filtro base.
-    if (net.isIP(hostname)) return !isPrivateIp(hostname);
+// Funzione di lookup DNS personalizzata che blocca gli IP privati
+// Questa viene eseguita DENTRO il processo di connessione, prevenendo il DNS Rebinding
+function secureLookup(hostname, options, callback) {
+  dns.lookup(hostname, options, (err, address, family) => {
+    if (err) return callback(err);
     
-    const addressesInfo = await dns.lookup(hostname, { all: true });
-    const ips = addressesInfo.map(info => info.address);
-    if (ips.length === 0 || ips.some(isPrivateIp)) return false;
-    return true;
-  } catch (err) { return false; }
+    // Se l'indirizzo risolto è privato, blocchiamo tutto PRIMA di inviare dati
+    if (isPrivateIp(address)) {
+      return callback(new Error(`ERR_SSRF: Accesso a IP privato ${address} non consentito.`));
+    }
+    
+    callback(null, address, family);
+  });
 }
+
+// Agenti HTTP/HTTPS configurati con il lookup sicuro
+const httpAgent = new http.Agent({ lookup: secureLookup });
+const httpsAgent = new https.Agent({ lookup: secureLookup });
+
+// --- ALTRI HELPERS ---
 
 const sanitizeOptions = { allowedTags: [], allowedAttributes: {} };
 const sanitize = (text) => text ? sanitizeHtml(text.trim(), sanitizeOptions) : '';
@@ -142,13 +147,35 @@ function sanitizeObject(data, currentDepth = 0, seen = new WeakSet()) {
 async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
+  
+  // Seleziona l'agente corretto in base al protocollo dell'URL
+  let agent;
   try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
+    const parsedUrl = new URL(url);
+    if (parsedUrl.protocol === 'https:') {
+      agent = httpsAgent;
+    } else {
+      agent = httpAgent;
+    }
+  } catch (e) {
+    clearTimeout(id);
+    throw new Error("URL non valido.");
+  }
+
+  try {
+    // Passiamo l'agente che esegue il secureLookup
+    const res = await fetch(url, { 
+      ...options, 
+      agent: agent, 
+      signal: controller.signal 
+    });
     clearTimeout(id);
     return res;
   } catch (err) {
     clearTimeout(id);
     if (err.name === 'AbortError') throw new Error('Richiesta al server scaduta (timeout).');
+    // Rilanciamo l'errore SSRF se proviene dal nostro lookup
+    if (err.message && err.message.includes('ERR_SSRF')) throw new Error("URL non consentito (IP Privato rilevato).");
     throw err;
   }
 }
@@ -192,16 +219,12 @@ app.post('/api/login', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: { message: "Email/password o authKey richiesti." } });
   }
   
-  // IMPORTANTE PER USO PUBBLICO:
-  // sameSite: 'none' e secure: true sono necessari se il backend è su un dominio diverso dal frontend (es. Vercel vs VPS).
-  // Se sei su HTTP (non HTTPS), usa sameSite: 'lax' e secure: false.
-  // Qui mettiamo una logica ibrida che tenta di funzionare ovunque.
   const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
   
   res.cookie('authKey', data.authKey, { 
     httpOnly: true, 
-    secure: isSecure, // True solo se siamo in HTTPS
-    sameSite: isSecure ? 'none' : 'lax' // 'none' serve per Cross-Site cookies su HTTPS
+    secure: isSecure,
+    sameSite: isSecure ? 'none' : 'lax'
   });
   
   res.json({ addons: data.addons });
@@ -210,7 +233,6 @@ app.post('/api/login', asyncHandler(async (req, res) => {
 // GET ADDONS
 app.post('/api/get-addons', asyncHandler(async (req, res) => {
   const { authKey } = req.cookies;
-  // Fallback: controlla anche il body se i cookie non funzionano (cross-site issues)
   const authKeyFinal = authKey || req.body.authKey;
   const { email } = req.body;
   
@@ -221,7 +243,7 @@ app.post('/api/get-addons', asyncHandler(async (req, res) => {
 // SET ADDONS
 app.post('/api/set-addons', asyncHandler(async (req, res) => {
   const { authKey } = req.cookies;
-  const authKeyFinal = authKey || req.body.authKey; // Fallback
+  const authKeyFinal = authKey || req.body.authKey; 
 
   if (!authKeyFinal) return res.status(401).json({ error: { message: "Non autorizzato." } });
   
@@ -252,18 +274,23 @@ app.post('/api/set-addons', asyncHandler(async (req, res) => {
 app.post('/api/fetch-manifest', asyncHandler(async (req, res) => {
   const { error } = schemas.manifestUrl.validate(req.body);
   if (error) return res.status(400).json({ error: { message: "URL non valido." } });
+  
   const { manifestUrl } = req.body;
-  const isSafe = await isSafeUrl(manifestUrl);
-  if (!isSafe) return res.status(400).json({ error: { message: "URL non consentito (SSRF/Private IP)." } });
+  
+  // NOTA: isSafeUrl non serve più qui perché fetchWithTimeout usa secureLookup internamente.
+  // Qualsiasi tentativo di accesso a IP privati (Localhost/LAN) verrà bloccato dall'agente.
 
   const headers = {};
   const parsedUrl = new URL(manifestUrl);
   if (GITHUB_TOKEN && ['api.github.com', 'raw.githubusercontent.com'].includes(parsedUrl.hostname)) {
     headers['Authorization'] = `token ${GITHUB_TOKEN}`;
   }
+  
   const resp = await fetchWithTimeout(manifestUrl, { headers, redirect: 'error' });
+  
   if (!resp.ok) throw new Error(`Errore fetch: ${resp.status}`);
   validateApiResponse(resp, MAX_MANIFEST_SIZE_BYTES);
+  
   const manifest = await resp.json();
   const { error: manifestError } = schemas.manifestCore.validate(manifest);
   if (manifestError) throw new Error(`Manifesto non conforme: ${manifestError.details[0].message}`);
@@ -293,6 +320,8 @@ app.use((err, req, res, next) => {
 async function getAddonsByAuthKey(authKey) {
   const { error } = schemas.authKey.validate({ authKey });
   if (error) throw new Error("AuthKey non valida.");
+  
+  // Qui usiamo fetchWithTimeout per sicurezza, anche se ci fidiamo delle API Stremio
   const res = await fetchWithTimeout(ADDONS_GET_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -307,6 +336,7 @@ async function getAddonsByAuthKey(authKey) {
 async function getStremioData(email, password) {
   const { error } = schemas.login.validate({ email, password });
   if (error) throw new Error("Email o password non valide.");
+  
   const res = await fetchWithTimeout(LOGIN_API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -320,4 +350,4 @@ async function getStremioData(email, password) {
 }
 
 // AVVIO
-app.listen(PORT, () => console.log(`Docker Server running on ${PORT} (Public Mode)`));
+app.listen(PORT, () => console.log(`Docker Server running on ${PORT} (Secure SSRF Mode)`));
